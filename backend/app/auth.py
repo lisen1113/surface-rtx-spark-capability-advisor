@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import os
 import secrets
 import sqlite3
 
@@ -40,6 +41,15 @@ class RegisterInput(BaseModel):
 class LoginInput(BaseModel):
     email: str
     password: str
+
+
+class PasswordResetRequestInput(BaseModel):
+    email: str
+
+
+class PasswordResetConfirmInput(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+    new_password: str = Field(min_length=12, max_length=256)
 
 
 class LicenseInput(BaseModel):
@@ -158,6 +168,43 @@ def login(data: LoginInput):
         audit(conn, "auth.login_succeeded", actor=user["id"], organization_id=user["organization_id"])
         conn.commit()
     return {"access_token": token, "token_type": "bearer", "expires_at": iso(expires)}
+
+
+@router.post("/auth/password-reset/request")
+def request_password_reset(data: PasswordResetRequestInput):
+    """Create a short-lived, single-use token without revealing account existence."""
+    email = _email(data.email)
+    response = {"status": "accepted", "message": "若账号存在，重置说明将发送至登记邮箱"}
+    with connection() as conn:
+        user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if not user:
+            return response
+        token = secrets.token_urlsafe(32)
+        created = now()
+        conn.execute("UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND used_at IS NULL", (iso(created), user["id"]))
+        conn.execute("INSERT INTO password_reset_tokens VALUES (?,?,?,?,NULL)",
+                     (_token_hash(token), user["id"], iso(created), iso(created + timedelta(minutes=30))))
+        audit(conn, "auth.password_reset_requested", organization_id=user["organization_id"], target_type="user", target_id=user["id"])
+        conn.commit()
+    if os.getenv("CAPABILITY_DEV_EXPOSE_TOKENS") == "1":
+        response["development_token"] = token
+    return response
+
+
+@router.post("/auth/password-reset/confirm")
+def confirm_password_reset(data: PasswordResetConfirmInput):
+    token_hash = _token_hash(data.token)
+    with connection() as conn:
+        row = conn.execute("SELECT r.*,u.organization_id FROM password_reset_tokens r JOIN users u ON u.id=r.user_id WHERE r.token_hash=?", (token_hash,)).fetchone()
+        if not row or row["used_at"] or datetime.fromisoformat(row["expires_at"]) <= now():
+            raise HTTPException(400, "重置链接无效或已过期")
+        changed = iso(now())
+        conn.execute("UPDATE users SET password_hash=?,failed_login_count=0,locked_until=NULL WHERE id=?", (hasher.hash(data.new_password), row["user_id"]))
+        conn.execute("UPDATE password_reset_tokens SET used_at=? WHERE token_hash=?", (changed, token_hash))
+        conn.execute("UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", (changed, row["user_id"]))
+        audit(conn, "auth.password_reset_completed", actor=row["user_id"], organization_id=row["organization_id"], target_type="user", target_id=row["user_id"])
+        conn.commit()
+    return {"status": "password_updated"}
 
 
 @router.get("/auth/me")

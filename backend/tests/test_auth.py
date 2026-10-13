@@ -49,3 +49,22 @@ def test_failed_login_locks_after_five_attempts():
         response=client.post("/api/auth/login",json={"email":email,"password":"Wrong-password-123"})
         assert response.status_code == 401
     assert client.post("/api/auth/login",json={"email":email,"password":"Correct-password-123"}).status_code == 429
+
+def test_password_reset_is_single_use_and_revokes_sessions(monkeypatch):
+    _, admin_token = seed_admin()
+    monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
+    with connection() as conn:
+        email = conn.execute("SELECT email FROM users WHERE role='admin' ORDER BY id DESC LIMIT 1").fetchone()[0]
+    requested = client.post("/api/auth/password-reset/request", json={"email": email})
+    token = requested.json()["development_token"]
+    confirmed = client.post("/api/auth/password-reset/confirm", json={"token":token,"new_password":"New-admin-password-456"})
+    assert confirmed.status_code == 200
+    assert client.get("/api/auth/me", headers={"Authorization":f"Bearer {admin_token}"}).status_code == 401
+    assert client.post("/api/auth/password-reset/confirm", json={"token":token,"new_password":"Another-password-789"}).status_code == 400
+    assert client.post("/api/auth/login", json={"email":email,"password":"New-admin-password-456"}).status_code == 200
+
+def test_password_reset_request_does_not_disclose_unknown_email(monkeypatch):
+    monkeypatch.delenv("CAPABILITY_DEV_EXPOSE_TOKENS", raising=False)
+    response = client.post("/api/auth/password-reset/request", json={"email":"missing@example.com"})
+    assert response.status_code == 200
+    assert "development_token" not in response.json()
