@@ -5,11 +5,13 @@ from pydantic import BaseModel, Field
 
 from .catalog import router as catalog_router
 from .capability import estimate_capacity
+from .auth import router as auth_router
 from .ui import router as ui_router
 
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
 
 app.include_router(catalog_router)
+app.include_router(auth_router)
 app.include_router(ui_router)
 
 class MemoryEstimateInput(BaseModel):

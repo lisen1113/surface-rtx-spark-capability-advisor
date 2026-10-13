@@ -31,5 +31,18 @@ cd backend
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
+## 首位管理员
+
+系统没有默认管理员密码。首次部署时，在当前 PowerShell 会话设置管理员邮箱和至少 12 位强密码，然后运行初始化脚本：
+
+```powershell
+$env:CAPABILITY_ADMIN_EMAIL='admin@example.com'
+$env:CAPABILITY_ADMIN_PASSWORD='replace-with-a-strong-password'
+.\backend\.venv\Scripts\python.exe .\scripts\bootstrap-admin.py
+Remove-Item Env:CAPABILITY_ADMIN_PASSWORD
+```
+
+初始化仅允许执行一次。注册用户必须完成邮箱验证、管理员审批，并获得未过期且有可用席位的组织 License 后才能登录。
+
 ## 重要限制
-本分支仍是初期演示。暂未实现正式身份认证、License、完整 SKU 数据导入或可交付的 Windows ARM64 兼容性测试。默认仅监听 127.0.0.1，不要将此开发服务器暴露公网。
+本分支已具备本地身份认证、审批、License 强制校验和 V3.4 数据导入，但尚未接入生产邮件服务、管理员 MFA、CSRF 防护和生产级反向代理。默认仅监听 127.0.0.1，不要将此开发服务器直接暴露公网。

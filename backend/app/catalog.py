@@ -50,6 +50,29 @@ CREATE TABLE IF NOT EXISTS imported_evidence (
  source_title TEXT, source_url TEXT, published_at TEXT, handling_rule TEXT,
  source_sha256 TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS organizations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+ created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS users (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, organization_id INTEGER, email TEXT NOT NULL UNIQUE,
+ password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'pending',
+ email_verified INTEGER NOT NULL DEFAULT 0, failed_login_count INTEGER NOT NULL DEFAULT 0,
+ locked_until TEXT, created_at TEXT NOT NULL, approved_at TEXT
+);
+CREATE TABLE IF NOT EXISTS licenses (
+ organization_id INTEGER PRIMARY KEY, seats INTEGER NOT NULL, expires_at TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'active', updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sessions (
+ token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at TEXT NOT NULL,
+ expires_at TEXT NOT NULL, revoked_at TEXT
+);
+CREATE TABLE IF NOT EXISTS audit_logs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, occurred_at TEXT NOT NULL, actor_user_id INTEGER,
+ organization_id INTEGER, action TEXT NOT NULL, target_type TEXT, target_id TEXT,
+ details_json TEXT NOT NULL
+);
 """
 SEED_SKUS = [
  ("S2","Surface Laptop Ultra",18,5120,None,"Windows 11 Pro","user_supplied_unverified","GPU/CPU mapping from project discussion; exact SKU and memory must be checked against official product listing."),
