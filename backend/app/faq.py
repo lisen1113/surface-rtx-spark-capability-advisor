@@ -1,54 +1,177 @@
-"""Indexed Chinese FAQ generated from reviewed, source-linked topic definitions."""
-from fastapi import APIRouter, Query
+"""Chinese AI knowledge base for customer education and sales enablement."""
+from fastapi import APIRouter, HTTPException, Query
 
-router=APIRouter(prefix="/api/faq",tags=["faq"])
+router = APIRouter(prefix="/api/faq", tags=["faq"])
 
-TOPICS=[
- ("选型基础","统一内存和显存有什么区别？","统一内存由 CPU、GPU 和系统共享，不能把标称容量全部当作模型权重空间。","容量评估需扣除 Windows、运行时、量化元数据、KV Cache 和其他进程；能装入不等于兼容或可用。","https://docs.nvidia.com/rtx-spark/rtx-spark-porting-guide/latest/overview.html","统一内存 显存 容量"),
- ("设备硬件","S2 和 S3 应该如何选择？","先按工作负载、内存和预算筛选，再比较 GPU 平台，不只看核心数。","S2/S3 核心数差异不能线性换算 Token/s 或 FPS；需要同条件 SKU 实测。","https://www.nvidia.com/en-us/products/rtx-spark/","S2 S3 GPU 选型"),
- ("AI模型","参数量越大效果一定越好吗？","不一定。任务、模型版本、量化和提示词都会影响效果。","参数量不是质量的充分条件；应基于目标任务评测准确率、延迟、吞吐、内存和许可证。","https://www.nvidia.com/en-sg/products/rtx-spark/help-me-choose/","参数量 模型质量"),
- ("AI模型","量化格式如何影响内存？","位数越低通常越省内存，但可能损失质量。","权重内存约为参数量×位数/8，另加量化元数据、KV Cache、运行时和系统预留。","https://github.com/ggml-org/llama.cpp","量化 Q4 Q5 内存"),
- ("AI模型","上下文长度为什么会增加内存？","模型记住的内容越长，KV Cache 通常越大。","KV Cache 随层数、隐藏维度、精度、序列长度及并发增长；需按具体架构计算。","https://github.com/ggml-org/llama.cpp","上下文 KV Cache"),
- ("部署运行时","Windows ARM64 推荐什么本地运行时？","优先选择官方明确支持 Windows ARM64 的版本，并逐机验证。","LM Studio 与 llama.cpp 有明确 ARM64 路径；其他框架需按固定版本、后端和驱动验证。","https://lmstudio.ai/docs/app/system-requirements","Windows ARM64 运行时"),
- ("部署运行时","vLLM 能否原生运行在 Windows？","官方不支持原生 Windows，通常考虑 WSL2 或外部 Linux 服务器。","vLLM 官方要求 Linux；WSL2 仍需验证 ARM64、CUDA、驱动和目标 GPU 路径。","https://docs.vllm.ai/en/latest/getting_started/installation/gpu/","vLLM Windows WSL2"),
- ("部署运行时","TensorRT-LLM 能否原生运行在 Windows？","当前官方重点是 Linux 和容器，不应按原生 Windows 方案销售。","原生 Windows 支持已弃用；建议 NGC/Linux 外部服务器，WSL2 仅在完成验证后采用。","https://nvidia.github.io/TensorRT-LLM/1.3.0rc27/installation/installation-guide.html","TensorRT-LLM Windows Linux"),
- ("游戏","平台宣传的 1440p 100 FPS 适用于每款游戏吗？","不适用。必须知道具体游戏、画质、驱动和帧生成设置。","平台级宣传缺少可复现测试条件，不能作为具体 SKU 或游戏的 FPS 保证。","https://nvidianews.nvidia.com/news/nvidia-microsoft-windows-pcs-agents-rtx-spark","FPS 平台宣传"),
- ("游戏","Windows ARM 游戏为什么要检查反作弊？","部分反作弊驱动可能不兼容 ARM，游戏可能无法启动。","需逐款验证游戏版本、ARM64/仿真路径、内核驱动、反作弊和发行商支持状态。","https://blogs.windows.com/windowsexperience/2026/05/31/introducing-a-powerful-new-chapter-for-windows-pcs-accelerated-by-nvidia-rtx-spark/","游戏 ARM 反作弊"),
- ("游戏","内存更大是否一定提高 FPS？","不一定。同一 GPU 平台增加内存主要提升余量。","FPS 受 GPU、功耗、散热、驱动、API 和场景影响；容量不足解除后才可能改善。","https://www.nvidia.com/en-us/products/rtx-spark/","内存 FPS"),
- ("生产力","软件兼容性应该如何确认？","检查软件版本、Windows ARM 支持、插件、驱动和实际项目。","最低配置仅说明门槛；需建立版本化兼容矩阵并用代表性文件验证功能与性能。","https://learn.microsoft.com/windows/arm/overview","软件兼容 Windows ARM"),
- ("生产力","视频剪辑能力如何评估？","要看分辨率、编码格式、特效、素材规模和导出要求。","记录 NLE 版本、编解码器、时间线、代理、GPU 加速、驱动与持续导出耗时。","https://www.nvidia.com/en-us/studio/","视频剪辑 GPU"),
- ("生成式AI","图像生成的官方倍数能换算成秒数吗？","不能。没有原始秒数就不能计算绝对时间。","相对加速比仅适用于声明中的模型、精度、步数、分辨率和对比设备。","https://blogs.windows.com/windowsexperience/2026/10/07/building-windows-for-hybrid-intelligence/","图像生成 相对性能"),
- ("生成式AI","视频生成需要关注哪些设置？","帧数、分辨率、采样步数、模型和精度都会影响时间与内存。","必须记录模型版本、精度、帧数、FPS、步数、输出尺寸、运行时及峰值内存。","https://blogs.windows.com/windowsexperience/2026/10/07/building-windows-for-hybrid-intelligence/","视频生成 设置"),
- ("证据与基准","官方声明、实测和估算有什么区别？","官方声明说明厂商口径；实测可复现；估算用于规划但不是保证。","记录 evidence_level、来源 URL、版本、测试条件、日期、置信度、适用范围和限制。","https://www.nvidia.com/en-us/products/rtx-spark/","证据 实测 估算"),
- ("证据与基准","为什么未知数据不能填零？","零表示测量结果，未知表示没有可靠数据，两者含义不同。","数据库应使用 NULL/unknown，避免聚合、排序和推荐引擎把缺失值解释为真实性能。","https://www.nvidia.com/en-us/products/rtx-spark/","未知 NULL 数据质量"),
- ("成本TCO","本地 AI 的 TCO 包含什么？","设备净成本、电费、维护，以及用户选择纳入的其他成本。","应公开价格、残值、功耗、利用率、电价、维护、周期和云端 Token 单价假设。","https://www.nvidia.com/en-sg/products/rtx-spark/help-me-choose/","TCO 本地 云端"),
- ("成本TCO","什么时候适合本地加云端混合？","隐私或高频任务放本地，复杂或突发任务使用云端。","按数据敏感度、SLA、模型质量、峰值并发、单位成本和可用性设计路由。","https://developer.nvidia.com/topics/ai/local-ai","混合AI 云端 本地"),
- ("成本TCO","Token 节省能直接等同 ROI 吗？","不能，还要考虑设备、能源、人员、维护和业务收益。","ROI 需定义基线、增量现金流、周期、残值和不可量化收益，避免只比较 Token 单价。","https://developer.nvidia.com/topics/ai/local-ai","Token ROI"),
- ("安全与账号","为什么用户注册后还不能立即登录？","需要完成邮箱验证、管理员审批和 License 授权。","服务端依次校验 email_verified、status、组织 License 到期和席位，不能只靠前端隐藏。","https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html","注册 审批 License"),
- ("安全与账号","密码如何保存？","只保存不可逆的 Argon2id 哈希，不保存明文。","使用独立盐、合理内存与时间成本，并支持未来 rehash；秘密仅从环境变量读取。","https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html","Argon2id 密码"),
- ("安全与账号","License 席位如何执行？","由服务端统计有效用户会话，席位用完就拒绝新的用户登录。","校验必须与组织隔离、到期时间、撤销状态和审计日志组合，避免仅做 UI 限制。","https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html","License 席位"),
- ("报告与销售","客户报告为什么必须列限制？","限制能防止把平台能力误解为具体设备保证。","报告应包含配置、证据等级、测试条件、未知项、成本假设、适用范围和复核日期。","https://www.nvidia.com/en-us/products/rtx-spark/","客户报告 限制"),
- ("数据维护","数据库多久更新一次？","价格、驱动、模型和软件变化时都应更新并重新审核。","以版本化导入保存来源哈希、发布日期、有效期、审核人和变更审计，旧数据不可静默覆盖。","https://www.nvidia.com/en-us/products/rtx-spark/","数据更新 审计"),
-]
-CONTEXTS=["个人日常使用","企业知识库","AI Coding","销售选型","隐私敏感场景","多人并发","长上下文任务","采购评估"]
+SOURCES = {
+    "AI基础知识": "https://learn.microsoft.com/windows/ai/",
+    "模型架构": "https://huggingface.co/docs/transformers/index",
+    "模型与内存": "https://docs.nvidia.com/rtx-spark/rtx-spark-porting-guide/latest/uma/umacuda.html",
+    "推理性能": "https://docs.vllm.ai/en/latest/serving/metrics.html",
+    "量化与精度": "https://github.com/ggml-org/llama.cpp",
+    "Surface Laptop Ultra": "https://www.microsoft.com/en-us/d/surface-laptop-ultra-for-business/8wg5vqp0x4d1/",
+    "RTX Spark硬件": "https://www.nvidia.com/en-us/products/rtx-spark/",
+    "Windows与兼容": "https://docs.nvidia.com/rtx-spark/rtx-spark-porting-guide/latest/",
+    "本地AI部署": "https://developer.nvidia.com/topics/ai/local-ai/port-apps",
+    "生成式AI": "https://blogs.nvidia.com/blog/rtx-ai-garage-ces-2026-open-models-video-generation/",
+    "安全与隐私": "https://genai.owasp.org/",
+    "选型与销售": "https://www.nvidia.com/en-us/products/rtx-spark/",
+}
 
-FAQ=[]
-for topic_index,(category,question,easy,expert,url,keywords) in enumerate(TOPICS):
- for context_index,context in enumerate(CONTEXTS):
-  FAQ.append({"id":f"FAQ-{topic_index*8+context_index+1:03d}","category":category,"question":f"{context}：{question}","easy_answer":easy,"expert_answer":expert,"keywords":keywords.split()+[context],"source_url":url,"review_status":"reviewed_seed","sku_relevance":"all","framework_relevance":[]})
+# Each entry is one independent teaching concept: term, plain explanation,
+# engineering implication, and the misconception sales teams should avoid.
+CONCEPTS = {
+"AI基础知识": [
+ ("人工智能（AI）","让计算机完成通常需要人类判断的任务的总称。","AI 是上位概念，包含规则系统、机器学习和生成式模型等多种方法。","AI 不等于聊天机器人，也不保证答案正确。"),
+ ("机器学习（ML）","让系统从数据中学习规律，而不是把每条规则都手工写出。","训练得到的模型只对其数据、目标和评测范围负责。","数据更多不一定更好，数据质量和任务匹配更重要。"),
+ ("深度学习","使用多层神经网络学习复杂模式。","现代视觉、语音和大语言模型多属于深度学习，但计算与内存需求差异很大。","深度学习不是所有业务问题的最佳方案。"),
+ ("训练","用数据调整模型参数的过程。","完整训练通常比推理需要更多算力、内存、时间和数据治理。","能运行模型不等于能在同一设备上训练它。"),
+ ("推理","使用已训练模型处理新输入并产生结果。","本地 AI 顾问主要评估推理；模型格式、运行时和算子兼容性同样关键。","模型能装入内存不代表推理一定能启动或可用。"),
+ ("微调","在已有模型基础上继续训练，使其适应特定任务或风格。","LoRA 等参数高效微调可降低成本，但仍需要训练框架、显存和数据。","微调不是给模型上传文档的同义词。"),
+ ("提示词（Prompt）","给模型的任务说明、上下文和输出要求。","提示结构会影响质量、输入 Token、首字延迟和复现性。","提示词不能弥补模型能力、知识时效或安全控制不足。"),
+ ("Token","模型处理文本时使用的基本片段，不等于一个汉字或一个英文单词。","不同 tokenizer 的切分方式不同；成本、上下文和速度应按实际 Token 统计。","不能用字数直接精确换算 Token 数。"),
+ ("Embedding向量","把文本、图像等内容表示为可比较的数字向量。","常用于语义搜索和 RAG；向量模型、维度和分块策略会影响召回质量。","相似度高不等于事实正确或业务上相关。"),
+],
+"模型架构": [
+ ("Transformer","利用注意力机制处理序列的主流模型架构。","不同 Transformer 的层数、隐藏维度、注意力形式和上下文实现决定内存与速度。","同为 Transformer 不代表性能或用途相同。"),
+ ("注意力机制","让模型判断输入中哪些部分彼此相关。","长上下文注意力会增加计算和 KV Cache 压力，不同实现复杂度不同。","上下文翻倍不一定只增加一倍开销。"),
+ ("MoE混合专家模型","每次只激活模型中的部分专家网络，而不是使用全部参数。","MoE 可降低每 Token 计算量，但全部专家权重通常仍需存储和搬运，并带来路由与通信代价。","激活参数少不等于只需加载这些参数的内存。"),
+ ("Dense稠密模型","每次推理通常使用全部主要模型参数。","容量估算较直观，但每 Token 计算量通常与总参数规模关系更直接。","同参数量下不能仅凭 Dense 或 MoE 标签判断质量。"),
+ ("参数量","模型中可学习数值的数量，常用 B 表示十亿。","参数量影响权重内存和计算，但不是质量、速度或任务效果的充分条件。","70B 不一定在所有任务上优于较新的 32B。"),
+ ("多模态模型","可以处理文本之外的图像、音频或视频。","视觉编码器、音频模块和媒体分辨率会额外消耗内存与计算。","支持图片不等于支持视频，也不等于能生成图片。"),
+ ("扩散模型","通过逐步去噪生成图像或视频的模型。","采样步数、分辨率、批量、精度和节点图共同决定耗时与内存。","模型参数较小也可能因中间张量而占用大量内存。"),
+ ("自回归模型","按顺序预测下一个 Token 或元素。","LLM 解码通常是自回归过程，因此输出长度直接影响总耗时。","高峰值算力不一定消除逐 Token 生成的延迟。"),
+ ("小语言模型（SLM）","参数规模相对较小、适合特定任务和端侧部署的语言模型。","SLM 往往更省内存、延迟更低，但应以目标任务评测决定是否够用。","小模型不等于低质量，也不天然更安全。"),
+],
+"模型与内存": [
+ ("模型权重","训练后保存的模型参数数据。","基础权重内存约等于参数量乘每参数位数再除以八，另有元数据和运行时开销。","权重文件大小不是运行时全部内存。"),
+ ("统一内存","CPU、GPU 和系统共享的物理内存池。","Windows、显示、驱动、模型权重、KV Cache 和其他应用共同使用它。","统一内存不等于标称容量全部可当显存。"),
+ ("独立显存（VRAM）","独立显卡专门连接的高速内存。","传统 PC 常需在系统内存与显存间复制数据；统一内存平台的预算方式不同。","统一内存容量大不代表带宽和独显显存完全等价。"),
+ ("系统预留","操作系统、驱动、桌面和后台进程必须占用的内存。","能力估算应先扣除系统与运行时安全余量，不能使用理论满容量。","任务管理器的空闲值也会随缓存和应用变化。"),
+ ("KV Cache","LLM 为已处理上下文保存的注意力键和值。","它随层数、维度、上下文长度、精度、批量和并发增长。","量化权重不会自动按同样比例压缩 KV Cache。"),
+ ("上下文窗口","模型单次可处理的历史 Token 上限。","最大窗口是架构或配置上限，不代表在本机使用该长度仍快速、稳定或有高质量。","宣传的一百万上下文不是每个模型和 SKU 的默认能力。"),
+ ("Batch批量","一次共同处理的请求或样本数量。","增大 batch 可能提高吞吐，但通常增加峰值内存和单请求等待。","batch 越大不代表交互体验越快。"),
+ ("并发用户","同一服务同时处理的独立请求数量。","每个会话的上下文和 KV Cache 会竞争统一内存与计算资源。","单用户可用不能直接推导多人可用。"),
+ ("内存卸载（Offload）","把部分权重或计算放到 CPU/系统内存或其他设备。","卸载可让更大模型启动，但数据搬运可能显著降低速度。","能靠卸载运行不等于达到可接受体验。"),
+],
+"推理性能": [
+ ("延迟（Latency）","从提交请求到获得结果所需的时间。","应拆分首字延迟、生成阶段和端到端时间，并记录输入输出长度。","平均延迟不能描述最慢用户体验。"),
+ ("首Token延迟（TTFT）","从请求开始到出现第一个输出 Token 的时间。","TTFT 主要受模型加载、排队和长输入预填充影响。","Token/s 高不代表首字一定快。"),
+ ("Token/s","模型每秒生成的 Token 数。","必须注明模型版本、量化、运行时、输入输出长度、并发、电源和测量方法。","不同 tokenizer、模型和条件的 Token/s 不能直接横比。"),
+ ("吞吐量","系统单位时间处理的总工作量。","服务端可牺牲单请求延迟换取更高总体吞吐。","吞吐高不代表每个用户响应快。"),
+ ("Prefill预填充","模型处理全部输入上下文并建立缓存的阶段。","长文档和长提示会增加预填充时间与计算量。","只测短提示不能代表知识库问答体验。"),
+ ("Decode解码","模型逐个生成输出 Token 的阶段。","解码常受内存访问、量化内核和并发调度影响。","峰值 FP4 算力不能直接换算解码速度。"),
+ ("Warm-up预热","首次运行时加载模型、编译内核或建立缓存。","冷启动和热运行应分别测试，面向客户说明是否常驻服务。","只展示预热后最快一次会掩盖真实启动体验。"),
+ ("基准测试","在明确条件下可重复测量性能或质量。","合格记录应包含硬件 SKU、软件版本、模型、精度、提示、输出、功耗与日期。","厂商平台结果不能自动成为具体 SKU 实测。"),
+ ("持续性能与散热","设备长时间负载下能够保持的性能。","短时跑分可能受睿频影响；应观察功耗、温度、噪声和性能衰减。","峰值性能不等于持续性能。"),
+],
+"量化与精度": [
+ ("Bit比特","表示一个数值使用的二进制位数。","位数越低通常越省内存和带宽，但实际格式还包含分组、尺度和元数据。","4-bit 模型运行内存不一定正好是 16-bit 的四分之一。"),
+ ("FP32","32位浮点精度，范围和精度较高。","训练和部分科学计算常用，但 LLM 本地推理通常内存代价较大。","更高精度不保证最终回答更正确。"),
+ ("FP16","16位浮点格式。","相较 FP32 通常节省约一半权重空间，并可利用 GPU 加速。","FP16 与 BF16 的数值范围和兼容性不同。"),
+ ("BF16","保留较大指数范围的16位浮点格式。","常用于训练和推理，但是否高效取决于硬件与运行时支持。","文件标注 BF16 不代表所有算子都按 BF16 执行。"),
+ ("FP8","8位浮点格式族。","可降低内存和计算成本，但需要模型、校准、内核和硬件路径共同支持。","FP8 不是单一统一格式。"),
+ ("FP4与NVFP4","约4位的低精度浮点方案；NVFP4是 NVIDIA 的特定格式路径。","可显著降低权重内存并利用相应 Tensor Core，但需匹配模型检查点和软件栈。","看到1 PFLOP FP4不能推导任意模型Token/s。"),
+ ("INT8","8位整数常见量化格式。","通常在质量和资源之间折中，实际效果取决于量化方法和算子覆盖。","INT8 名称相同不代表量化算法相同。"),
+ ("INT4/Q4","约4位整数或分组量化的统称。","非常适合降低大模型权重空间，但不同 Q4 变体质量、大小和速度不同。","Q4 不能视为一个精确统一格式。"),
+ ("GGUF","llama.cpp 生态常用的模型文件格式。","它可包含权重、量化和元数据；运行能力取决于架构支持及所选后端。","能下载 GGUF 不代表该模型一定与当前运行时兼容。"),
+],
+"Surface Laptop Ultra": [
+ ("Surface Laptop Ultra定位","面向创作者、开发者、AI 与工程专业负载的高性能 Surface。","普通邮件和文档办公未必需要该级别设备，应以工作负载和总成本选型。","最贵配置不一定是每位员工的最佳设备。"),
+ ("S2平台","RTX Spark 的 18核 CPU、5120核 GPU 档位。","具体性能仍受内存、功耗、散热、驱动和软件影响。","S2 与 S3 核心数差不能线性换算性能差。"),
+ ("S3平台","RTX Spark 的 20核 CPU、6144核 GPU 档位。","更高平台档位为重型任务提供潜力，但必须结合内存容量和实际测试。","S3 不会让所有办公软件同比加速。"),
+ ("Part Number","用于识别具体销售配置的料号。","同一产品名可能包含平台、内存、存储、颜色和价格差异，报告必须绑定料号。","只写 Surface Laptop Ultra 无法准确选型。"),
+ ("24GB配置","统一内存入门配置。","适合办公、开发与轻量本地 AI；扣除系统后不宜默认承诺大型模型或重视频工作流。","24GB 不能全部作为模型权重空间。"),
+ ("32GB配置","主流专业统一内存配置。","比24GB提供更多多任务和中型模型余量，但长上下文与视频生成仍需控制。","容量增加不一定提高同一模型的速度。"),
+ ("48GB配置","进阶专业统一内存配置。","适合更大模型、中重度创作和开发并行，但仍需保留系统与中间张量空间。","48GB 不等于任何 48GB 独显。"),
+ ("64GB配置","高阶专业统一内存配置。","可覆盖更多本地模型和创作工作流，是部分官方参考演示的容量档，但不能套用演示成绩。","相同容量不等于相同散热和持续性能。"),
+ ("128GB配置","最高统一内存配置。","主要价值是容纳更大模型、场景和多工具并行；仍需核对兼容性与可用速度。","能装入120B模型不等于该模型体验一定优秀。"),
+ ("Windows 11 Pro","商业配置使用的专业版 Windows。","提供企业管理与安全能力；AI软件的ARM64兼容仍取决于应用、驱动和插件。","Pro版本身不会让AI推理更快。"),
+],
+"RTX Spark硬件": [
+ ("Grace CPU","RTX Spark 中基于 Arm 架构的 CPU。","应用应优先使用原生 ARM64 或验证 Prism 模拟路径。","Grace 名称不代表数据中心 Grace CPU 的全部规格。"),
+ ("Blackwell RTX GPU","提供图形、CUDA、Tensor Core和光追能力的集成 GPU。","具体 SKU 核心数、功耗与内存容量不同，平台能力不是单机基准。","Blackwell 架构名不能直接推导应用速度。"),
+ ("Tensor Core","针对矩阵与低精度 AI 运算优化的 GPU 单元。","只有软件使用受支持的数据类型和内核时才能发挥优势。","有 Tensor Core 不代表所有 AI 软件自动加速。"),
+ ("RT Core","用于加速光线追踪相关计算的 GPU 单元。","主要影响支持 RTX/OptiX/DXR 的渲染和游戏工作流。","RT Core 不是 LLM 推理的主要指标。"),
+ ("CUDA","NVIDIA 的并行计算平台与软件生态。","模型框架、驱动、CUDA版本和ARM64 wheel必须匹配。","支持CUDA不等于任意Linux项目可原样在Windows运行。"),
+ ("NVENC硬件编码","GPU内置的视频编码引擎。","可加速受支持的H.264、HEVC或AV1导出，仍受软件与格式支持限制。","有编码器不代表所有导出设置都走硬件。"),
+ ("NVDEC硬件解码","GPU内置的视频解码能力。","有助于受支持素材的回放和预处理，但编解码格式、位深与色度采样要匹配。","无法解码的格式不会因GPU强大而自动支持。"),
+ ("OptiX","NVIDIA 的光线追踪与渲染开发接口。","Blender等应用可使用相关后端，但版本与ARM64支持需实机确认。","OptiX能力不等于每个渲染器都有原生支持。"),
+ ("300GB/s峰值带宽","官方最高平台的理论内存带宽指标。","真实工作负载受到访问模式、共享竞争、功耗和软件效率影响。","不能用峰值带宽计算Token/s或渲染时间。"),
+],
+"Windows与兼容": [
+ ("Windows on Arm","运行在ARM64处理器上的Windows。","系统支持原生ARM64应用，也可通过Prism运行许多x64应用。","能启动x64应用不代表全部插件和驱动兼容。"),
+ ("ARM64原生应用","直接为ARM64编译的Windows应用。","通常具有更好的效率和平台集成，但还要验证GPU后端与依赖。","原生CPU架构不等于GPU加速已经启用。"),
+ ("Prism模拟","Windows用于运行许多x86/x64应用的转换层。","它翻译CPU代码；GPU设备代码仍走平台GPU，但扩展和驱动可能受限。","模拟不是虚拟机，也不能模拟不兼容的内核驱动。"),
+ ("ARM64EC","允许ARM64与x64组件逐步混合的Windows ABI。","适合分阶段移植大型应用，但依赖边界和性能关键路径要设计。","ARM64EC不是所有应用都需要的最终形态。"),
+ ("设备驱动","让系统控制GPU、音频、采集卡等硬件的软件。","内核驱动必须支持Windows ARM64；Prism不能解决驱动架构不兼容。","应用可模拟运行不代表外设一定可用。"),
+ ("插件兼容","主应用之外的扩展、编解码器、节点和脚本支持情况。","专业工作流常因单个x64插件或Python wheel无法使用而中断。","主程序原生ARM64不等于插件生态全部原生。"),
+ ("WSL2","Windows中的Linux虚拟化环境。","可承载部分Linux工具，但GPU、ARM64容器、网络和文件IO均需验证。","WSL2不等于官方支持原生Windows的软件。"),
+ ("Windows ML","Windows提供的本地模型推理与执行提供程序框架。","支持x64和ARM64，特定硬件优化路径要求相应系统版本和驱动。","支持Windows ML不代表所有模型算子都能落到GPU。"),
+ ("Windows 11 24H2 Build 26100","部分新AI执行提供程序要求的最低系统版本。","企业镜像、更新通道和驱动版本应纳入部署基线。","只满足系统版本仍不能替代模型和应用测试。"),
+],
+"本地AI部署": [
+ ("AI运行时","负责加载模型、执行算子和管理硬件后端的软件。","同一模型在不同运行时的格式、兼容性、内存和速度可能不同。","更换运行时后旧基准不能直接沿用。"),
+ ("Ollama","面向本地模型管理与API服务的工具。","应固定版本、模型清单、后端和Windows ARM64支持状态再部署。","安装成功不代表每个模型都使用GPU。"),
+ ("LM Studio","提供模型下载、聊天和本地API的桌面工具。","适合演示和个人使用，但企业部署仍需审核模型许可、版本和更新策略。","图形界面易用不等于生产服务治理完整。"),
+ ("llama.cpp","面向高效LLM推理的开源C/C++项目。","支持多种量化和后端；模型架构与构建版本必须匹配。","llama.cpp支持某GPU不代表任意分支和构建都支持。"),
+ ("vLLM","强调批处理和服务吞吐的LLM推理引擎。","官方重点是Linux；Windows通常考虑WSL2或外部服务器并验证ARM64/CUDA路径。","不能把Linux服务器文档当作原生Windows支持。"),
+ ("TensorRT-LLM","NVIDIA面向LLM优化的推理栈。","Windows、Linux、容器、GPU架构和版本支持需按官方矩阵确认。","TensorRT与TensorRT-LLM不是同一个产品层。"),
+ ("ComfyUI","使用节点图构建图像和视频生成工作流的工具。","自定义节点、Python依赖、模型格式和显存峰值决定实际兼容性。","工作流文件能打开不代表所有节点能执行。"),
+ ("容器","把应用和依赖封装在镜像中的部署方式。","镜像架构、GPU透传、驱动和许可证仍依赖宿主机。","容器不能自动解决x64镜像在ARM64上的兼容问题。"),
+ ("模型许可","规定模型权重可否商用、再分发或生成特定内容的条款。","企业部署必须记录模型版本、来源、许可与使用限制。","开源代码不代表模型权重可无限制商用。"),
+],
+"生成式AI": [
+ ("文生图","根据文本提示生成图像。","模型、分辨率、步数、精度和随机种子共同影响结果与资源。","一次成功不代表所有分辨率都稳定。"),
+ ("采样步数","扩散生成过程中迭代去噪的次数。","更多步数通常增加耗时，但质量收益可能递减且依赖采样器。","步数翻倍不保证质量翻倍。"),
+ ("生成分辨率","输出图像或视频的像素尺寸。","分辨率提高会明显增加中间张量和计算，视频还叠加帧数。","最终4K可由超分获得，不一定是原生4K生成。"),
+ ("随机种子","控制随机生成过程的起始状态。","固定模型、工作流和种子有助于复现对比。","相同种子跨版本或硬件不一定逐像素一致。"),
+ ("LoRA","用较小适配参数改变模型风格或任务的技术。","可减少微调与分发成本，但多个LoRA组合会影响质量和资源。","LoRA文件小不代表基础模型不需要加载。"),
+ ("图生图","以已有图像作为条件进行修改或再生成。","输入分辨率、去噪强度、控制网络和节点图影响内存与结果。","图生图不是无损编辑。"),
+ ("视频生成","按文本、图像或关键帧生成连续画面。","模型权重、帧数、分辨率、音频、步骤和中间张量使资源需求很高。","平台支持4K工作流不等于所有SKU原生生成4K。"),
+],
+"安全与隐私": [
+ ("本地AI与数据边界","模型在设备上运行可减少内容发往云端。","仍要检查遥测、模型下载、更新、日志、插件和外部工具是否联网。","本地运行不等于完全离线或自动合规。"),
+ ("RAG数据隐私","检索增强会把企业文档片段提供给模型。","应控制索引权限、租户隔离、删除同步、日志和引用来源。","RAG不等于模型绝不会泄露检索内容。"),
+ ("提示词注入","恶意内容试图让模型忽略原有规则或调用不当工具。","需要输入隔离、工具授权、输出验证和最小权限，不能只靠系统提示词。","模型拒答模板不是完整安全边界。"),
+ ("模型供应链","模型、运行时、节点和插件的来源与更新链路。","应校验来源、哈希、签名、许可、漏洞和变更记录。","从热门网站下载不代表文件可信。"),
+ ("审计日志","记录谁在何时执行了什么关键操作。","账号、审批、License、模型更新和管理动作应可追溯且防篡改。","日志不是越多越好，敏感内容也要最小化。"),
+ ("磁盘加密与Windows安全","BitLocker、TPM和Secured-core等用于保护设备与密钥。","本地模型和知识库仍需账号权限、备份、补丁和丢失设备响应。","硬件安全功能不能替代应用权限控制。"),
+],
+"选型与销售": [
+ ("装得下、能启动与好用","这是三个不同层次的判断。","容量足够只说明权重可能装入；还要验证运行时兼容、速度、稳定性和输出质量。","销售不能把装得下表述为流畅运行。"),
+ ("官方声明、实测与工程估算","三者的证据强度和适用范围不同。","报告应记录来源、SKU、版本、条件、日期和限制，不能把平台声明改写成单机实测。","工程估算必须明确标注，不能包装成官方数据。"),
+ ("未知与零","未知表示没有可靠数据，零表示测量结果为零。","数据库和报告必须保留NULL/unknown，避免排序与推荐误判。","不能为了表格完整而填0或编造平均值。"),
+ ("PoC概念验证","用客户真实数据和工作流做小范围验证。","PoC应预先定义成功标准、版本、样本、性能、安全和复现步骤。","演示成功不等于生产环境通过验收。"),
+ ("本地、云端与混合AI","三种部署方式各有隐私、质量、成本和扩展性取舍。","应按数据敏感度、模型能力、并发、SLA、单位成本和离线需求设计路由。","本地并非永远更便宜，云端也并非永远更强。"),
+],
+}
+
+assert sum(len(items) for items in CONCEPTS.values()) == 100
+
+FAQ = []
+for category, concepts in CONCEPTS.items():
+    for term, easy, expert, misconception in concepts:
+        base = len(FAQ) + 1
+        common = {"category": category, "keywords": [term, category], "source_url": SOURCES[category], "review_status": "reviewed_concept", "sku_relevance": "Surface Laptop Ultra / RTX Spark", "framework_relevance": []}
+        FAQ.append({"id": f"FAQ-{base:03d}", "question": f"{term}是什么？", "easy_answer": easy, "expert_answer": expert, "misconception": misconception, "sales_tip": f"先确认客户是否真的涉及“{term}”，再说明适用范围、验证条件和未知项。", **common})
+        FAQ.append({"id": f"FAQ-{base+1:03d}", "question": f"{term}对 Surface Laptop Ultra 选型和使用有什么影响？", "easy_answer": expert, "expert_answer": f"选型不能只看“{term}”标签；应结合具体 Part Number、内存、软件版本、任务条件和证据等级验证。", "misconception": misconception, "sales_tip": f"不要把“{term}”单项指标当成性能承诺；用客户真实任务做 PoC。", **common})
+
 
 @router.get("")
-def search_faq(q:str|None=None,category:str|None=None,limit:int=Query(default=20,ge=1,le=200)):
- items=FAQ
- if category: items=[x for x in items if x["category"]==category]
- if q:
-  needle=q.casefold()
-  items=[x for x in items if needle in (x["question"]+x["easy_answer"]+x["expert_answer"]+" ".join(x["keywords"])).casefold()]
- return {"items":items[:limit],"total":len(items),"indexed_total":len(FAQ),"categories":sorted({x["category"] for x in FAQ})}
+def search_faq(q: str | None = None, category: str | None = None, limit: int = Query(default=20, ge=1, le=200)):
+    items = FAQ
+    if category:
+        items = [x for x in items if x["category"] == category]
+    if q:
+        needle = q.casefold()
+        items = [x for x in items if needle in (x["question"] + x["easy_answer"] + x["expert_answer"] + x["misconception"] + " ".join(x["keywords"])).casefold()]
+    return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100, "categories": sorted(CONCEPTS)}
+
 
 @router.get("/{faq_id}")
-def faq_detail(faq_id:str):
- from fastapi import HTTPException
- item=next((x for x in FAQ if x["id"]==faq_id),None)
- if not item: raise HTTPException(404,"FAQ 不存在")
- return item
+def faq_detail(faq_id: str):
+    item = next((x for x in FAQ if x["id"] == faq_id), None)
+    if not item:
+        raise HTTPException(404, "FAQ 不存在")
+    return item
