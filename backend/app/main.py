@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from .catalog import router as catalog_router
+from .capability import estimate_capacity
 from .ui import router as ui_router
 
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
@@ -18,6 +19,8 @@ class MemoryEstimateInput(BaseModel):
     runtime_reserve_gb: float = Field(default=8, ge=0)
     kv_cache_gb: float = Field(default=8, ge=0)
     unified_memory_gb: float = Field(default=128, gt=0)
+    quantization_overhead_ratio: float = Field(default=0.10, ge=0, le=1)
+    runtime_compatible: bool | None = None
 
 @app.get("/health")
 def health():
@@ -35,19 +38,12 @@ def about():
 
 @app.post("/api/estimate/memory")
 def estimate_memory(data: MemoryEstimateInput):
-    # Decimal GB convention: 1B parameters * 1 bit / 8 = 0.125GB.
-    weight_gb = data.parameters_billion * data.bits_per_weight / 8
-    reserves = data.os_reserve_gb + data.runtime_reserve_gb + data.kv_cache_gb
-    available = max(data.unified_memory_gb - reserves, 0)
-    return {
-        "estimated_weight_gb": round(weight_gb, 2),
-        "available_budget_gb": round(available, 2),
-        "theoretical_weight_fit": weight_gb <= available,
-        "evidence_level": "engineering_estimate",
-        "limitations": [
-            "不含量化元数据及框架特殊开销",
-            "无法保证 GPU 可分配内存或运行速度",
-            "该估算不等于 SKU 兼容性、Token/s 或官方实测",
-        ],
-        "checked_at": datetime.now(timezone.utc).isoformat(),
-    }
+    result = estimate_capacity(**data.model_dump()).as_dict()
+    # Keep the original fields during the V3 bootstrap API transition.
+    result["estimated_weight_gb"] = result["weight_gb"]
+    result["available_budget_gb"] = round(
+        max(data.unified_memory_gb - data.os_reserve_gb - data.runtime_reserve_gb - data.kv_cache_gb, 0), 2
+    )
+    result["theoretical_weight_fit"] = result["fits_in_memory"] == "fits"
+    result["checked_at"] = datetime.now(timezone.utc).isoformat()
+    return result
