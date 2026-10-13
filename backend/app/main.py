@@ -1,11 +1,11 @@
 """Capability Advisor V3 local-first API bootstrap; not production auth."""
 from datetime import datetime, timezone
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel, Field
 
 from .catalog import router as catalog_router
 from .capability import estimate_capacity
-from .auth import router as auth_router
+from .auth import require_entitled_user, router as auth_router
 from .tco import router as tco_router
 from .knowledge import router as knowledge_router
 from .faq import router as faq_router
@@ -49,7 +49,7 @@ def about():
     }
 
 @app.post("/api/estimate/memory")
-def estimate_memory(data: MemoryEstimateInput):
+def estimate_memory(data: MemoryEstimateInput, _user=Depends(require_entitled_user)):
     result = estimate_capacity(**data.model_dump()).as_dict()
     # Keep the original fields during the V3 bootstrap API transition.
     result["estimated_weight_gb"] = result["weight_gb"]

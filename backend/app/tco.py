@@ -1,6 +1,7 @@
 """Editable local/cloud/hybrid TCO calculator; all outputs are scenario estimates."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from .auth import require_entitled_user
 
 router = APIRouter(prefix="/api/tco", tags=["tco"])
 
@@ -18,7 +19,7 @@ class TcoInput(BaseModel):
     hybrid_cloud_share: float = Field(default=0.25, ge=0, le=1)
 
 @router.post("/calculate")
-def calculate(data: TcoInput):
+def calculate(data: TcoInput, _user=Depends(require_entitled_user)):
     electricity = data.power_watts / 1000 * data.hours_per_day * data.days_per_year * data.years * data.electricity_cny_per_kwh
     maintenance = data.annual_maintenance_cny * data.years
     local = data.purchase_price_cny - data.residual_value_cny + electricity + maintenance

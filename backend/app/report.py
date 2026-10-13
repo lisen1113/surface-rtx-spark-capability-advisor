@@ -1,7 +1,8 @@
 """Printable evidence-backed customer report."""
 from html import escape
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
+from .auth import require_entitled_user
 from .catalog import connection, source_sheet
 
 router=APIRouter(prefix="/api/reports",tags=["reports"])
@@ -22,7 +23,7 @@ def section(title,items,title_keys,result_keys):
  return f"<h2>{title}</h2><table><thead><tr><th>工作负载</th><th>判断/结果</th><th>证据等级</th><th>来源</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
 
 @router.get("/{part_number}.html",response_class=HTMLResponse)
-def customer_report(part_number:str):
+def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  with connection() as conn:
   row=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
  if not row: raise HTTPException(404,"未找到该 Part Number")

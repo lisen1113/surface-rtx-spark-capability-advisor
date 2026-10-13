@@ -67,3 +67,5 @@ Remove-Item Env:CAPABILITY_ADMIN_PASSWORD
 
 ## 重要限制
 本分支已具备本地身份认证、审批、License 强制校验和 V3.4 数据导入，但尚未接入生产邮件服务、管理员 MFA、CSRF 防护和生产级反向代理。默认仅监听 127.0.0.1，不要将此开发服务器直接暴露公网。
+
+本机演示默认允许未登录用户查看计算和报告。准备共享部署时必须先设置 `$env:CAPABILITY_REQUIRE_AUTH='1'`；开启后，内存估算、TCO 与客户报告会在每次请求时校验 Bearer 会话及组织 License，已过期 License 会立即被拒绝。正式部署还应由反向代理配置 HTTPS，并在邮件服务与管理员 MFA 完成前保持内网访问。

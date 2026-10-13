@@ -112,6 +112,21 @@ def current_user(authorization: str | None = Header(default=None)) -> dict:
     return dict(row)
 
 
+def require_entitled_user(authorization: str | None = Header(default=None)) -> dict | None:
+    """Enforce an active session and License when production protection is enabled.
+
+    Local evaluation remains available by default. Deployments must set
+    CAPABILITY_REQUIRE_AUTH=1 before exposing the service beyond localhost.
+    """
+    if os.getenv("CAPABILITY_REQUIRE_AUTH") != "1":
+        return None
+    user = current_user(authorization)
+    with connection() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
+        _license_check(conn, row)
+    return user
+
+
 def require_admin(user=Depends(current_user)) -> dict:
     if user["role"] != "admin":
         raise HTTPException(403, "需要管理员权限")
