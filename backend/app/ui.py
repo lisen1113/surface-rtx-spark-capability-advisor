@@ -1,32 +1,22 @@
-"""Minimal local UI; future Next.js frontend will replace this starter."""
+"""Chinese-first local advisor UI backed by the imported V3.4 workbook."""
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+
 router = APIRouter()
+
 @router.get("/", response_class=HTMLResponse)
 def index():
- return """<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
- <title>Surface / RTX Spark PC Capability Advisor V3.0</title>
- <style>body{font:16px system-ui,'Microsoft YaHei',sans-serif;background:#f5f7fb;color:#172033;margin:0}
- main{max-width:920px;margin:48px auto;padding:24px}header,section{background:white;border:1px solid #e3e8ef;border-radius:16px;padding:24px;margin-bottom:18px}
- h1{font-size:27px}a{color:#1764bc}button{background:#1758b5;color:white;border:0;padding:11px 18px;border-radius:8px;cursor:pointer}
- input{padding:10px;border:1px solid #aebaca;border-radius:8px;width:120px}small{color:#64748b}footer{text-align:center;color:#64748b;padding:25px}
- .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.tile{padding:16px;background:#f4f7fc;border-radius:12px}</style></head>
- <body><main><header><small>本地开发预览 · V3.0</small><h1>Surface / RTX Spark PC Capability Advisor</h1>
- <p>Surface Laptop Ultra · AI 本地模型 · 游戏 · 生产力 · 部署指导</p>
- <small>当前仅开放演示查询；用户登录和授权功能尚未完成，不应部署至公网。</small></header>
- <section><h2>能力顾问</h2><div class="grid"><div class="tile">AI 模型推荐<br><small>开发中</small></div>
- <div class="tile">游戏能力<br><small>待导入验证数据</small></div><div class="tile">生产力软件<br><small>开发中</small></div>
- <div class="tile">部署与 AI 知识库<br><small>开发中</small></div></div></section>
- <section><h2>模型权重内存估算</h2><p><label>参数 B <input id="params" type="number" min="1" value="70"></label>
- <label>量化 bit <input id="bits" type="number" min="1" value="4"></label></p>
- <button onclick="estimate()">计算理论容量</button><p id="result" role="status"></p>
- <small>工程估算：不含量化元数据、KV Cache、运行时开销；不能保证模型可运行或 Token/s。</small></section>
- <section><h2>本地 API 与数据</h2><p><a href="/docs">API 文档</a> · <a href="/api/catalog/skus">SKU 列表</a> ·
- <a href="/api/catalog/sources">官方来源台账</a></p></section>
- <footer>© 2026 上海以和信息技术有限公司。保留所有权利。<br>
- <small>Microsoft、Surface、NVIDIA、RTX 商标归各自权利人所有。</small></footer></main>
- <script>async function estimate(){let el=document.getElementById('result');el.textContent='计算中…';
- try{let r=await fetch('/api/estimate/memory',{method:'POST',headers:{'Content-Type':'application/json'},
- body:JSON.stringify({parameters_billion:Number(document.getElementById('params').value),bits_per_weight:Number(document.getElementById('bits').value)})});
- if(!r.ok)throw Error('参数不正确');let d=await r.json();el.textContent='理论权重 '+d.estimated_weight_gb+' GB；剩余预算 '+d.available_budget_gb+' GB（仅供估算）'}
- catch(e){el.textContent='计算失败：'+e.message}}</script></body></html>"""
+ return r'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Surface / RTX Spark PC Capability Advisor V3.0</title><style>
+:root{--ink:#101828;--muted:#667085;--line:#e4e7ec;--blue:#175cd3;--pale:#eff4ff;--amber:#b54708}*{box-sizing:border-box}body{margin:0;background:#f7f8fa;color:var(--ink);font:15px/1.55 system-ui,'Microsoft YaHei',sans-serif}.top{background:#0b1220;color:white;padding:34px 24px}.wrap{max-width:1180px;margin:auto}.eyebrow{color:#9db7ff;font-weight:700;letter-spacing:.08em}h1{margin:.3rem 0;font-size:clamp(25px,4vw,38px)}h2{font-size:22px;margin:0 0 14px}h3{font-size:17px;margin:14px 0 8px}.sub{color:#cbd5e1;max-width:820px}.bar{background:white;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}.bar .wrap{display:flex;gap:12px;align-items:center;padding:14px 24px}.bar label{font-weight:700}.bar select{flex:1;max-width:650px;padding:11px;border:1px solid #98a2b3;border-radius:8px;background:white}main{padding:24px}.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px #1018280a}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.metric{background:#f9fafb;border-radius:10px;padding:14px}.metric b{display:block;font-size:17px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabs button{padding:9px 14px;border:1px solid #b2c5e8;border-radius:999px;background:white;color:#1849a9;cursor:pointer}.tabs button.active{background:var(--blue);color:white;border-color:var(--blue)}.card{border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}.card p{margin:5px 0}.tag{display:inline-block;background:var(--pale);color:#1849a9;padding:2px 8px;border-radius:999px;margin:2px 5px 2px 0;font-size:12px}.warn{color:var(--amber)}.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed #b9c1cc;border-radius:10px}.status{color:var(--muted)}footer{text-align:center;color:var(--muted);padding:30px}@media(max-width:650px){.bar .wrap{align-items:stretch;flex-direction:column}.bar select{max-width:none}main{padding:14px}}
+</style></head><body><header class="top"><div class="wrap"><div class="eyebrow">V3.0 本地能力顾问</div><h1>Surface Laptop Ultra 能力映射</h1><div class="sub">按真实 Part Number 查看配置、AI 模型、游戏、生成式 AI 与生产力映射。所有结论保留证据等级和限制，不把平台宣传转换为 SKU 实测。</div></div></header>
+<div class="bar"><div class="wrap"><label for="sku">选择产品配置</label><select id="sku"><option>正在载入 V3.4 数据…</option></select><span id="load" class="status"></span></div></div><main class="wrap"><section class="panel"><h2 id="product">产品概览</h2><div id="metrics" class="grid"></div></section>
+<section class="panel"><div class="tabs" id="tabs"><button data-tab="ai" class="active">AI 模型</button><button data-tab="gaming">游戏</button><button data-tab="generation">生成式 AI</button><button data-tab="productivity">生产力</button><button data-tab="evidence">证据与限制</button></div><div id="content"></div></section>
+<section class="panel"><h2>数据说明</h2><p>当前页面读取授权 V3.4 工作簿。空白 Token/s、FPS 或实测字段保持未知；经验推荐不会显示为官方测试。</p><p><a href="/docs">API 文档</a> · <a href="/api/catalog/imported-skus">SKU 数据</a> · <a href="/api/catalog/sources">来源台账</a></p></section></main><footer>© 2026 上海以和信息技术有限公司。保留所有权利。<br><small>Microsoft、Surface、NVIDIA、RTX 等商标归各自权利人所有。微软商用 Surface 授权 ADR 身份发布前核实。</small></footer>
+<script>
+const $=s=>document.querySelector(s);let data=null,tab='ai';const text=v=>(v===null||v===undefined||v==='')?'未知':String(v);const metric=(k,v)=>`<div class="metric"><span class="status">${k}</span><b>${text(v)}</b></div>`;
+function cards(items){if(!items||!items.length)return '<div class="empty">该 SKU 暂无已验证的直接映射；请查看经验推荐与证据限制。</div>';return items.map(x=>{let title=x['目标模型/场景']||x['游戏名称']||x['推荐模型/工作负载名称']||x['软件/工作负载']||x['推荐定位']||x['推荐游戏类型']||'能力记录',e=x['证据等级']||x['证据类型']||x['数据类型（官方/实测/估算）']||'未知',result=x['本地运行判断']||x['兼容性状态']||x['经验推荐与我的判断']||x['实测结果']||x['内存适配判断']||x['推荐等级']||'待验证',perf=x['预计输出速度_Token/s']||x['平均FPS']||x['官方基准结果']||x['性能指标'],note=x['备注']||x['依据与限制']||x['兼容性风险与销售话术']||x['兼容性/风险']||'';return `<article class="card"><h3>${text(title)}</h3><span class="tag">${text(e)}</span><span class="tag">${text(x['数据状态']||'数据记录')}</span><p><b>判断：</b>${text(result)}</p>${perf?`<p><b>性能：</b>${text(perf)}</p>`:''}${note?`<p class="status">${text(note)}</p>`:''}</article>`}).join('')}
+function render(){if(!data)return;let s=data.sku;$('#product').textContent=`${s.product_family} · ${s.part_number}`;$('#metrics').innerHTML=metric('平台',s.platform_code)+metric('统一内存',s.memory_gb+' GB')+metric('存储',s.storage_tb+' TB')+metric('ERP 含税价',s.erp_price_cny?'¥'+Number(s.erp_price_cny).toLocaleString():'未知')+metric('CPU',s.cpu_model)+metric('GPU',s.gpu_model)+metric('颜色',s.color)+metric('操作系统',s.operating_system);let html='';if(tab==='ai')html=cards(data.ai)+'<h3>同档经验推荐</h3>'+cards(data.ai_recommendations);else if(tab==='gaming')html=cards(data.gaming)+'<h3>同档经验推荐</h3>'+cards(data.gaming_recommendations);else if(tab==='generation')html=cards(data.generation);else if(tab==='productivity')html=cards(data.productivity);else html=`<div class="card"><h3>数据边界</h3><p>${data.disclaimer}</p><p class="warn">平台级 1440p / 100 FPS、120B+ 或理论峰值不能转换为本 SKU 的 FPS、Token/s 或稳定运行承诺。</p><p><b>配置状态：</b>${text(s.data_status)}</p><p><b>来源：</b>${text(s.source_reference)}</p><p><b>备注：</b>${text(s.note)}</p></div>`;$('#content').innerHTML=html}
+async function choose(p){$('#load').textContent='载入中…';try{let r=await fetch('/api/catalog/advisor/'+encodeURIComponent(p));if(!r.ok)throw Error('读取失败');data=await r.json();render();$('#load').textContent=''}catch(e){$('#load').textContent=e.message}}
+async function init(){let r=await fetch('/api/catalog/imported-skus'),j=await r.json(),sel=$('#sku');if(!j.items.length){sel.innerHTML='<option>尚未导入 V3.4 工作簿</option>';$('#content').innerHTML='<div class="empty">请先运行授权工作簿导入。</div>';return}sel.innerHTML=j.items.map(x=>`<option value="${x.part_number}">${x.part_number} · ${x.platform_code} · ${x.memory_gb}GB / ${x.storage_tb}TB · ¥${Number(x.erp_price_cny).toLocaleString()}</option>`).join('');sel.onchange=()=>choose(sel.value);choose(sel.value)}
+$('#tabs').onclick=e=>{if(e.target.tagName!=='BUTTON')return;document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));e.target.classList.add('active');tab=e.target.dataset.tab;render()};init();
+</script></body></html>'''

@@ -80,6 +80,12 @@ def rows(table):
  with connection() as conn:
   return [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY 1")]
 
+def source_sheet(sheet_name):
+ with connection() as conn:
+  return [json.loads(r["record_json"]) for r in conn.execute(
+   "SELECT record_json FROM source_records WHERE sheet_name=? ORDER BY row_number", (sheet_name,)
+  )]
+
 @router.get("/skus")
 def skus(): return {"items":rows("skus"),"note":"待导入完整官方 SKU 数据"}
 
@@ -97,6 +103,25 @@ def imported_skus():
 
 @router.get("/imports")
 def imports(): return {"items": rows("source_imports")}
+
+@router.get("/advisor/{part_number}")
+def advisor(part_number: str):
+ with connection() as conn:
+  sku_row = conn.execute("SELECT * FROM imported_skus WHERE part_number=?", (part_number,)).fetchone()
+ if not sku_row:
+  from fastapi import HTTPException
+  raise HTTPException(status_code=404, detail="未找到该 Part Number")
+ def direct(sheet):
+  return [item for item in source_sheet(sheet) if item.get("Part Number") == part_number]
+ def recommended(sheet):
+  return [item for item in source_sheet(sheet) if part_number in str(item.get("适用SKU", item.get("适用SKU内存档", "")))]
+ return {
+  "sku": dict(sku_row), "ai": direct("AI能力映射"), "gaming": direct("游戏能力映射"),
+  "generation": direct("生成能力映射"), "productivity": direct("生产力能力映射"),
+  "ai_recommendations": recommended("AI经验推荐矩阵"),
+  "gaming_recommendations": recommended("游戏经验推荐矩阵"),
+  "disclaimer": "官方声明、实测、经验推荐和未知数据保持分离；空白性能字段不作推断。",
+ }
 
 @router.post("/import/skus/preview")
 def preview_skus(content: str = Body(media_type="text/csv")):
