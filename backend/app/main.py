@@ -3,7 +3,13 @@ from datetime import datetime, timezone
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from .catalog import router as catalog_router
+from .ui import router as ui_router
+
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
+
+app.include_router(catalog_router)
+app.include_router(ui_router)
 
 class MemoryEstimateInput(BaseModel):
     parameters_billion: float = Field(gt=0, le=1000)
