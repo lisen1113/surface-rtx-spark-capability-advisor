@@ -32,5 +32,5 @@ def test_unknown_part_number_is_404():
 
 def test_home_page_exposes_all_advisor_modules():
     html = client.get("/").text
-    for label in ("Surface Laptop Ultra 能力映射", "AI 模型", "游戏", "生成式 AI", "生产力", "证据与限制"):
+    for label in ("Surface Laptop Ultra 能力映射", "AI 模型", "游戏", "生成式 AI", "生产力", "TCO 成本", "证据与限制"):
         assert label in html
