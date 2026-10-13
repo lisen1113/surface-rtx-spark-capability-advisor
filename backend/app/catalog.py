@@ -2,7 +2,9 @@
 from pathlib import Path
 import json
 import sqlite3
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Body
+
+from .importer import preview_sku_csv
 
 router = APIRouter(prefix="/api/catalog", tags=["catalog"])
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "capability.sqlite3"
@@ -19,6 +21,12 @@ CREATE TABLE IF NOT EXISTS models (
 CREATE TABLE IF NOT EXISTS evidence (
  id TEXT PRIMARY KEY, title TEXT NOT NULL, source_url TEXT NOT NULL,
  evidence_level TEXT NOT NULL, scope TEXT NOT NULL, limitations TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS import_audit (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, source_name TEXT NOT NULL,
+ source_sha256 TEXT NOT NULL, imported_at TEXT NOT NULL, imported_by TEXT NOT NULL,
+ rows_received INTEGER NOT NULL, rows_imported INTEGER NOT NULL,
+ status TEXT NOT NULL, details_json TEXT NOT NULL
 );
 """
 SEED_SKUS = [
@@ -58,3 +66,7 @@ def models(): return {"items":rows("models"),"note":"家族占位，不可作为
 
 @router.get("/sources")
 def sources(): return {"items":rows("evidence")}
+
+@router.post("/import/skus/preview")
+def preview_skus(content: str = Body(media_type="text/csv")):
+ return preview_sku_csv(content).as_dict()
