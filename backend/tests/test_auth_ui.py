@@ -1,0 +1,12 @@
+from fastapi.testclient import TestClient
+from app.main import app
+
+client=TestClient(app)
+
+def test_account_page_has_login_and_registration():
+ html=client.get('/account').text
+ assert '登录' in html and '注册' in html and '至少 12 位' in html
+
+def test_admin_page_has_approval_license_and_audit():
+ html=client.get('/admin').text
+ assert '用户审批' in html and 'License 设置' in html and '最近审计' in html

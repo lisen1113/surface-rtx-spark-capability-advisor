@@ -208,3 +208,30 @@ def set_license(data: LicenseInput, admin=Depends(require_admin)):
         audit(conn, "license.updated", actor=admin["id"], organization_id=data.organization_id, target_type="license", target_id=data.organization_id, details={"seats": data.seats, "expires_at": iso(data.expires_at)})
         conn.commit()
     return {"status": "active", "organization_id": data.organization_id, "seats": data.seats, "expires_at": iso(data.expires_at)}
+
+
+@router.get("/admin/users")
+def list_users(status: str | None = None, admin=Depends(require_admin)):
+    with connection() as conn:
+        sql = "SELECT id,organization_id,email,role,status,email_verified,created_at,approved_at FROM users"
+        params = ()
+        if status:
+            sql += " WHERE status=?"
+            params = (status,)
+        items = [dict(row) for row in conn.execute(sql + " ORDER BY created_at DESC", params)]
+    return {"items": items}
+
+
+@router.get("/admin/licenses")
+def list_licenses(admin=Depends(require_admin)):
+    with connection() as conn:
+        items = [dict(row) for row in conn.execute("SELECT l.*,o.name AS organization_name FROM licenses l JOIN organizations o ON o.id=l.organization_id ORDER BY o.name")]
+    return {"items": items}
+
+
+@router.get("/admin/audit")
+def list_audit(limit: int = 100, admin=Depends(require_admin)):
+    limit = min(max(limit, 1), 500)
+    with connection() as conn:
+        items = [dict(row) for row in conn.execute("SELECT * FROM audit_logs ORDER BY id DESC LIMIT ?", (limit,))]
+    return {"items": items}
