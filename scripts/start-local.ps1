@@ -14,6 +14,19 @@ function Log([string]$Message) {
     Write-Host $line
     Add-Content -Path $LogFile -Value $line -Encoding UTF8
 }
+function Invoke-PythonCommand([string[]]$Arguments) {
+    # PowerShell 5.1 turns native stderr (including pip warnings) into error records
+    # under ErrorActionPreference=Stop. Temporarily Continue; judge exit code instead.
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $Python @Arguments 2>&1 | ForEach-Object { Log ([string]$_) }
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    return $code
+}
 function Fail([string]$Message) {
     Log ('ERROR: ' + $Message)
     Write-Host ('Log: ' + $LogFile) -ForegroundColor Yellow
@@ -30,10 +43,12 @@ if (-not (Test-Path $Python)) {
     $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
     if ($launcher) {
         Log 'Creating Python virtual environment using py -3...'
-        & py -3 -m venv .venv 2>&1 | ForEach-Object { Log "$_" }
+        & py -3 -m venv .venv
+
     } elseif ($pythonCommand) {
         Log 'Creating Python virtual environment using python...'
-        & python -m venv .venv 2>&1 | ForEach-Object { Log "$_" }
+        & python -m venv .venv
+
     } else {
         Fail 'Python not found. Install Python 3.11+ from python.org, enable PATH, and reopen PowerShell.'
     }
@@ -41,17 +56,18 @@ if (-not (Test-Path $Python)) {
         Fail 'Virtual environment creation failed. Check Python installation and Windows ARM64/x64 compatibility.'
     }
 }
-& $Python --version 2>&1 | ForEach-Object { Log "$_" }
-if ($LASTEXITCODE -ne 0) { Fail 'Virtual environment Python is broken. Delete backend/.venv and retry.' }
+$versionExit = Invoke-PythonCommand @('--version')
+if ($versionExit -ne 0) { Fail 'Virtual environment Python is broken. Delete backend/.venv and retry.' }
 
 if (-not $SkipInstall) {
     Log 'Installing backend dependencies...'
-    & $Python -m pip install -r requirements.txt 2>&1 | ForEach-Object { Log "$_" }
-    if ($LASTEXITCODE -ne 0) { Fail 'Dependency installation failed. Check logs/startup.log for pip errors.' }
+    $env:PIP_NO_CACHE_DIR = '1'
+    $pipExit = Invoke-PythonCommand @('-m','pip','install','--disable-pip-version-check','--no-cache-dir','-r','requirements.txt')
+    if ($pipExit -ne 0) { Fail ('Dependency installation failed (exit ' + $pipExit + '). Check logs/startup.log for pip errors.') }
 }
 Log 'Checking FastAPI imports...'
-& $Python -c 'from app.main import app; print("Backend imports OK")' 2>&1 | ForEach-Object { Log "$_" }
-if ($LASTEXITCODE -ne 0) { Fail 'Backend import failed. Check logs/startup.log.' }
+$importExit = Invoke-PythonCommand @('-c','from app.main import app; print("Backend imports OK")')
+if ($importExit -ne 0) { Fail 'Backend import failed. Check logs/startup.log.' }
 
 $BaseUrl = 'http://127.0.0.1:' + $Port
 Log ('Browser address: ' + $BaseUrl + '/')
