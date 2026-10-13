@@ -31,6 +31,27 @@ cd backend
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
+草稿 PR 的持续集成会在 `windows-latest` 与 `ubuntu-latest` 上分别使用 Python 3.12、3.13 运行同一组测试，并在 Windows 检查启动脚本语法。GitHub 托管的 Windows runner 是 x64，因此它不能替代实体 Windows on Arm 设备验收。
+
+## Windows x64 / ARM64 验收矩阵
+
+| 检查项 | Windows x64 | Windows ARM64 | 判定标准 |
+|---|---|---|---|
+| Python 3.12 原生解释器 | CI + 本机 | 必须在实体机执行 | `python -c "import platform; print(platform.machine())"` 与目标架构一致 |
+| 依赖安装 | CI 覆盖 | 必须验证 ARM64 wheel；失败时记录具体包与版本 | 不使用另一架构遗留的 `.venv` |
+| 本地启动 | PowerShell 脚本 | 同一脚本 | `/health` 返回 200，首页、账号页和管理员页可打开 |
+| SQLite 数据读取 | 自动测试 | 实体机抽查 | V3.4 导入后的 SKU 数量、来源台账和映射可读取 |
+| 账号与 License | 自动测试 | 实体机抽查 | 注册、验证、审批、授权、登录、注销和密码重置均正常 |
+
+ARM64 验收前先删除由 x64 Python 创建的 `backend\.venv`，再用 ARM64 Python 重新创建。若某个依赖只能通过 x64 仿真安装，应将其记录为兼容性限制，不能宣称原生 ARM64 支持。
+
+本机快速验收命令：
+
+```powershell
+python -c "import platform,sys; print(sys.version); print(platform.machine())"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1 -Port 8010 -NoBrowser
+```
+
 ## 首位管理员
 
 系统没有默认管理员密码。首次部署时，在当前 PowerShell 会话设置管理员邮箱和至少 12 位强密码，然后运行初始化脚本：

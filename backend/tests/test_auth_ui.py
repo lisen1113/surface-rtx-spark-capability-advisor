@@ -6,6 +6,7 @@ client=TestClient(app)
 def test_account_page_has_login_and_registration():
  html=client.get('/account').text
  assert '登录' in html and '注册' in html and '至少 12 位' in html
+ assert '重置密码' in html and '/api/auth/password-reset/request' in html and '/api/auth/password-reset/confirm' in html
 
 def test_admin_page_has_approval_license_and_audit():
  html=client.get('/admin').text
