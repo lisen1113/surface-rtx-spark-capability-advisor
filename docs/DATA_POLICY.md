@@ -1,0 +1,11 @@
+# Evidence and uncertainty rules
+- `official_tested`: direct vendor test with linked methodology, exact SKU/software/driver and date.
+- `third_party_tested`: attributable independent benchmark and conditions.
+- `engineering_estimate`: reproducible formula and assumptions; always labeled 估算.
+- `unknown`: no defensible data; show 暂无验证数据 rather than a guessed FPS/tok/s.
+- Vendor platform capability statements use `official_claim`; never reclassify as SKU benchmark.
+- Required fields: publisher, source_title, source_url, checked_at, sku_id (nullable), software_version, driver_version, workload, configuration, metric, unit, evidence_level, limitations.
+- Sources in V3.2 include NVIDIA RTX Spark product specifications, RTX Spark Porting Guide, and Microsoft Windows hybrid intelligence announcement. Cross-check current URLs when importing.
+- A 128GB unified-memory device has shared OS/GPU space; no automatic guarantee of 128GB usable GPU allocation.
+- Distinguish GB/GiB and bit precision; account for runtime, KV cache and OS memory.
+- Model quantization and game/software ARM64 compatibility must be validated per release and device.
