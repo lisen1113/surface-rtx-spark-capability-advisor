@@ -157,16 +157,45 @@ for category, concepts in CONCEPTS.items():
         FAQ.append({"id": f"FAQ-{base:03d}", "question": f"{term}是什么？", "easy_answer": easy, "expert_answer": expert, "misconception": misconception, "sales_tip": f"先确认客户是否真的涉及“{term}”，再说明适用范围、验证条件和未知项。", **common})
         FAQ.append({"id": f"FAQ-{base+1:03d}", "question": f"{term}对 Surface Laptop Ultra 选型和使用有什么影响？", "easy_answer": expert, "expert_answer": f"选型不能只看“{term}”标签；应结合具体 Part Number、内存、软件版本、任务条件和证据等级验证。", "misconception": misconception, "sales_tip": f"不要把“{term}”单项指标当成性能承诺；用客户真实任务做 PoC。", **common})
 
+# October 7, 2026 Microsoft/NVIDIA announcement: each question has its own
+# official citation and release status, rather than inheriting a category URL.
+MXC_SOURCE = "https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/"
+HYBRID_SOURCE = "https://blogs.windows.com/windowsexperience/2026/10/07/building-windows-for-hybrid-intelligence/"
+COPILOT_SOURCE = "https://commandline.microsoft.com/local-models-sandboxed-tools-github-windows/"
+ANNOUNCEMENT_FAQ = [
+    ("安全与隐私", "Microsoft Execution Containers（MXC）是什么？", "MXC 是微软已宣布正式提供的策略驱动执行隔离层，用来限制 AI 代理、插件、工具或模型生成代码可访问的资源。", "开发者或管理员声明文件、网络等权限；策略置于被隔离工作负载之外，工作负载不能自行扩大权限。它不是模型推理引擎。", "MXC 不会自动赋予代理可信身份，也不能替代应用权限审查。", "向客户演示代理操作前，先列出它需要读写的文件与联网范围。", MXC_SOURCE),
+    ("安全与隐私", "MXC 能限制 AI 代理访问哪些资源？", "可以按策略控制文件读写、网络连接和桌面交互等。", "策略可分别定义可修改、只读与不可访问的位置，也可控制入站/出站及回环网络。实际边界取决于所选容器后端。", "允许读取某目录不等于允许修改它。", "用客户真实目录和目标网址列权限清单，再做拒绝访问验证。", MXC_SOURCE),
+    ("安全与隐私", "MXC 的进程容器、会话容器、WSLc 和 MicroVM 有何区别？", "它们是不同隔离强度与软件环境的选项。", "进程容器适合轻量工具执行；Windows 11 会话容器把代理放在独立账户和桌面会话；WSLc 提供 Linux 环境；MicroVM 在 Windows 11/Linux 仍属实验性。", "不能把实验性的 MicroVM 说成所有设备已正式商用。", "先按代理需要的桌面、Linux 工具与风险级别选择后端，再在目标设备验证。", MXC_SOURCE),
+    ("安全与隐私", "MXC 与 Docker/普通 Windows 容器是一回事吗？", "不是。MXC 是面向代理和动态代码的策略层，可映射到不同隔离后端。", "它通过统一配置描述权限，后端可使用 Windows AppContainer、独立会话、WSL 或 MicroVM；不是单一的容器镜像格式。", "安装 Docker 不等于已经为 AI 代理配置 MXC 策略。", "明确客户要隔离的是代理工具、生成代码还是整个代理，再设计策略。", MXC_SOURCE),
+    ("安全与隐私", "MXC 已正式提供，是否意味着所有安全能力都已上线？", "MXC 隔离层已正式提供；代理身份与企业管理能力仍有分阶段交付。", "微软称 Entra 区分代理与用户身份、Agent 365 本地代理治理等能力将继续推出；部署时应按实际版本与租户许可确认。", "不能把路线图中的能力当作当前所有客户都可用。", "销售材料分开标明已提供、实验性与即将推出的功能。", MXC_SOURCE),
+    ("安全与隐私", "MXC 能否防止提示词注入造成的一切风险？", "不能。它限制代理可执行操作的范围，但不能保证模型不被误导。", "应同时设置最小权限、敏感操作确认、身份与审计，并验证工具返回内容和外部数据；隔离主要降低越权后的影响范围。", "有沙箱不等于可以给代理无限文件或网络权限。", "请客户列出不可触碰的目录、服务和凭据，并实测边界。", MXC_SOURCE),
+    ("选型与销售", "Hybrid intelligence（混合智能）是什么？", "让本地模型与云端模型按任务需要协同工作。", "微软在 10 月 7 日说明其依赖本地模型、智能路由、运行时和设备算力；路由应考虑质量、时延、成本、隐私与联网条件。", "混合智能不保证每个请求都留在本地。", "先确认客户对数据出域、离线运行、成本与质量的要求。", HYBRID_SOURCE),
+    ("选型与销售", "混合智能如何决定任务在本地还是云端执行？", "智能路由可依据任务与策略选择合适的模型和计算位置。", "微软宣布 GitHub HydraFusion 将扩展到 Windows 本地模型；GitHub Copilot 应用、CLI 和 VS Code 的相关体验计划于 2026 年 10 月稍晚进入实验预览。", "发布会演示或计划中的预览不等于客户当前版本已能自动路由。", "在目标版本实测路由结果、成本与失败回退，并保留人工选择。", HYBRID_SOURCE),
+    ("选型与销售", "混合智能一定会减少云端 Token 费用吗？", "不一定。节省取决于有多少任务适合本地完成及设备总成本。", "比较应包含模型质量、任务成功率、本地购置与维护、电力、利用率、云端单价和回退比例；不能由平台宣传直接推导 ROI。", "本地 Token 没有 API 计费，不等于设备运行零成本。", "用客户真实任务样本计算本地/云端路由比例和 TCO。", HYBRID_SOURCE),
+    ("Surface Laptop Ultra", "Surface Laptop Ultra 在混合智能中扮演什么角色？", "它可提供 RTX Spark 本地计算能力，让适合端侧的模型与代理任务在设备上运行。", "微软将最高 128GB 统一内存设备列为 Builder PC 示例；平台级模型规模和参考测试不等于每个 Part Number 的可用速度或容量。", "不能把最高配置与预生产样机结果套用到 24GB 等其他 SKU。", "按具体料号、模型、量化、上下文和软件版本做 PoC。", HYBRID_SOURCE),
+    ("AI基础知识", "本地 AI 与云端 AI 在混合智能中如何协作？", "本地可处理合适的低延迟或敏感任务，云端可提供更大模型或弹性算力。", "应用应明确数据传输边界、模型选择、离线回退和结果审计；实际路由是产品实现与策略问题，不是硬件自动决定。", "有 RTX Spark 设备不代表所有 AI 产品自动支持混合路由。", "询问客户哪些文件绝不能上传，并验证应用的实际数据流。", HYBRID_SOURCE),
+    ("Windows与兼容", "Windows ML 与混合智能是什么关系？", "Windows ML 是本地模型推理运行时之一，可帮助应用调用 CPU、GPU 或 NPU。", "微软宣布将 llama.cpp 支持带入 Windows ML；模型格式、执行提供程序、驱动与目标设备仍需验证。混合智能的云端路由不由 Windows ML 单独决定。", "支持 Windows ML 不代表任意模型已经在 RTX Spark 上获得官方性能验证。", "检查目标模型与执行提供程序，再记录端到端任务体验。", HYBRID_SOURCE),
+    ("安全与隐私", "Copilot 的本地上下文、本地操作和本地模型现在都可用吗？", "微软在发布会宣布了三类能力，预计未来数月在 Copilot+ PC 逐步推出。", "本地上下文需用户许可；文件范围、操作授权、模型可用性与地区/设备支持应以实际产品版本为准。", "发布公告中的未来功能不能写成所有设备已上线。", "向客户说明当前可用版本、权限提示与数据边界。", HYBRID_SOURCE),
+    ("本地AI部署", "MXC 与本地模型运行时如何配合？", "本地模型负责推理，MXC 负责约束代理调用工具或执行代码时的权限。", "可只隔离工具、插件、生成代码或整个代理；文件/网络策略与模型部署是不同配置，均需验证。", "装好 Ollama、LM Studio 或 llama.cpp 不等于自动启用 MXC。", "在演示中分别检查模型运行、代理权限和拒绝访问行为。", MXC_SOURCE),
+    ("选型与销售", "GitHub Copilot 的本地模型和 MXC 演示可作为现售承诺吗？", "应先确认客户使用的版本与发布阶段。", "微软与 GitHub 说明本地/云端协调体验计划于 2026 年 10 月稍晚提供实验预览；MXC 隔离层已正式提供，两者状态不同。", "不能把未来预览写成当前全量正式可用。", "报价与培训资料注明版本、地区、预览状态和验证日期。", COPILOT_SOURCE),
+]
+for category, question, easy, expert, misconception, sales_tip, url in ANNOUNCEMENT_FAQ:
+    FAQ.append({"id": f"FAQ-{len(FAQ)+1:03d}", "category": category, "question": question,
+                "easy_answer": easy, "expert_answer": expert, "misconception": misconception,
+                "sales_tip": sales_tip, "keywords": [question, category, "10.7发布会"],
+                "source_url": url, "review_status": "official_2026_10_07",
+                "sku_relevance": "Surface Laptop Ultra / RTX Spark", "framework_relevance": []})
+
 
 @router.get("")
-def search_faq(q: str | None = None, category: str | None = None, limit: int = Query(default=20, ge=1, le=200)):
+def search_faq(q: str | None = None, category: str | None = None, limit: int = Query(default=20, ge=1, le=250)):
     items = FAQ
     if category:
         items = [x for x in items if x["category"] == category]
     if q:
         needle = q.casefold()
         items = [x for x in items if needle in (x["question"] + x["easy_answer"] + x["expert_answer"] + x["misconception"] + " ".join(x["keywords"])).casefold()]
-    return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100, "categories": sorted(CONCEPTS)}
+    return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100 + len(ANNOUNCEMENT_FAQ), "categories": sorted(CONCEPTS)}
 
 
 @router.get("/{faq_id}")
