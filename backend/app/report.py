@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from .auth import require_entitled_user
 from .catalog import connection, source_sheet
 from .generation import generation_guidance
+from .productivity import productivity_guidance
 
 router=APIRouter(prefix="/api/reports",tags=["reports"])
 
@@ -33,7 +34,7 @@ def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  body=section("AI 模型能力",direct("AI能力映射"),("目标模型/场景",),("本地运行判断","预计输出速度_Token/s"))
  body+=section("游戏能力",direct("游戏能力映射"),("游戏名称",),("兼容性状态","平均FPS"))
  body+=section("生成式 AI",generation_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("推荐模型/工作负载名称",),("本地运行判断","经验推荐与我的判断"))
- body+=section("生产力能力",direct("生产力能力映射"),("软件/工作负载",),("兼容性状态","实测结果"))
+ body+=section("生产力能力",productivity_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("软件/工作负载",),("兼容性状态","经验推荐与我的判断"))
  return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>{escape(part_number)} 客户能力报告</title><style>
 body{{font:14px/1.55 system-ui,'Microsoft YaHei',sans-serif;color:#172033;max-width:1000px;margin:35px auto;padding:20px}}h1{{font-size:28px}}h2{{margin-top:28px;font-size:20px}}.meta{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}}.meta div{{background:#f5f7fa;padding:10px}}table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}}th{{background:#eaf1fb}}.notice{{margin-top:28px;color:#7a2e0e}}footer{{margin-top:36px;color:#667085}}@media print{{body{{margin:0}}}}
 </style></head><body><h1>Surface Laptop Ultra 客户能力报告</h1><p>Part Number：<b>{escape(part_number)}</b></p><div class="meta"><div>平台<br><b>{value(sku,'platform_code')}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>CPU<br><b>{value(sku,'cpu_model')}</b></div><div>GPU<br><b>{value(sku,'gpu_model')}</b></div><div>ERP 参考价<br><b>¥{value(sku,'erp_price_cny')}</b></div></div>{body}<div class="notice"><b>重要限制：</b>本报告严格区分官方声明、实测、经验推荐与未知。平台级 1440p/100 FPS、120B+ 或理论峰值不能转换为本 SKU 的性能保证；空白 Token/s、FPS 和兼容性字段保持未知。</div><footer>© 2026 上海以和信息技术有限公司。保留所有权利。Microsoft、Surface、NVIDIA、RTX 等商标归各自权利人所有。</footer></body></html>'''
