@@ -9,6 +9,7 @@ from .auth import router as auth_router
 from .tco import router as tco_router
 from .knowledge import router as knowledge_router
 from .faq import router as faq_router
+from .report import router as report_router
 from .ui import router as ui_router
 
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
@@ -18,6 +19,7 @@ app.include_router(auth_router)
 app.include_router(tco_router)
 app.include_router(knowledge_router)
 app.include_router(faq_router)
+app.include_router(report_router)
 app.include_router(ui_router)
 
 class MemoryEstimateInput(BaseModel):
