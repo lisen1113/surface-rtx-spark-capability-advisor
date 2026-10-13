@@ -28,6 +28,28 @@ CREATE TABLE IF NOT EXISTS import_audit (
  rows_received INTEGER NOT NULL, rows_imported INTEGER NOT NULL,
  status TEXT NOT NULL, details_json TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS source_imports (
+ source_sha256 TEXT PRIMARY KEY, source_name TEXT NOT NULL, source_version TEXT NOT NULL,
+ imported_at TEXT NOT NULL, sheet_count INTEGER NOT NULL, record_count INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS source_records (
+ source_sha256 TEXT NOT NULL, sheet_name TEXT NOT NULL, row_number INTEGER NOT NULL,
+ record_json TEXT NOT NULL, PRIMARY KEY (source_sha256, sheet_name, row_number)
+);
+CREATE TABLE IF NOT EXISTS imported_skus (
+ part_number TEXT PRIMARY KEY, product_family TEXT NOT NULL, raw_configuration TEXT NOT NULL,
+ platform_code TEXT NOT NULL, memory_gb INTEGER, storage_tb REAL, color TEXT,
+ erp_price_cny REAL, currency_note TEXT, cpu_model TEXT, gpu_model TEXT,
+ gpu_memory_gb REAL, memory_spec TEXT, npu_spec TEXT, thermal_spec TEXT,
+ operating_system TEXT, source_reference TEXT, data_status TEXT, note TEXT,
+ source_sha256 TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS imported_evidence (
+ evidence_id TEXT PRIMARY KEY, category TEXT, publisher TEXT, claim TEXT,
+ value_range TEXT, scope TEXT, evidence_level TEXT, limitations TEXT,
+ source_title TEXT, source_url TEXT, published_at TEXT, handling_rule TEXT,
+ source_sha256 TEXT NOT NULL
+);
 """
 SEED_SKUS = [
  ("S2","Surface Laptop Ultra",18,5120,None,"Windows 11 Pro","user_supplied_unverified","GPU/CPU mapping from project discussion; exact SKU and memory must be checked against official product listing."),
@@ -65,7 +87,16 @@ def skus(): return {"items":rows("skus"),"note":"待导入完整官方 SKU 数�
 def models(): return {"items":rows("models"),"note":"家族占位，不可作为性能基准"}
 
 @router.get("/sources")
-def sources(): return {"items":rows("evidence")}
+def sources():
+ imported = rows("imported_evidence")
+ return {"items": imported or rows("evidence"), "source": "v3_import" if imported else "bootstrap_seed"}
+
+@router.get("/imported-skus")
+def imported_skus():
+ return {"items": rows("imported_skus"), "note": "来自授权工作簿；原始记录按工作表逐行保留"}
+
+@router.get("/imports")
+def imports(): return {"items": rows("source_imports")}
 
 @router.post("/import/skus/preview")
 def preview_skus(content: str = Body(media_type="text/csv")):

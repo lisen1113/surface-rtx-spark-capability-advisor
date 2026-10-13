@@ -18,3 +18,7 @@ Memory capacity, runtime compatibility, startup viability, and practical usabili
 5. A commit endpoint must remain disabled until authentication, tenant authorization, license enforcement, and import-audit identity are implemented.
 
 Required SKU columns are `sku`, `product`, `cpu_cores`, `gpu_cores`, `memory_gb`, `os`, `evidence_level`, `source_url`, and `note`. Non-unknown evidence requires an HTTPS source URL.
+
+## V3.4 workbook import
+
+The authorized V3.4 workbook is imported locally with `scripts/import-v3-workbook.py`. The source file itself is not copied into Git. Every populated row from every worksheet is retained in `source_records` with its original Chinese headers, sheet name, row number, and the workbook SHA-256. `SKU主数据` and `官方数据与来源` are additionally normalized for API queries. Re-importing the identical file is idempotent.
