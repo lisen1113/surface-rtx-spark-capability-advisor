@@ -5,6 +5,7 @@ import sqlite3
 from fastapi import APIRouter, Body
 
 from .importer import preview_sku_csv
+from .generation import generation_guidance
 
 router = APIRouter(prefix="/api/catalog", tags=["catalog"])
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "capability.sqlite3"
@@ -144,7 +145,8 @@ def advisor(part_number: str):
   return [item for item in source_sheet(sheet) if part_number in str(item.get("适用SKU", item.get("适用SKU内存档", "")))]
  return {
   "sku": dict(sku_row), "ai": direct("AI能力映射"), "gaming": direct("游戏能力映射"),
-  "generation": direct("生成能力映射"), "productivity": direct("生产力能力映射"),
+  "generation": generation_guidance(part_number, int(sku_row["memory_gb"] or 0), sku_row["platform_code"]),
+  "generation_source_records": direct("生成能力映射"), "productivity": direct("生产力能力映射"),
   "ai_recommendations": recommended("AI经验推荐矩阵"),
   "gaming_recommendations": recommended("游戏经验推荐矩阵"),
   "disclaimer": "官方声明、实测、经验推荐和未知数据保持分离；空白性能字段不作推断。",

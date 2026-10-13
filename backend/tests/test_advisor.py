@@ -21,6 +21,9 @@ def test_advisor_combines_direct_and_recommendation_records():
         assert body["sku"]["memory_gb"] == 128
         assert body["ai"][0]["目标模型/场景"] == "70B"
         assert body["ai_recommendations"][0]["推荐定位"] == "高阶"
+        assert len(body["generation"]) >= 8
+        assert all(item["性能指标"].startswith("未知") for item in body["generation"])
+        assert all("官方来源URL" in item and "证据等级" in item for item in body["generation"])
     finally:
         with connection() as conn:
             conn.execute("DELETE FROM imported_skus WHERE part_number='TEST-PN'")

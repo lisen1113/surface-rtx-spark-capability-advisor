@@ -14,7 +14,20 @@ def index():
 <section class="panel"><h2>数据说明</h2><p>当前页面读取授权 V3.4 工作簿。空白 Token/s、FPS 或实测字段保持未知；经验推荐不会显示为官方测试。</p><p><a href="/account">账号注册与登录</a> · <a href="/admin">管理员控制台</a> · <a href="/docs">API 文档</a> · <a href="/api/catalog/imported-skus">SKU 数据</a> · <a href="/api/catalog/sources">来源台账</a></p></section></main><footer>© 2026 上海以和信息技术有限公司。保留所有权利。<br><small>Microsoft、Surface、NVIDIA、RTX 等商标归各自权利人所有。微软商用 Surface 授权 ADR 身份发布前核实。</small></footer>
 <script>
 const $=s=>document.querySelector(s);let data=null,tab='ai';const text=v=>(v===null||v===undefined||v==='')?'未知':String(v);const metric=(k,v)=>`<div class="metric"><span class="status">${k}</span><b>${text(v)}</b></div>`;
-function cards(items){if(!items||!items.length)return '<div class="empty">该 SKU 暂无已验证的直接映射；请查看经验推荐与证据限制。</div>';return items.map(x=>{let title=x['目标模型/场景']||x['游戏名称']||x['推荐模型/工作负载名称']||x['软件/工作负载']||x['推荐定位']||x['推荐游戏类型']||'能力记录',e=x['证据等级']||x['证据类型']||x['数据类型（官方/实测/估算）']||'未知',result=x['本地运行判断']||x['兼容性状态']||x['经验推荐与我的判断']||x['实测结果']||x['内存适配判断']||x['推荐等级']||'待验证',perf=x['预计输出速度_Token/s']||x['平均FPS']||x['官方基准结果']||x['性能指标'],note=x['备注']||x['依据与限制']||x['兼容性风险与销售话术']||x['兼容性/风险']||'';return `<article class="card"><h3>${text(title)}</h3><span class="tag">${text(e)}</span><span class="tag">${text(x['数据状态']||'数据记录')}</span><p><b>判断：</b>${text(result)}</p>${perf?`<p><b>性能：</b>${text(perf)}</p>`:''}${note?`<p class="status">${text(note)}</p>`:''}</article>`}).join('')}
+function cards(items){
+ if(!items||!items.length)return '<div class="empty">该 SKU 暂无已验证的直接映射；请查看经验推荐与证据限制。</div>';
+ return items.map(x=>{
+  let title=x['目标模型/场景']||x['游戏名称']||x['推荐模型/工作负载名称']||x['软件/工作负载']||x['推荐定位']||x['推荐游戏类型']||'能力记录';
+  let e=x['证据等级']||x['证据类型']||x['数据类型（官方/实测/估算）']||'未知';
+  let result=x['本地运行判断']||x['兼容性状态']||x['经验推荐与我的判断']||x['实测结果']||x['内存适配判断']||x['推荐等级']||'待验证';
+  let official=x['官方能力/平台声明']||'';
+  let engineering=x['经验推荐与我的判断']||'';
+  let perf=x['预计输出速度_Token/s']||x['平均FPS']||x['官方基准结果']||x['性能指标'];
+  let note=x['备注']||x['依据与限制']||x['兼容性风险与销售话术']||x['兼容性/风险']||'';
+  let source=x['官方来源URL']||x['来源/链接']||x['Benchmark来源/链接']||'';
+  return `<article class="card"><h3>${text(title)}</h3><span class="tag">${text(e)}</span><span class="tag">${text(x['数据状态']||'数据记录')}</span><p><b>判断：</b>${text(result)}</p>${official?`<p><b>官方资料：</b>${text(official)}</p>`:''}${engineering&&engineering!==result?`<p><b>工程建议：</b>${text(engineering)}</p>`:''}${perf?`<p><b>性能：</b>${text(perf)}</p>`:''}${note?`<p class="status"><b>限制：</b>${text(note)}</p>`:''}${source?`<p><a href="${source.split(' ; ')[0]}" target="_blank" rel="noopener">查看官方来源</a></p>`:''}</article>`
+ }).join('')
+}
 function tcoForm(s){return `<div class="card"><h3>三年本地与云端成本场景</h3><p>所有参数均可修改，结果属于场景估算。</p><div class="grid"><label>设备价格 CNY<input id="price" type="number" value="${s.erp_price_cny||0}"></label><label>每月 Token 百万<input id="tokens" type="number" value="100"></label><label>云端每百万 Token CNY<input id="cloudprice" type="number" value="20"></label><label>设备功耗 W<input id="watts" type="number" value="80"></label></div><p><button onclick="calcTco()">计算 TCO</button></p><div id="tcoresult" class="grid"></div></div>`}
 async function calcTco(){let body={purchase_price_cny:Number($('#price').value),monthly_tokens_million:Number($('#tokens').value),cloud_cny_per_million_tokens:Number($('#cloudprice').value),power_watts:Number($('#watts').value)};let r=await fetch('/api/tco/calculate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();$('#tcoresult').innerHTML=metric('本地 TCO','¥'+d.local_tco_cny.toLocaleString())+metric('云端 TCO','¥'+d.cloud_tco_cny.toLocaleString())+metric('混合 TCO','¥'+d.hybrid_tco_cny.toLocaleString())+metric('本地相对云端节省','¥'+d.local_vs_cloud_savings_cny.toLocaleString())+metric('预计回本月数',d.payback_months===null?'无':d.payback_months)}
 function faqForm(){return `<div class="card"><h3>200 条 AI 与设备 FAQ</h3><p><input id="faqquery" placeholder="搜索模型、游戏、部署、TCO、安全…"> <button onclick="searchFaq()">搜索</button></p><div id="faqresult" class="status">输入关键词或直接浏览前 20 条。</div></div>`}

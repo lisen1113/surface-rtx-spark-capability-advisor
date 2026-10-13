@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from .auth import require_entitled_user
 from .catalog import connection, source_sheet
+from .generation import generation_guidance
 
 router=APIRouter(prefix="/api/reports",tags=["reports"])
 
@@ -31,7 +32,7 @@ def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  direct=lambda sheet:[x for x in source_sheet(sheet) if x.get("Part Number")==part_number]
  body=section("AI 模型能力",direct("AI能力映射"),("目标模型/场景",),("本地运行判断","预计输出速度_Token/s"))
  body+=section("游戏能力",direct("游戏能力映射"),("游戏名称",),("兼容性状态","平均FPS"))
- body+=section("生成式 AI",direct("生成能力映射"),("推荐模型/工作负载名称",),("经验推荐与我的判断","官方基准结果"))
+ body+=section("生成式 AI",generation_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("推荐模型/工作负载名称",),("本地运行判断","经验推荐与我的判断"))
  body+=section("生产力能力",direct("生产力能力映射"),("软件/工作负载",),("兼容性状态","实测结果"))
  return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>{escape(part_number)} 客户能力报告</title><style>
 body{{font:14px/1.55 system-ui,'Microsoft YaHei',sans-serif;color:#172033;max-width:1000px;margin:35px auto;padding:20px}}h1{{font-size:28px}}h2{{margin-top:28px;font-size:20px}}.meta{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}}.meta div{{background:#f5f7fa;padding:10px}}table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}}th{{background:#eaf1fb}}.notice{{margin-top:28px;color:#7a2e0e}}footer{{margin-top:36px;color:#667085}}@media print{{body{{margin:0}}}}
