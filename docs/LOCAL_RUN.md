@@ -16,6 +16,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 
 脚本默认在健康检查成功后自动打开浏览器。启动失败时，打开 `logs/startup.log` 查看错误。
 
+## 按需求推荐产品
+
+首页新增“按使用需求推荐产品”：可多选 AI、游戏、生成式 AI、生产力，页面按所选用途展开模型、游戏与目标 FPS、生成工作流或具体软件字段；还可填写预算、排序偏好，或直接输入“要玩 3A 游戏，也要本地运行 70B 模型”之类的描述。系统只识别明确列出的关键词与选项，合并需求后返回已导入 Part Number 的候选、价格、筛选理由和待确认项。描述与明确选项冲突时，以选项为准并提示确认；无法识别用途时要求补充信息。
+
+推荐接口为 `POST /api/recommendations`。其中模型内存采用 Q4 权重、量化开销、KV Cache、运行时和系统预留的工程测算；游戏、生成和生产力的内存起点也是工程筛选档。候选只表示值得进一步验证，不表示软件认证、模型可启动、稳定吞吐或游戏 FPS。价格及配置来自本地导入工作簿，正式采购前须复核。
+
 ## 常见故障
 - `ERR_CONNECTION_REFUSED`：服务未运行/已经退出、端口错误或浏览器打开过早。检查 PowerShell 的 Uvicorn 输出。
 - `No module named fastapi`：运行脚本安装依赖，或 `cd backend; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`。
