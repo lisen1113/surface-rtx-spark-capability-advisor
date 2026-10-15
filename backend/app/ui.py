@@ -68,41 +68,54 @@ window.addEventListener('afterprint',()=>{document.body.classList.remove('printi
 async function loadTcoDefaults(s){let r=await fetch('/api/tco/defaults/'+encodeURIComponent(s.part_number)),d=await r.json();if(tab!=='tco'||!data||data.sku.part_number!==s.part_number)return;if(!r.ok){$('#tco-status').textContent=d.detail||'无法读取默认值';return}$('#tco-fields').innerHTML=tcoFields.map(([id,label,unit])=>`<label>${label}（${unit}）<input id="tco-${id}" type="number" min="0" step="any" value="${d.values[id]}"></label>`).join('');$('#tco-status').textContent=d.warning+' 参考价来源：'+(d.source_reference||'导入工作簿')+'；示例月业务量 '+d.values.monthly_tokens_million+' 百万 Token 并非此 SKU 的处理能力。默认 100% 云端保留，完成 PoC 后再修改。';$('#tco-calc').disabled=false;$('#tco-print').disabled=false;$('#tco-filename').textContent='建议 PDF 文件名：'+tcoReportTitle()+'.pdf';$('#tco-fields').addEventListener('change',calcTco);calcTco()}
 async function calcTco(){let body={};for(let [id] of tcoFields)body[id]=Number($('#tco-'+id).value);let target=$('#tcoresult');try{let r=await fetch('/api/tco/calculate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw Error(typeof d.detail==='string'?d.detail:'请检查输入值');let money=n=>'¥'+Number(n).toLocaleString(),threshold=d.break_even_monthly_tokens_million_within_period;let payback=d.payback_status==='no_cloud_price'?'云端单价为 0；无节省可抵扣设备成本':d.payback_status==='no_monthly_savings'?'当前用量下不回本':d.payback_status==='beyond_period'?`${d.payback_months} 个月（超过 ${d.period_years} 年测算期）`:`${d.payback_months} 个月`;target.innerHTML='<div class="grid">'+metric('本地全量承担方案',money(d.local_tco_cny))+metric('云端全量方案',money(d.cloud_tco_cny))+metric('混合方案',money(d.hybrid_tco_cny))+metric('本地相对云端的情景差额',money(d.local_vs_cloud_savings_cny))+metric('简化回本结论',payback)+metric('每月云端费－本地运营费',money(d.cloud_minus_local_operating_monthly_cny))+'</div>'+`<p class="status">${threshold===null?'云端单价为 0，无法给出有限的回本业务量阈值。':`按当前云端单价，若要在 ${d.period_years} 年内回本，月业务量需至少约 ${threshold} 百万 Token（当前输入 ${body.monthly_tokens_million}）。`}设备净成本计入 ${money(d.breakdown.purchase_net_residual_allocated)}；电费 ${money(d.breakdown.electricity)}；维护 ${money(d.breakdown.maintenance)}。仅在本地模型通过目标任务 PoC 且能承接该业务量时，差额才有决策意义。</p>`;$('#tco-print-values').innerHTML='<h4>本次测算输入</h4><div class="grid">'+tcoFields.map(([id,label,unit])=>metric(escapeHtml(label),escapeHtml(body[id])+' '+escapeHtml(unit))).join('')+'</div>';return true}catch(e){target.innerHTML=`<p class="warn">${escapeHtml(e.message)}</p>`;return false}}
 function faqForm(){return `<div class="card"><h3>AI 与 RTX Spark 销售培训知识库</h3><p>涵盖模型、内存、量化、硬件、Windows、部署、安全、MXC 与混合智能。知识点及问答总数以搜索结果为准。</p><div class="grid"><label>关键词<input id="faqquery" placeholder="例如：MoE、统一内存、MXC、混合智能"></label><label>分类<select id="faqcategory"><option value="">全部分类</option></select></label></div><p><button onclick="searchFaq()">搜索知识库</button></p><div id="faqresult" class="status">输入关键词或直接浏览前 20 条。</div></div>`}
-const microsoftSpecsUrl='https://www.microsoft.com/en-us/d/surface-laptop-ultra-for-business/8wg5vqp0x4d1#tab-tech-specs';
+const microsoftSpecsUrl='https://www.microsoftstore.com.cn/surface/surface-laptop-ultra-for-business';
 function renderProductDetails(s){
  let host=$('#product-details');if(!host){host=document.createElement('div');host.id='product-details';$('#metrics').after(host)}
+ $('#metrics').hidden=true;
  const known=v=>v!==null&&v!==undefined&&v!=='';
  const sku=v=>known(v)?String(v):'未提供';
  const color=String(s.color||'').toUpperCase();
- const colorNote=color&& !['PLATINUM','NIGHTFALL','铂金','暮夜'].includes(color)?'名称与微软官网颜色选项不同，须核对料号及市场':'颜色需核对具体市场与料号';
+ const colorNote=color&& !['PLATINUM','NIGHTFALL','亮铂金','夜幕色'].includes(color)?'导入颜色名称与中国微软商城的亮铂金/夜幕色不同；不能自动认定同色，须核对料号':'颜色需核对具体料号';
  const storage=known(s.storage_tb)?Number(s.storage_tb)+' TB':'未提供';
+ const ssdGeneration=Number(s.storage_tb)===0.5?'第 4 代 SSD':([1,2].includes(Number(s.storage_tb))?'第 5 代 SSD':'代际待核对');
  const rows=[
-  ['识别','产品与料号',sku(s.product_family)+' · '+sku(s.part_number),'Surface Laptop Ultra for Business','料号来自导入；官网此页为系列规格'],
-  ['识别','原始配置描述',sku(s.raw_configuration),'按处理器、内存、SSD、颜色组合销售','导入原文；不将简写自动当作官网型号'],
-  ['核心硬件','处理器',sku(s.cpu_model),'NVIDIA RTX Spark N1X：18 核 CPU / 5120 核 GPU，或 20 核 CPU / 6144 核 GPU','导入映射；实际料号对应选项须核对'],
+  ['识别','产品与料号',sku(s.product_family)+' · '+sku(s.part_number),'Surface Laptop Ultra 商用版','料号来自导入；官网技术规格为系列级'],
+  ['识别','原始配置描述',sku(s.raw_configuration),'按处理器、内存、SSD、颜色组合销售','保留导入原文；不自动扩展简写'],
+  ['核心硬件','处理器',sku(s.cpu_model),'NVIDIA RTX Spark N1X：18 核 CPU / 5120 核 GPU，或 20 核 CPU / 6144 核 GPU','导入映射；官网列出两种系列选项，料号对应仍需核对'],
   ['核心硬件','图形处理器',sku(s.gpu_model),'NVIDIA Blackwell RTX 5120 核或 6144 核 GPU','导入映射；不推导游戏 FPS'],
-  ['核心硬件','NPU',sku(s.npu_spec),'NVIDIA NPU','系列官方确认；此料号的独立 NPU 参数未提供'],
-  ['核心硬件','统一内存',known(s.memory_gb)?s.memory_gb+' GB；'+sku(s.memory_spec):'未提供','LPDDR5x；可选 24 / 32 / 48 / 64 / 128 GB','容量取导入；统一内存不等于全部可用 GPU 显存'],
-  ['核心硬件','GPU 专用显存',known(s.gpu_memory_gb)?s.gpu_memory_gb+' GB':'未提供','官方描述为 CPU/GPU 共享统一内存','不把总内存写成专用显存'],
-  ['核心硬件','SSD',storage,'512 GB 可拆卸 Gen 4 SSD；1 / 2 TB 可拆卸 Gen 5 SSD','容量取导入；代际按官网容量选项对照，需按实机核验'],
-  ['核心硬件','散热',sku(s.thermal_spec),'微软称新散热系统相较 Surface Laptop 第八版散热能力提升 2.5 倍','系列营销对比，非该 SKU 的温度或持续性能测试'],
+  ['核心硬件','NPU',sku(s.npu_spec),'NVIDIA NPU','官网为系列规格；未提供逐料号 NPU 型号或算力'],
+  ['核心硬件','统一内存',known(s.memory_gb)?s.memory_gb+' GB LPDDR5x 统一内存':'未提供','可选 24 / 32 / 48 / 64 / 128 GB LPDDR5x 统一内存','容量取导入、类型按官网补充；导入带宽未获官网此页逐料号核实；非全部可用 GPU 显存'],
+  ['核心硬件','GPU 专用显存',known(s.gpu_memory_gb)?s.gpu_memory_gb+' GB':'未提供','CPU/GPU 共享统一内存；GPU 可寻址量小于总内存','官网未提供独立显存数值；不得填成统一内存容量'],
+  ['核心硬件','SSD',known(s.storage_tb)?storage+' 可拆卸式 '+ssdGeneration:'未提供','512 GB 为第 4 代 SSD；1 / 2 TB 为第 5 代 SSD','容量取导入，代际按中国官网容量规则补充；实机核验'],
+  ['核心硬件','散热',sku(s.thermal_spec),'新散热系统；微软称散热能力相较 Surface Laptop 第 8 代提升 2.5 倍','系列官方声明，非该 SKU 温度或持续性能实测'],
   ['显示','屏幕与分辨率','未逐料号导入','15 英寸 PixelSense Ultra Mini-LED 触控；3270 × 2180，262 PPI，3:2','系列官方规格'],
   ['显示','刷新率与色彩','未逐料号导入','动态刷新率最高 120 Hz；DCI-P3 100%；10 点触控；Dolby Vision IQ','系列官方规格；笔输入不受支持'],
   ['显示','亮度与防眩光','未逐料号导入','SDR 最高 1000 尼特（典型）；HDR 10% 窗口峰值 2000 尼特；防反射','系列官方规格；实际亮度依内容和设置变化'],
   ['连接','USB 与充电','未逐料号导入','2 × USB-C/USB4 + 1 × USB-C/USB4 Magnetic Connect；最高 40 Gbps；USB-C 支持 140W 充电','充电器随市场和配置变化；至少 115W 充电器支持快充'],
   ['连接','其他接口','未逐料号导入','HDMI 2.1b、USB-A 3.1、SD 读卡器、3.5 mm 耳机孔','系列官方规格'],
   ['连接','无线','未逐料号导入','Wi-Fi 7、Bluetooth 5.4','Wi-Fi 6 GHz 频段依地区而定'],
-  ['系统与安全','操作系统',sku(s.operating_system),'Windows 11 Pro；Windows on Arm','导入版本与官网系列一致；中国市场出货须核对'],
+  ['系统与安全','操作系统',sku(s.operating_system),'Windows 11 专业版；Windows on Arm','中国官网确认系列系统；导入仍保留原始表述'],
   ['系统与安全','安全与登录','未逐料号导入','Secured-core PC、TPM 2.0、BitLocker 支持、Windows Hello 人脸识别','系列官方规格；企业策略与授权另行确认'],
   ['影音','摄像头与音频','未逐料号导入','1080p 前置摄像头、双 Studio 麦克风、四 Omnisonic 扬声器','系列官方规格'],
-  ['机身','颜色',sku(s.color),'Platinum / Nightfall（官网选项）',colorNote],
+  ['机身','颜色',sku(s.color),'亮铂金 / 夜幕色（中国官网选项）',colorNote],
   ['机身','尺寸与重量','未逐料号导入','328.8 × 238.7 × 17.99 mm（不含脚垫）；含脚垫 19.16 mm；约 2.0 kg','重量随配置与制造工艺变化'],
   ['机身','电池与续航','未逐料号导入','标称 92 Wh；本地视频最长 15 小时，主动网页最长 12 小时','续航测试用预生产 6144 核 GPU / 64GB / 1TB，非此料号实测'],
-  ['采购','ERP 参考价',known(s.erp_price_cny)?'¥'+Number(s.erp_price_cny).toLocaleString():'未提供','微软官网美元起售价不作为中国 SKU 报价','以授权导入价格为准；'+sku(s.currency_note)],
-  ['溯源','数据状态',sku(s.data_status),'系列技术参数以微软官网为基准','官网不证明导入 Part Number 与颜色/配置一一对应'],
+  ['机身','键盘与触控板','未逐料号导入','背光机械键盘、F1–F12 功能键、精准触觉触控板','中国官网系列规格；键盘布局以实际销售配置为准'],
+  ['机身','传感器','未逐料号导入','氛围颜色传感器、加速度计、陀螺仪','中国官网系列规格'],
+  ['服务','可维修组件','未逐料号导入','显示组件、键盘、触控板、SSD、电池、主板、风扇等可更换','官网列出组件；维修须遵循授权流程'],
+  ['服务','包装清单','未逐料号导入','设备、USB-C Magnetic Connect 连接线、快速入门指南、安全及保修文档','140 W 电源适配器仅特定市场/配置提供，不能承诺此 SKU 随附'],
+  ['服务','中国市场保修','未逐料号导入','Surface 主机 3 年有限硬件保修（自发票日期起）','按中国微软商城页面；具体服务条款及配件保修另核对'],
+  ['采购','ERP 参考价',known(s.erp_price_cny)?'¥'+Number(s.erp_price_cny).toLocaleString():'未提供','官网页面非此料号 ERP 报价','仅取授权导入价格；'+sku(s.currency_note)],
+  ['溯源','数据状态',sku(s.data_status),'系列技术参数以中国微软商城为基准','官网不证明导入 Part Number 与颜色/配置一一对应'],
  ];
- const tr=([group,name,selected,official,note])=>`<tr><th scope="row">${escapeHtml(group)}<br><span class="status">${escapeHtml(name)}</span></th><td>${escapeHtml(selected)}</td><td>${escapeHtml(official)}</td><td>${escapeHtml(note)}</td></tr>`;
- host.innerHTML='<h3>产品规格对照 · '+escapeHtml(s.part_number)+'</h3><p class="status">左列为授权 V3.4 导入的当前 SKU，中列为微软官方系列技术参数，右列说明能否直接对应。未导入的料号级参数保留“未逐料号导入”，不伪装成已验证。</p><div class="spec-scroll"><table class="spec-table"><thead><tr><th scope="col">类别 / 参数</th><th scope="col">当前 SKU 导入值</th><th scope="col">微软官方系列规格</th><th scope="col">对应关系与限制</th></tr></thead><tbody>'+rows.map(tr).join('')+'</tbody></table></div><p class="status">导入来源：'+escapeHtml(s.source_reference||'未提供')+'；原始备注：'+escapeHtml(s.note||'无')+'</p><p><a href="'+microsoftSpecsUrl+'" target="_blank" rel="noopener">查看微软官网完整技术规格、条件与脚注</a></p>';
+ const tr=([group,name,selected,official,note])=>{
+  const missing=selected==='未逐料号导入'||selected==='未提供';
+  const cannotFill=name==='GPU 专用显存'||name==='ERP 参考价';
+  const value=missing&&!cannotFill?official:selected;
+  const origin=missing&&!cannotFill?'中国微软商城 · 系列规格':missing?'尚无逐料号数值':'授权 V3.4 导入'+(name==='SSD'?' + 中国官网容量规则':name==='统一内存'?' + 中国官网内存类型':'');
+  return `<tr><th scope="row">${escapeHtml(group)}<br><span class="status">${escapeHtml(name)}</span></th><td><b>${escapeHtml(value)}</b></td><td>${escapeHtml(origin)}</td><td>${escapeHtml(note)}</td></tr>`;
+ };
+ host.innerHTML='<h3>产品技术规格 · '+escapeHtml(s.part_number)+'</h3><p class="status">以授权导入的 SKU 值为主；未导入的系列通用项目用中国微软商城技术规格补充。每行标明来源，不能确定逐料号数值的字段保留待核对。</p><div class="spec-scroll"><table class="spec-table"><thead><tr><th scope="col">类别 / 参数</th><th scope="col">合并后的规格值</th><th scope="col">数据来源</th><th scope="col">限制与核对事项</th></tr></thead><tbody>'+rows.map(tr).join('')+'</tbody></table></div><p class="status">导入来源：'+escapeHtml(s.source_reference||'未提供')+'；原始备注：'+escapeHtml(s.note||'无')+'</p><p><a href="'+microsoftSpecsUrl+'" target="_blank" rel="noopener">查看中国微软商城完整技术规格与脚注</a></p>';
 }
 async function searchFaq(){let q=$('#faqquery').value,c=$('#faqcategory').value,r=await fetch('/api/faq?limit=20&q='+encodeURIComponent(q)+'&category='+encodeURIComponent(c)),d=await r.json();if($('#faqcategory').options.length===1){d.categories.forEach(x=>$('#faqcategory').add(new Option(x,x)))}$('#faqresult').innerHTML=`<p>找到 ${d.total} 条；知识库共 ${d.concept_total} 个独立概念、${d.indexed_total} 条问答。</p>`+d.items.map(x=>`<article class="card"><h3>${x.question}</h3><span class="tag">${x.category}</span><p>${x.easy_answer}</p><p class="status"><b>工程说明：</b>${x.expert_answer}</p><p class="warn"><b>常见误区：</b>${x.misconception}</p><p><b>销售提示：</b>${x.sales_tip}</p><p><a href="${x.source_url}" target="_blank" rel="noopener">查看来源</a></p></article>`).join('')}
 function render(){if(!data)return;let s=data.sku;$('#product').textContent=`${s.product_family} · ${s.part_number}`;$('#metrics').innerHTML=metric('平台',s.platform_code)+metric('统一内存',s.memory_gb+' GB')+metric('存储',s.storage_tb+' TB')+metric('ERP 含税价',s.erp_price_cny?'¥'+Number(s.erp_price_cny).toLocaleString():'未知')+metric('CPU',s.cpu_model)+metric('GPU',s.gpu_model)+metric('颜色',s.color)+metric('操作系统',s.operating_system);renderProductDetails(s);let html='';if(tab==='ai')html=cards(data.ai)+'<h3>同档经验推荐</h3>'+cards(data.ai_recommendations);else if(tab==='gaming')html=cards(data.gaming)+'<h3>同档经验推荐</h3>'+cards(data.gaming_recommendations);else if(tab==='generation')html=cards(data.generation);else if(tab==='productivity')html=cards(data.productivity);else if(tab==='deployment')html=`<div class="card"><h3>本机模型部署与企业私有知识</h3><p>针对当前 ${escapeHtml(s.part_number)} 配置，逐步核对系统架构、模型许可、运行后端、真实任务与数据安全；包含个人试用、开发集成、多人服务、RAG 和微调的选择与验收。</p><p><a href="/deployment?sku=${encodeURIComponent(s.part_number)}">打开此配置的详细部署指南 →</a></p><p class="warn">指南是工程操作建议；模型是否能运行、GPU 加速和速度均需在目标设备实测。</p></div>`;else if(tab==='faq')html=faqForm();else if(tab==='tco')html=tcoForm(s);else html=`<div class="card"><h3>数据边界</h3><p>${data.disclaimer}</p><p class="warn">平台级 1440p / 100 FPS、120B+ 或理论峰值不能转换为本 SKU 的 FPS、Token/s 或稳定运行承诺。</p><p><b>配置状态：</b>${text(s.data_status)}</p><p><b>来源：</b>${text(s.source_reference)}</p><p><b>备注：</b>${text(s.note)}</p></div>`;$('#content').innerHTML=html;if(tab==='faq')searchFaq();if(tab==='tco')loadTcoDefaults(s)}
