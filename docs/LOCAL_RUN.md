@@ -71,7 +71,24 @@ Remove-Item Env:CAPABILITY_ADMIN_PASSWORD
 
 初始化仅允许执行一次。注册用户必须完成邮箱验证、管理员审批，并获得未过期且有可用席位的组织 License 后才能登录。
 
+## 注册邮箱验证与密码重置邮件
+
+注册会生成 24 小时有效的一次性邮箱验证码；用户在 `/account` 输入验证码后，仍需管理员审批和组织 License。验证码可在 5 分钟后重发，新验证码会撤销旧验证码。密码重置令牌有效期为 30 分钟，使用后撤销该账号的旧会话。两类令牌仅保存 SHA-256 摘要，不写入审计记录或 URL。
+
+部署方需配置 SMTP 主机与发件地址；开启 `CAPABILITY_REQUIRE_AUTH=1` 后，缺少邮件配置会拒绝新的注册和密码重置请求，避免出现无法完成验证的账号。下面以 STARTTLS 为例，具体值由邮件服务提供方或企业密钥管理系统注入：
+
+```powershell
+$env:CAPABILITY_SMTP_HOST='smtp.example.com'
+$env:CAPABILITY_SMTP_PORT='587'
+$env:CAPABILITY_SMTP_TLS_MODE='starttls'
+$env:CAPABILITY_SMTP_FROM='advisor@example.com'
+$env:CAPABILITY_SMTP_USERNAME='advisor@example.com'
+# CAPABILITY_SMTP_PASSWORD 应由密钥管理系统注入，不写入脚本或仓库。
+```
+
+也支持 `CAPABILITY_SMTP_TLS_MODE=ssl`（默认端口 465）。本地离线开发可临时设置 `CAPABILITY_DEV_EXPOSE_TOKENS=1`，账号页会自动填入开发验证码；该方式仅在未开启 `CAPABILITY_REQUIRE_AUTH` 时生效，且服务必须仅绑定 `127.0.0.1`。未配置 SMTP 的离线演示仍可由管理员人工核验邮箱，生产部署应使用用户自行验证的邮件流程。
+
 ## 重要限制
-本分支已具备本地身份认证、审批、License 强制校验和 V3.4 数据导入，但尚未接入生产邮件服务、管理员 MFA、CSRF 防护和生产级反向代理。默认仅监听 127.0.0.1，不要将此开发服务器直接暴露公网。
+本分支已具备本地身份认证、审批、License 强制校验、可配置 SMTP 邮箱验证与密码重置、以及 V3.4 数据导入；实际生产邮件服务凭据、管理员 MFA、CSRF 防护和生产级反向代理仍需部署与验收。默认仅监听 127.0.0.1，不要将此开发服务器直接暴露公网。
 
 本机演示默认允许未登录用户查看计算和报告。准备共享部署时必须先设置 `$env:CAPABILITY_REQUIRE_AUTH='1'`；开启后，内存估算、TCO 与客户报告会在每次请求时校验 Bearer 会话及组织 License，已过期 License 会立即被拒绝。正式部署还应由反向代理配置 HTTPS，并在邮件服务与管理员 MFA 完成前保持内网访问。

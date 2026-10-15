@@ -3,6 +3,7 @@ import hashlib
 import secrets
 
 from fastapi.testclient import TestClient
+from app import auth
 from app.auth import hasher, iso, now
 from app.catalog import connection
 from app.main import app
@@ -68,3 +69,87 @@ def test_password_reset_request_does_not_disclose_unknown_email(monkeypatch):
     response = client.post("/api/auth/password-reset/request", json={"email":"missing@example.com"})
     assert response.status_code == 200
     assert "development_token" not in response.json()
+
+
+def test_user_verifies_email_with_single_use_token(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
+    monkeypatch.delenv("CAPABILITY_REQUIRE_AUTH", raising=False)
+    monkeypatch.delenv("CAPABILITY_SMTP_HOST", raising=False)
+    email = f"verify-{secrets.token_hex(4)}@example.com"
+    registered = client.post("/api/auth/register", json={
+        "organization_name": "邮箱自助验证企业", "email": email, "password": "Strong-password-123"})
+    assert registered.status_code == 201
+    token = registered.json()["development_token"]
+    assert registered.json()["verification_mail_sent"] is False
+    assert client.post("/api/auth/verify-email", json={"token": token}).json()["status"] == "verified_pending_admin_approval"
+    assert client.post("/api/auth/verify-email", json={"token": token}).status_code == 400
+    with connection() as conn:
+        user = conn.execute("SELECT email_verified,status FROM users WHERE email=?", (email,)).fetchone()
+    assert user["email_verified"] == 1 and user["status"] == "pending"
+
+
+def test_verification_resend_invalidates_old_code_and_throttles(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
+    monkeypatch.delenv("CAPABILITY_REQUIRE_AUTH", raising=False)
+    monkeypatch.delenv("CAPABILITY_SMTP_HOST", raising=False)
+    email = f"resend-{secrets.token_hex(4)}@example.com"
+    first = client.post("/api/auth/register", json={
+        "organization_name": "重发测试企业", "email": email, "password": "Strong-password-123"}).json()["development_token"]
+    immediate = client.post("/api/auth/verify-email/resend", json={"email": email})
+    assert immediate.status_code == 200 and "development_token" not in immediate.json()
+    with connection() as conn:
+        conn.execute("UPDATE email_verification_tokens SET created_at=? WHERE token_hash=?",
+                     (iso(now() - timedelta(minutes=6)), hashlib.sha256(first.encode()).hexdigest()))
+        conn.commit()
+    second = client.post("/api/auth/verify-email/resend", json={"email": email}).json()["development_token"]
+    assert second != first
+    assert client.post("/api/auth/verify-email", json={"token": first}).status_code == 400
+    assert client.post("/api/auth/verify-email", json={"token": second}).status_code == 200
+
+
+def test_protected_registration_requires_mail_configuration(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    monkeypatch.delenv("CAPABILITY_SMTP_HOST", raising=False)
+    response = client.post("/api/auth/register", json={
+        "organization_name": "生产注册测试", "email": f"prod-{secrets.token_hex(4)}@example.com",
+        "password": "Strong-password-123"})
+    assert response.status_code == 503
+
+
+def test_configured_smtp_sends_verification_and_reset_codes(monkeypatch):
+    sent = []
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout):
+            assert (host, port, timeout) == ("smtp.example.com", 587, 10)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def starttls(self, *, context):
+            assert context is not None
+
+        def send_message(self, message):
+            sent.append(message)
+
+    monkeypatch.setattr(auth.smtplib, "SMTP", FakeSMTP)
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
+    monkeypatch.setenv("CAPABILITY_SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("CAPABILITY_SMTP_FROM", "advisor@example.com")
+    monkeypatch.delenv("CAPABILITY_SMTP_USERNAME", raising=False)
+    monkeypatch.delenv("CAPABILITY_SMTP_PASSWORD", raising=False)
+    email = f"mail-{secrets.token_hex(4)}@example.com"
+    registered = client.post("/api/auth/register", json={
+        "organization_name": "邮件测试企业", "email": email, "password": "Strong-password-123"})
+    assert registered.status_code == 201
+    assert registered.json()["verification_mail_sent"] is True
+    assert "development_token" not in registered.json()
+    assert sent[0]["To"] == email and "邮箱验证" in sent[0]["Subject"]
+    requested = client.post("/api/auth/password-reset/request", json={"email": email})
+    assert requested.status_code == 200 and "development_token" not in requested.json()
+    assert sent[1]["To"] == email and "密码重置" in sent[1]["Subject"]
+    assert sent[0].get_content() != sent[1].get_content()
