@@ -1,8 +1,69 @@
 """Customer-facing local model deployment and private-data guide."""
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
+from .capability import estimate_capacity
+from .catalog import connection
+
 router = APIRouter()
+
+# Trial order is an engineering PoC ladder, not an assertion of model support.
+TRIAL_LADDERS = {
+    24: [(3, 4), (8, 4)],
+    32: [(8, 4), (14, 4)],
+    48: [(14, 4), (32, 4)],
+    64: [(32, 4), (70, 4)],
+    128: [(70, 4), (120, 4)],
+}
+
+
+def sku_deployment_plan(sku: dict) -> dict:
+    memory = int(sku["memory_gb"] or 0)
+    storage = float(sku["storage_tb"] or 0)
+    # These explicit reserves are deliberately conservative screening inputs.
+    os_reserve = 8 if memory <= 32 else 12
+    runtime_reserve = 3 if memory <= 32 else 8
+    kv_cache = 2 if memory <= 32 else 8
+    trials = []
+    for size, bits in TRIAL_LADDERS.get(memory, [(3, 4)]):
+        result = estimate_capacity(parameters_billion=size, bits_per_weight=bits,
+                                   unified_memory_gb=memory, os_reserve_gb=os_reserve,
+                                   runtime_reserve_gb=runtime_reserve, kv_cache_gb=kv_cache)
+        trials.append({"size_label": f"{size}B Q{bits}", "required_gb": result.required_gb,
+                       "weight_gb": result.weight_gb, "fit": result.fits_in_memory,
+                       "compatible": result.compatible, "usable": result.usable})
+    if storage <= 0.5:
+        storage_note = "0.5TB 配置：先只缓存一个已批准模型及一份小型脱敏测试集；下载前检查剩余空间，避免多个量化副本挤占系统更新和索引空间。"
+    elif storage >= 2:
+        storage_note = "2TB 配置：可分开存放已批准模型、RAG 索引与测试日志，但仍应设置配额、加密和定期清理，不把容量当作数据授权。"
+    else:
+        storage_note = "1TB 配置：为模型权重、嵌入索引、临时文件和系统更新分别留余量；先确认实际可用空间，再规划多个模型版本。"
+    platform_note = ("S2 与 S3 的 GPU/CPU 映射来自导入资料，尚需按设备与微软/NVIDIA 官方资料核验；"
+                     "本指南不把核心数转换成 Token/s。" if sku["platform_code"] == "S2" else
+                     "S3 也必须核对实际驱动、Windows ARM64 运行时和 GPU 后端；"
+                     "不能把平台级声明或 S2/S3 核心数换算成 Token/s。")
+    return {
+        "part_number": sku["part_number"], "platform_code": sku["platform_code"],
+        "memory_gb": memory, "storage_tb": storage, "cpu_model": sku["cpu_model"],
+        "gpu_model": sku["gpu_model"], "operating_system": sku["operating_system"],
+        "evidence_level": "engineering_estimate", "source_reference": sku["source_reference"],
+        "assumptions": {"bits_per_weight": 4, "os_reserve_gb": os_reserve,
+                        "runtime_reserve_gb": runtime_reserve, "kv_cache_gb": kv_cache,
+                        "quantization_overhead_ratio": 0.10, "concurrent_users": 1,
+                        "first_context_tokens": 2048},
+        "trials": trials, "storage_note": storage_note, "platform_note": platform_note,
+        "first_step": "先用已获许可的较小指令模型、单用户和 2048 token 上下文建立基线；每次只增加一个变量。",
+        "capacity_boundary": "Q4 参数量仅是筛选代理值；MoE 活跃参数、不同模型架构、实际 GGUF 大小、KV 格式与共享内存分配均可能改变结果。容量适配不证明可启动、GPU 加速、准确性或速度。",
+    }
+
+
+@router.get("/api/deployment/sku/{part_number}")
+def deployment_plan(part_number: str):
+    with connection() as conn:
+        row = conn.execute("SELECT * FROM imported_skus WHERE part_number=?", (part_number,)).fetchone()
+    if not row:
+        raise HTTPException(404, "未找到该 Part Number")
+    return sku_deployment_plan(dict(row))
 
 
 @router.get("/deployment", response_class=HTMLResponse)
@@ -15,5 +76,10 @@ body{font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif;color:#172033;backgrou
 <section><h2>3. 从空机到第一次回答</h2><ol><li><b>批准软件与模型。</b> 从项目官方站点下载与系统架构一致的安装包；核对签名、哈希、版本、模型权重来源、许可证和商用/再分发权限。不要把客户文件上传到不明模型站点。</li><li><b>建立基线。</b> 更新 Windows、官方固件和 GPU 驱动；保存设备信息，关闭不必要的重负载程序。首次试验使用较小且已获许可的指令模型，记录量化与上下文长度，不以参数规模标签直接推断适配。</li><li><b>安装与加载。</b> LM Studio：Discover 下载 → Chat 选择模型 → 调整上下文和内存配置 → Load → 用非敏感样例提问。llama.cpp：取官方对应架构发布包及兼容 GGUF，在 PowerShell 中用实际模型路径启动：</li></ol><pre>.\\llama-server.exe -m "C:\\Models\\approved-model.gguf" -c 2048 --host 127.0.0.1 --port 8080</pre><ol start="4"><li><b>核对执行后端。</b> 查看日志是否真正使用预期 GPU/加速后端，记录 GPU 占用、系统内存峰值、首次响应与稳定响应。CPU 回退须如实记录；成功回答不等于 GPU 加速。</li><li><b>做三组任务。</b> 通用问答（正确性/中文）、真实业务任务（脱敏材料）、长上下文或多轮（内存和稳定性）。固定提示词、模型版本、量化、上下文、并发、温度和重复次数；记录失败、拒答、幻觉、耗时及电源状态。</li><li><b>验收。</b> 模型许可合法、数据不外传、答案可核查、运行不崩溃、延迟达到客户自定阈值，才标记此设备此配置通过 PoC。任何 Token/s 结论仅属于该测试环境。</li></ol><p class="note">已下载的 LM Studio 模型可离线聊天、文档问答和本地服务，但下载/更新可能联网；本地还须验证嵌入、日志、遥测、插件和调用链均未向外发送私有数据。</p></section>
 <section><h2>4. 企业私有数据：先检索，再考虑训练</h2><table><tr><th>目的</th><th>建议路径</th><th>边界</th></tr><tr><td>内部手册、合同、知识库问答</td><td><b>RAG</b>：授权文档 → 脱敏与解析 → 分块/版本标记 → 本地嵌入与索引 → 按用户权限检索 → 附来源片段生成回答。</td><td>文档通常不写入模型权重；仍要保护原件、索引、提示词和日志。更新文档后可重建索引。</td></tr><tr><td>固定语气、格式、分类流程</td><td>先用提示词、模板和少量示例；不足时再评估经许可的 LoRA/PEFT 微调。</td><td>微调会产生派生权重，需数据使用权、隔离、标注质量、评测集和泄漏测试；笔记本能否训练须另做容量与热/电源验证。</td></tr><tr><td>高保密 / 多部门共享</td><td>按身份和文档 ACL 过滤检索结果，审计访问；敏感系统可采用企业内网服务与审批后的混合路由。</td><td>不能先全库检索再让模型自己决定是否透露；模型不是权限边界。</td></tr></table><h3>私有知识 PoC 顺序</h3><ol><li>选一组获授权的代表性文档，剔除密码、密钥和无关个人信息；记录所有者、密级、版本、保留期限。</li><li>选本地嵌入模型与本地向量库；解析 PDF/Office 后抽检表格、扫描件 OCR 和页码，按文档与段落存来源定位。</li><li>查询时先鉴权，用文档/段落级权限过滤，再做关键词与向量检索；只把授权片段送入本地模型。要求引用来源，无证据则回答不知道。</li><li>用真实但脱敏的问答验证命中率、引用正确性、跨部门越权、提示注入、过期文档与无答案场景，记录人工复核。</li><li>通过后再扩大范围，建立增量更新、删除同步、备份与撤销访问流程；涉及云端或外部 API 时单独取得数据处理授权。</li></ol><p class="good">RAG 不是训练；把文件拖进聊天窗口也不代表模型学会了企业知识。微调更适合可重复的任务行为，事实会变的企业知识优先检索。</p></section>
 <section><h2>5. 验收记录与风险清单</h2><p>每次测试保存：Part Number、架构、Windows/驱动/工具版本、模型来源与许可证、权重校验值、量化、上下文、后端、并发、电源模式、任务与提示词、正确性与引用、内存峰值、冷/热启动耗时、实际 Token/s（若测得）、失败日志及测试日期。没有测量的数据保持未知。</p><ul><li>仅监听本机地址；若开放给团队使用，必须增加身份验证、TLS、网络边界、限流和审计，不直接把推理端口暴露公网。</li><li>防止提示注入、恶意文档、输出泄密；工具调用和执行代码须单独授权与隔离。</li><li>原件、索引、缓存、调试日志都按企业数据分类、加密、备份、删除及留存策略处理。</li><li>模型权重与运行时升级后重新回归测试；性能与兼容性不能跨 SKU 或软件版本继承。</li></ul><p><a href="https://learn.microsoft.com/en-us/azure/foundry-local/tutorials/tutorial-build-rag-app" target="_blank" rel="noopener">微软本地 RAG 教程</a> · <a href="https://learn.microsoft.com/en-us/azure/search/search-security-best-practices" target="_blank" rel="noopener">微软检索权限与安全建议</a> · <a href="https://lmstudio.ai/docs/app/offline" target="_blank" rel="noopener">LM Studio 离线说明</a></p><small>以上筛选和测试流程属于工程建议，不是微软或 NVIDIA 对特定 SKU 的性能保证。框架兼容性以当前官方文档和目标设备 PoC 为准。</small></section>
-</main><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer><script>
-const sku=document.querySelector('#sku'),out=document.querySelector('#device');async function show(){try{let r=await fetch('/api/catalog/advisor/'+encodeURIComponent(sku.value)),d=await r.json();if(!r.ok)throw Error('配置读取失败');let s=d.sku;out.textContent=`当前配置：${s.part_number} · ${s.platform_code} · 统一内存 ${s.memory_gb} GB · ${s.storage_tb} TB · ${s.operating_system}。具体模型、后端与速度均需按本页验收。`;}catch(e){out.textContent=e.message}}async function init(){try{let r=await fetch('/api/catalog/imported-skus'),d=await r.json();sku.replaceChildren();for(let s of d.items)sku.add(new Option(`${s.part_number} · ${s.memory_gb}GB`,s.part_number));let requested=new URLSearchParams(location.search).get('sku');if(requested&&d.items.some(s=>s.part_number===requested))sku.value=requested;if(d.items.length)show();else out.textContent='尚无已导入 SKU，请先完成授权数据导入。'}catch(e){out.textContent='无法读取产品数据：'+e.message}}sku.addEventListener('change',show);init();</script></body></html>'''
+</main><section style="max-width:1052px;margin:18px auto"><h2>当前 SKU 的试验路线</h2><div id="skuplan" aria-live="polite">正在计算工程筛选起点…</div></section><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer><script>
+const sku=document.querySelector('#sku'),out=document.querySelector('#device'),plan=document.querySelector('#skuplan');
+document.querySelector('main section').after(plan.parentElement);
+function element(tag,value){let n=document.createElement(tag);n.textContent=value;return n}
+function renderPlan(d){plan.replaceChildren();plan.append(element('p',`${d.part_number} · ${d.platform_code} · ${d.memory_gb}GB / ${d.storage_tb}TB。以下为工程试验顺序，不是官方认证或实测结果。`));plan.append(element('p',d.first_step));let table=document.createElement('table'),head=document.createElement('tr');for(let x of ['试验级别','估算所需内存','容量筛选','下一步'])head.append(element('th',x));table.append(head);for(let t of d.trials){let row=document.createElement('tr');for(let x of [t.size_label,`${t.required_gb} GB`,t.fit==='fits'?'估算可容纳':'估算超出容量','核对许可证与格式 → 加载 → 查 GPU 后端 → 跑客户任务'])row.append(element('td',x));table.append(row)}plan.append(table);let a=d.assumptions;plan.append(element('p',`计算假设：Q${a.bits_per_weight}、系统预留 ${a.os_reserve_gb}GB、运行时预留 ${a.runtime_reserve_gb}GB、KV Cache ${a.kv_cache_gb}GB、量化开销 10%、单用户、首轮上下文 2048 token。改变上下文或并发时必须重算。`));plan.append(element('p',d.storage_note));plan.append(element('p',d.platform_note));let warning=element('p',d.capacity_boundary);warning.className='note';plan.append(warning)}
+async function show(){try{let r=await fetch('/api/deployment/sku/'+encodeURIComponent(sku.value)),d=await r.json();if(!r.ok)throw Error('配置读取失败');out.textContent=`当前配置：${d.part_number} · ${d.platform_code} · 统一内存 ${d.memory_gb} GB · ${d.storage_tb} TB · ${d.operating_system}。具体模型、后端与速度均需按本页验收。`;renderPlan(d)}catch(e){out.textContent=e.message;plan.textContent='暂不能生成该料号的试验路线'}}
+async function init(){try{let r=await fetch('/api/catalog/imported-skus'),d=await r.json();sku.replaceChildren();for(let s of d.items)sku.add(new Option(`${s.part_number} · ${s.memory_gb}GB / ${s.storage_tb}TB`,s.part_number));let requested=new URLSearchParams(location.search).get('sku');if(requested&&d.items.some(s=>s.part_number===requested))sku.value=requested;if(d.items.length)show();else out.textContent='尚无已导入 SKU，请先完成授权数据导入。'}catch(e){out.textContent='无法读取产品数据：'+e.message}}sku.addEventListener('change',show);init();</script></body></html>'''

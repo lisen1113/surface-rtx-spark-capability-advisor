@@ -24,7 +24,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 
 ## 模型部署与企业私有数据
 
-首页“模型部署”标签按当前 Part Number 链接到 `/deployment?sku=<料号>`。指南包括 Windows 11 Pro 架构与驱动检查、LM Studio / Ollama / llama.cpp 入门路线、Linux 服务型框架的验证边界、端到端 PoC、企业私有文档 RAG、微调适用条件、权限与数据泄漏测试。指南不自动安装第三方工具或上传企业数据。运行时、模型、量化、上下文、GPU 后端和实际性能必须在目标设备记录与验收；没有实测的 Token/s 保持未知。
+首页“模型部署”标签按当前 Part Number 链接到 `/deployment?sku=<料号>`。指南包括 Windows 11 Pro 架构与驱动检查、LM Studio / Ollama / llama.cpp 入门路线、Linux 服务型框架的验证边界、端到端 PoC、企业私有文档 RAG、微调适用条件、权限与数据泄漏测试。选择 SKU 后，页面从实际内存、存储与 S2/S3 平台生成不同的模型规模试验顺序、Q4 容量筛选和磁盘管理提醒；计算前提明确列出系统、运行时、KV Cache 预留及单用户/2048 token 首轮条件。该结果是工程估算，不证明具体模型兼容、GPU 加速或可用速度。指南不自动安装第三方工具或上传企业数据。运行时、模型、量化、上下文、GPU 后端和实际性能必须在目标设备记录与验收；没有实测的 Token/s 保持未知。
 
 ## 常见故障
 - `ERR_CONNECTION_REFUSED`：服务未运行/已经退出、端口错误或浏览器打开过早。检查 PowerShell 的 Uvicorn 输出。
