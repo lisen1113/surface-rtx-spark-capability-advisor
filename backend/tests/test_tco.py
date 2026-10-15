@@ -38,8 +38,12 @@ def test_tco_rejects_invalid_hybrid_share():
     assert client.post("/api/tco/calculate",json={"purchase_price_cny":1,"hybrid_cloud_share":2}).status_code==422
 
 def test_tco_page_has_sku_named_print_report():
-    page = client.get("/").text
+    response = client.get("/")
+    page = response.text
+    assert response.headers["cache-control"] == "no-store"
     assert 'id="tco-print"' in page
+    assert 'tco-shortcut' in page
+    assert page.index('id="tco-print"') < page.index('id="tco-fields"')
     assert "Surface-Laptop-Ultra-TCO-" in page
     assert "printing-tco" in page
     assert "window.print()" in page
