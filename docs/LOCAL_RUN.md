@@ -26,6 +26,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 
 首页“模型部署”标签按当前 Part Number 链接到 `/deployment?sku=<料号>`。指南包括 Windows 11 Pro 架构与驱动检查、LM Studio / Ollama / llama.cpp 入门路线、Linux 服务型框架的验证边界、端到端 PoC、企业私有文档 RAG、微调适用条件、权限与数据泄漏测试。选择 SKU 后，页面从实际内存、存储与 S2/S3 平台生成不同的模型规模试验顺序、Q4 容量筛选和磁盘管理提醒；计算前提明确列出系统、运行时、KV Cache 预留及单用户/2048 token 首轮条件。该结果是工程估算，不证明具体模型兼容、GPU 加速或可用速度。指南不自动安装第三方工具或上传企业数据。运行时、模型、量化、上下文、GPU 后端和实际性能必须在目标设备记录与验收；没有实测的 Token/s 保持未知。
 
+## TCO 初始值与客户调整
+
+TCO 标签通过 `/api/tco/defaults/{part_number}` 读取当前 SKU 的导入 ERP 含税参考价。其余初始值均是明示的预算示例：3 年、20% 期末残值、每年 5% 维护费、80W 平均使用功率、每天 8 小时、每年 250 天、电价 0.8 元/kWh、云端 30 元/百万 Token；月业务量按内存档给出不同演示档，**不代表该 SKU 的实际吞吐或可处理上限**。默认混合方案保留 100% 云端调用，客户完成设备与任务 PoC 后再调整比例。客户可修改全部字段，包括计入 AI 场景的设备成本比例。正式方案须用成交价、企业电价、供应商合同（模型、地区、输入/输出比例）和实测使用量替换示例；本地与云端模型质量和任务范围也须可比。结果是场景差额，不是节省承诺。
+
 ## 常见故障
 - `ERR_CONNECTION_REFUSED`：服务未运行/已经退出、端口错误或浏览器打开过早。检查 PowerShell 的 Uvicorn 输出。
 - `No module named fastapi`：运行脚本安装依赖，或 `cd backend; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`。
