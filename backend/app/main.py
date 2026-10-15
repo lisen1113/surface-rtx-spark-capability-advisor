@@ -13,6 +13,7 @@ from .report import router as report_router
 from .auth_ui import router as auth_ui_router
 from .ui import router as ui_router
 from .recommendation import router as recommendation_router
+from .deployment import router as deployment_router
 
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
 
@@ -25,6 +26,7 @@ app.include_router(report_router)
 app.include_router(auth_ui_router)
 app.include_router(ui_router)
 app.include_router(recommendation_router)
+app.include_router(deployment_router)
 
 class MemoryEstimateInput(BaseModel):
     parameters_billion: float = Field(gt=0, le=1000)

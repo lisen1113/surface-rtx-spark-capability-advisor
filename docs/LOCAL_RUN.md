@@ -22,6 +22,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 
 推荐接口为 `POST /api/recommendations`。其中模型内存采用 Q4 权重、量化开销、KV Cache、运行时和系统预留的工程测算；游戏、生成和生产力的内存起点也是工程筛选档。候选只表示值得进一步验证，不表示软件认证、模型可启动、稳定吞吐或游戏 FPS。价格及配置来自本地导入工作簿，正式采购前须复核。
 
+## 模型部署与企业私有数据
+
+首页“模型部署”标签按当前 Part Number 链接到 `/deployment?sku=<料号>`。指南包括 Windows 11 Pro 架构与驱动检查、LM Studio / Ollama / llama.cpp 入门路线、Linux 服务型框架的验证边界、端到端 PoC、企业私有文档 RAG、微调适用条件、权限与数据泄漏测试。指南不自动安装第三方工具或上传企业数据。运行时、模型、量化、上下文、GPU 后端和实际性能必须在目标设备记录与验收；没有实测的 Token/s 保持未知。
+
 ## 常见故障
 - `ERR_CONNECTION_REFUSED`：服务未运行/已经退出、端口错误或浏览器打开过早。检查 PowerShell 的 Uvicorn 输出。
 - `No module named fastapi`：运行脚本安装依赖，或 `cd backend; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`。
