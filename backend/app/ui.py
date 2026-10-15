@@ -23,11 +23,43 @@ body>footer::before{width:165px;height:55px;margin:0 auto 12px}
 </style><script>
 const $=s=>document.querySelector(s);let data=null,tab='ai';const text=v=>(v===null||v===undefined||v==='')?'未知':String(v);const escapeHtml=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const metric=(k,v)=>`<div class="metric"><span class="status">${k}</span><b>${text(v)}</b></div>`;
 // The TCO tab retains its own print action; the duplicate selector-bar shortcut was removed.
-async function findProducts(event){event.preventDefault();let budget=$('#need-budget').value;let body={usages:[...document.querySelectorAll('input[name="usage"]:checked')].map(x=>x.value),ai_size:$('#need-ai').value,game_need:$('#need-game').value,work_need:$('#need-work').value,generation_need:$('#need-generation').value,model_name:$('#need-model-name').value,game_titles:$('#need-game-titles').value,target_resolution:$('#need-resolution').value,target_fps:$('#need-fps').value?Number($('#need-fps').value):null,software_name:$('#need-software').value,budget_cny:budget?Number(budget):null,prefer_lower_price:$('#need-priority').value==='price',description:$('#need-description').value};let target=$('#need-result');target.innerHTML='<p class="status">正在匹配已导入产品…</p>';try{let r=await fetch('/api/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw Error(d.detail||'推荐请求失败');if(d.status==='needs_input'){target.innerHTML=`<p class="warn">${escapeHtml(d.message)}</p>`;return}let interpreted=d.interpreted_need;target.innerHTML=`<h3>需求档案</h3><p>用途：${escapeHtml(interpreted.usages.join(' + '))}；模型：${escapeHtml(interpreted.ai_size)}；工程筛选内存档：${escapeHtml(interpreted.minimum_memory_tier_gb)} GB</p>`+d.reasoning.map(x=>`<p class="status">${escapeHtml(x)}</p>`).join('')+d.needs_confirmation.map(x=>`<p class="warn">待确认：${escapeHtml(x)}</p>`).join('')+`<h3>产品候选（${d.items.length}）</h3>`+(d.items.length?d.items.map(x=>`<article class="card"><h3>${escapeHtml(x.part_number)} · ${escapeHtml(x.platform_code)} · ${escapeHtml(x.memory_gb)}GB</h3><p>存储 ${escapeHtml(x.storage_tb)}TB · 导入价格 ${x.price_cny===null?'未知':'¥'+Number(x.price_cny).toLocaleString()} ${x.over_budget?'· 超出预算':''}</p><p>${escapeHtml(x.reason)}</p><span class="tag">${escapeHtml(x.evidence_level)}</span><p><button type="button" data-pn="${escapeHtml(x.part_number)}">查看此配置的详细能力</button></p></article>`).join(''):'<div class="empty">当前导入产品中没有匹配候选。</div>')+`<p class="status">${escapeHtml(d.limitations||'')}</p>`}catch(e){target.innerHTML=`<p class="warn">${escapeHtml(e.message)}</p>`}}
+let lastNeedBody=null;
+async function findProducts(event){
+ event.preventDefault();
+ const budget=$('#need-budget').value;
+ const body={usages:[...document.querySelectorAll('input[name="usage"]:checked')].map(x=>x.value),ai_size:$('#need-ai').value,game_need:$('#need-game').value,work_need:$('#need-work').value,generation_need:$('#need-generation').value,model_name:$('#need-model-name').value,game_titles:$('#need-game-titles').value,target_resolution:$('#need-resolution').value,target_fps:$('#need-fps').value?Number($('#need-fps').value):null,software_name:$('#need-software').value,budget_cny:budget?Number(budget):null,prefer_lower_price:$('#need-priority').value==='price',description:$('#need-description').value};
+ const target=$('#need-result');lastNeedBody=null;target.innerHTML='<p class="status">正在匹配已导入产品…</p>';
+ try{
+  const r=await fetch('/api/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
+  if(!r.ok)throw Error(d.detail||'推荐请求失败');
+  if(d.status==='needs_input'){target.innerHTML=`<p class="warn">${escapeHtml(d.message)}</p>`;return}
+  lastNeedBody=body;
+  const interpreted=d.interpreted_need;
+  const labels={ai:'本地 AI 模型',gaming:'游戏',generation:'生成式 AI',productivity:'生产力'};
+  target.innerHTML=`<h3>需求档案</h3><p>用途：${escapeHtml(interpreted.usages.map(x=>labels[x]||x).join(' + '))}；模型：${escapeHtml(interpreted.ai_size)}；工程筛选内存档：${escapeHtml(interpreted.minimum_memory_tier_gb)} GB</p>`+d.reasoning.map(x=>`<p class="status">${escapeHtml(x)}</p>`).join('')+d.needs_confirmation.map(x=>`<p class="warn">待确认：${escapeHtml(x)}</p>`).join('')+`<h3>产品候选（${d.items.length}）</h3>`+(d.items.length?d.items.map(x=>`<article class="card"><h3>${escapeHtml(x.part_number)} · ${escapeHtml(x.platform_code)} · ${escapeHtml(x.memory_gb)}GB</h3><p>存储 ${escapeHtml(x.storage_tb)}TB · 导入价格 ${x.price_cny===null?'未知':'¥'+Number(x.price_cny).toLocaleString()} ${x.over_budget?'· 超出预算':''}</p><p>${escapeHtml(x.reason)}</p><span class="tag">${escapeHtml(x.evidence_level)}</span><p><button type="button" data-pn="${escapeHtml(x.part_number)}">查看此配置的详细能力并生成报告</button></p></article>`).join(''):'<div class="empty">当前导入产品中没有匹配候选。</div>')+`<p class="status">${escapeHtml(d.limitations||'')}</p><div id="need-report-output" aria-live="polite"></div>`;
+ }catch(e){target.innerHTML=`<p class="warn">${escapeHtml(e.message)}</p>`}
+}
 const generationFields=document.createElement('div');generationFields.id='need-generation-fields';generationFields.className='grid';generationFields.hidden=true;generationFields.innerHTML='<label>生成工作流<select id="need-generation"><option value="unsure">尚不确定</option><option value="image">图像生成</option><option value="video">视频生成</option></select></label>';$('#needform').insertBefore(generationFields,$('#need-budget').parentElement.parentElement);
 const priorityField=document.createElement('label');priorityField.innerHTML='推荐排序<select id="need-priority"><option value="price">优先控制采购价</option><option value="capacity">优先更大内存</option></select>';$('#need-budget').parentElement.parentElement.appendChild(priorityField);
 function updateNeedFields(){let chosen=new Set([...document.querySelectorAll('input[name="usage"]:checked')].map(x=>x.value));$('#need-ai-fields').hidden=!chosen.has('ai');$('#need-game-fields').hidden=!chosen.has('gaming');$('#need-work-fields').hidden=!chosen.has('productivity');$('#need-generation-fields').hidden=!chosen.has('generation');if(!chosen.has('ai')){$('#need-ai').value='unsure';$('#need-model-name').value=''}if(!chosen.has('gaming')){$('#need-game').value='unsure';$('#need-game-titles').value='';$('#need-resolution').value='unsure';$('#need-fps').value=''}if(!chosen.has('productivity')){$('#need-work').value='unsure';$('#need-software').value=''}if(!chosen.has('generation'))$('#need-generation').value='unsure'}
-document.querySelectorAll('input[name="usage"]').forEach(x=>x.addEventListener('change',updateNeedFields));$('#needform').addEventListener('submit',findProducts);$('#need-result').addEventListener('click',e=>{let pn=e.target.dataset.pn;if(!pn)return;$('#sku').value=pn;choose(pn);window.scrollTo({top:0,behavior:'smooth'})});
+document.querySelectorAll('input[name="usage"]').forEach(x=>x.addEventListener('change',updateNeedFields));$('#needform').addEventListener('submit',findProducts);
+async function showNeedReport(partNumber){
+ const output=$('#need-report-output');if(!output||!lastNeedBody)return;
+ output.innerHTML='<p class="status">正在生成此配置与本次需求的完整报告…</p>';
+ try{
+  const r=await fetch('/api/reports/recommendation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...lastNeedBody,part_number:partNumber})});
+  if(!r.ok){const error=await r.json();throw Error(typeof error.detail==='string'?error.detail:'报告生成失败')}
+  const html=await r.text();
+  $('#sku').value=partNumber;await choose(partNumber);
+  output.innerHTML='<h3>此配置与本次需求的匹配报告</h3><p><button type="button" id="need-report-print">打印报告／另存为 PDF</button></p>';
+  const frame=document.createElement('iframe');frame.title=partNumber+' 需求匹配报告';frame.style.cssText='width:100%;min-height:900px;border:1px solid #d0d5dd;border-radius:10px;background:white';
+  frame.addEventListener('load',()=>{try{frame.style.height=Math.max(900,frame.contentDocument.documentElement.scrollHeight+30)+'px'}catch(_){}});
+  output.appendChild(frame);frame.srcdoc=html;
+  $('#need-report-print').addEventListener('click',()=>frame.contentWindow.print());
+  output.scrollIntoView({behavior:'smooth',block:'start'});
+ }catch(e){output.textContent='无法生成报告：'+e.message}
+}
+$('#need-result').addEventListener('click',e=>{const button=e.target.closest('button[data-pn]');if(button)showNeedReport(button.dataset.pn)});
 function cards(items){
  if(!items||!items.length)return '<div class="empty">该 SKU 暂无已验证的直接映射；请查看经验推荐与证据限制。</div>';
  return items.map(x=>{
