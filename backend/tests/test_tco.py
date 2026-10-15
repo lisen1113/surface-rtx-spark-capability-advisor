@@ -37,6 +37,13 @@ def test_zero_cloud_unit_price_has_explicit_result_not_fabricated_payback():
 def test_tco_rejects_invalid_hybrid_share():
     assert client.post("/api/tco/calculate",json={"purchase_price_cny":1,"hybrid_cloud_share":2}).status_code==422
 
+def test_tco_page_has_sku_named_print_report():
+    page = client.get("/").text
+    assert 'id="tco-print"' in page
+    assert "Surface-Laptop-Ultra-TCO-" in page
+    assert "printing-tco" in page
+    assert "window.print()" in page
+
 def test_sku_defaults_use_imported_price_but_label_other_values_as_scenarios():
     def sku(memory, price):
         return {"part_number": f"TEST-{memory}", "memory_gb": memory, "platform_code": "S3",

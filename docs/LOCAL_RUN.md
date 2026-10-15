@@ -32,6 +32,8 @@ TCO 标签通过 `/api/tco/defaults/{part_number}` 读取当前 SKU 的导入 ER
 
 回本结论按“计入 AI 场景的设备净成本 ÷（云端月费－本地月运营费）”计算。若分母不大于零，不能给出有限的回本月数；页面会明确显示“当前用量下不回本”，同时按所选测算年限反推所需的最低月业务量。若回本月数超过测算年限，也会显示月数和“超出测算期”。云端单价为零时不存在有限的业务量阈值。客户修改输入并离开字段后，结果自动更新；这些数学结果仍须通过目标任务 PoC 验证可承接业务量。
 
+部署指南与 TCO 都提供“打印报告／另存为 PDF”。打印前页面标题会设为 `Surface-Laptop-Ultra-Deployment-<SKU>` 或 `Surface-Laptop-Ultra-TCO-<SKU>`，作为浏览器建议的 PDF 文件名；页面同时显示建议文件名。TCO 打印稿包含当前输入值与最新计算结果。最终文件名由浏览器或打印驱动控制，保存时请核对 SKU 后缀。
+
 ## 常见故障
 - `ERR_CONNECTION_REFUSED`：服务未运行/已经退出、端口错误或浏览器打开过早。检查 PowerShell 的 Uvicorn 输出。
 - `No module named fastapi`：运行脚本安装依赖，或 `cd backend; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`。

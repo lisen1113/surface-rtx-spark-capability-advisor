@@ -18,6 +18,8 @@ def test_deployment_guide_is_reachable_and_evidence_bounded():
     assert 'id="print-guide"' in page
     assert "window.print()" in page
     assert "@media print" in page
+    assert "Surface-Laptop-Ultra-Deployment-" in page
+    assert "建议 PDF 文件名" in page
 
 
 def test_home_exposes_deployment_tab():
