@@ -34,6 +34,8 @@ TCO 标签通过 `/api/tco/defaults/{part_number}` 读取当前 SKU 的导入 ER
 
 部署指南与 TCO 都提供“打印报告／另存为 PDF”。打印前页面标题会设为 `Surface-Laptop-Ultra-Deployment-<SKU>` 或 `Surface-Laptop-Ultra-TCO-<SKU>`，作为浏览器建议的 PDF 文件名；页面同时显示建议文件名。TCO 打印稿包含当前输入值与最新计算结果。最终文件名由浏览器或打印驱动控制，保存时请核对 SKU 后缀。
 
+TCO 打印稿采用独立的 A4 报告布局，包含 SKU 与生成日期、成本结论、测算输入和假设限制；页脚使用“以和 · 上海以和信息技术有限公司”的文字标识及版权声明。该文字标识不是未经确认的企业图形 Logo。
+
 ## 常见故障
 - `ERR_CONNECTION_REFUSED`：服务未运行/已经退出、端口错误或浏览器打开过早。检查 PowerShell 的 Uvicorn 输出。
 - `No module named fastapi`：运行脚本安装依赖，或 `cd backend; .\.venv\Scripts\python.exe -m pip install -r requirements.txt`。

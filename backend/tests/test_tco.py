@@ -47,6 +47,10 @@ def test_tco_page_has_sku_named_print_report():
     assert "Surface-Laptop-Ultra-TCO-" in page
     assert "printing-tco" in page
     assert "window.print()" in page
+    assert 'class="print-only tco-report-header"' in page
+    assert 'class="print-only tco-report-footer"' in page
+    assert "以和 · 上海以和信息技术有限公司" in page
+    assert "@page{size:A4" in page
 
 def test_sku_defaults_use_imported_price_but_label_other_values_as_scenarios():
     def sku(memory, price):
