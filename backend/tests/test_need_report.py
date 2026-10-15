@@ -72,4 +72,7 @@ def test_need_report_button_creates_inline_report_instead_of_scrolling_to_top():
     assert "need-report-print" in html
     assert "建议 PDF 文件名：" in html
     assert "按描述需求配置报告-" in html
+    assert "document.title=reportName" in html
+    assert "frame.contentDocument.title=reportName" in html
+    assert "frame.contentWindow.addEventListener('afterprint',restoreTitle" in html
     assert "window.scrollTo({top:0" not in html

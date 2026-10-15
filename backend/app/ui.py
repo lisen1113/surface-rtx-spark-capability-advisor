@@ -56,7 +56,15 @@ async function showNeedReport(partNumber){
   const frame=document.createElement('iframe');frame.title=reportName;frame.style.cssText='width:100%;min-height:900px;border:1px solid #d0d5dd;border-radius:10px;background:white';
   frame.addEventListener('load',()=>{try{frame.style.height=Math.max(900,frame.contentDocument.documentElement.scrollHeight+30)+'px'}catch(_){}});
   output.appendChild(frame);frame.srcdoc=html;
-  $('#need-report-print').addEventListener('click',()=>frame.contentWindow.print());
+  $('#need-report-print').addEventListener('click',()=>{
+   // Chromium can name an iframe print job from its parent tab, not the iframe title.
+   const previousTitle=document.title;
+   document.title=reportName;
+   frame.contentDocument.title=reportName;
+   const restoreTitle=()=>{document.title=previousTitle;frame.contentWindow.removeEventListener('afterprint',restoreTitle)};
+   frame.contentWindow.addEventListener('afterprint',restoreTitle,{once:true});
+   try{frame.contentWindow.focus();frame.contentWindow.print()}catch(error){restoreTitle();throw error}
+  });
   output.scrollIntoView({behavior:'smooth',block:'start'});
  }catch(e){output.textContent='无法生成报告：'+e.message}
 }
