@@ -14,6 +14,25 @@ def test_tco_uses_editable_assumptions_and_breakdown():
 def test_tco_does_not_claim_payback_when_cloud_is_cheaper():
     body=client.post("/api/tco/calculate",json={"purchase_price_cny":50000,"monthly_tokens_million":1,"cloud_cny_per_million_tokens":1}).json()
     assert body["payback_months"] is None
+    assert body["payback_status"] == "no_monthly_savings"
+    assert body["break_even_monthly_tokens_million_within_period"] > 1
+
+def test_tco_payback_and_break_even_threshold_respond_to_usage():
+    base={"purchase_price_cny":12000,"power_watts":0,"annual_maintenance_cny":0,
+          "cloud_cny_per_million_tokens":100,"monthly_tokens_million":1,"years":3}
+    low=client.post("/api/tco/calculate",json=base).json()
+    assert low["payback_status"] == "beyond_period"
+    assert low["payback_months"] == 120
+    assert low["break_even_monthly_tokens_million_within_period"] == 3.34
+    high=client.post("/api/tco/calculate",json={**base,"monthly_tokens_million":5}).json()
+    assert high["payback_status"] == "within_period"
+    assert high["payback_months"] == 24
+
+def test_zero_cloud_unit_price_has_explicit_result_not_fabricated_payback():
+    body=client.post("/api/tco/calculate",json={"purchase_price_cny":10000,
+        "monthly_tokens_million":10,"cloud_cny_per_million_tokens":0}).json()
+    assert body["payback_status"] == "no_cloud_price"
+    assert body["break_even_monthly_tokens_million_within_period"] is None
 
 def test_tco_rejects_invalid_hybrid_share():
     assert client.post("/api/tco/calculate",json={"purchase_price_cny":1,"hybrid_cloud_share":2}).status_code==422

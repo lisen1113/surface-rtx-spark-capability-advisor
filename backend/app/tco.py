@@ -1,4 +1,5 @@
 """Editable local/cloud/hybrid TCO calculator; all outputs are scenario estimates."""
+import math
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, model_validator
 from .auth import require_entitled_user
@@ -81,12 +82,26 @@ def calculate(data: TcoInput, _user=Depends(require_entitled_user)):
     savings = cloud - local
     local_monthly_operating = (electricity + maintenance) / (12 * data.years)
     monthly_delta = cloud_monthly - local_monthly_operating
-    payback = (allocated_purchase / monthly_delta if monthly_delta > 0 and allocated_purchase > 0 else None)
+    payback = allocated_purchase / monthly_delta if monthly_delta > 0 else None
+    period_months = data.years * 12
+    required_monthly_tokens = (
+        (local_monthly_operating + allocated_purchase / period_months)
+        / data.cloud_cny_per_million_tokens
+        if data.cloud_cny_per_million_tokens > 0 else None
+    )
+    payback_status = ("no_cloud_price" if data.cloud_cny_per_million_tokens == 0 else
+                      "no_monthly_savings" if monthly_delta <= 0 else
+                      "within_period" if payback <= period_months else "beyond_period")
     return {
         "currency": "CNY", "period_years": data.years,
         "local_tco_cny": round(local, 2), "cloud_tco_cny": round(cloud, 2),
         "hybrid_tco_cny": round(hybrid, 2), "local_vs_cloud_savings_cny": round(savings, 2),
         "payback_months": round(payback, 1) if payback is not None else None,
+        "payback_status": payback_status,
+        "cloud_minus_local_operating_monthly_cny": round(monthly_delta, 2),
+        "break_even_monthly_tokens_million_within_period": (
+            math.ceil(required_monthly_tokens * 100) / 100
+            if required_monthly_tokens is not None else None),
         "breakdown": {"purchase_net_residual": round(data.purchase_price_cny-data.residual_value_cny,2),
                       "purchase_net_residual_allocated": round(allocated_purchase,2), "electricity": round(electricity,2), "maintenance": round(maintenance,2), "cloud": round(cloud,2)},
         "evidence_level": "user_editable_scenario", "limitations": ["不含融资、税务、网络、人员、机房及机会成本，除非用户在维护成本中计入", "Token 单价和用量由用户输入，不代表供应商当前报价", "本地设备性能与利用率未由成本模型推断", "本地与云端模型质量、输入输出比例和任务范围须一致；混合云端比例须由 PoC 验证"],
