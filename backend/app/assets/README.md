@@ -1,0 +1,1 @@
+`yihe-logo.png` is the original Shanghai Yihe logo supplied and authorized by the user on 2026-10-15 for use in this software and its reports. Keep the image unmodified; render it on a white background.

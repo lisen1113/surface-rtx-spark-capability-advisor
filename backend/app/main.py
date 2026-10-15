@@ -1,6 +1,8 @@
 """Capability Advisor V3 local-first API bootstrap; not production auth."""
 from datetime import datetime, timezone
+from pathlib import Path
 from fastapi import Depends, FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .catalog import router as catalog_router
@@ -16,6 +18,7 @@ from .recommendation import router as recommendation_router
 from .deployment import router as deployment_router
 
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
+app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 
 app.include_router(catalog_router)
 app.include_router(auth_router)
