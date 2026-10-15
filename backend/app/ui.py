@@ -43,6 +43,15 @@ const generationFields=document.createElement('div');generationFields.id='need-g
 const priorityField=document.createElement('label');priorityField.innerHTML='推荐排序<select id="need-priority"><option value="price">优先控制采购价</option><option value="capacity">优先更大内存</option></select>';$('#need-budget').parentElement.parentElement.appendChild(priorityField);
 function updateNeedFields(){let chosen=new Set([...document.querySelectorAll('input[name="usage"]:checked')].map(x=>x.value));$('#need-ai-fields').hidden=!chosen.has('ai');$('#need-game-fields').hidden=!chosen.has('gaming');$('#need-work-fields').hidden=!chosen.has('productivity');$('#need-generation-fields').hidden=!chosen.has('generation');if(!chosen.has('ai')){$('#need-ai').value='unsure';$('#need-model-name').value=''}if(!chosen.has('gaming')){$('#need-game').value='unsure';$('#need-game-titles').value='';$('#need-resolution').value='unsure';$('#need-fps').value=''}if(!chosen.has('productivity')){$('#need-work').value='unsure';$('#need-software').value=''}if(!chosen.has('generation'))$('#need-generation').value='unsure'}
 document.querySelectorAll('input[name="usage"]').forEach(x=>x.addEventListener('change',updateNeedFields));$('#needform').addEventListener('submit',findProducts);
+let activeNeedReportHtml='',activeNeedReportName='';
+function openNeedReportPrintWindow(){
+ if(!activeNeedReportHtml)return;
+ const reportWindow=window.open('','_blank');
+ if(!reportWindow){alert('浏览器拦截了报告窗口。请允许本站打开新窗口后重试。');return}
+ reportWindow.document.open();reportWindow.document.write(activeNeedReportHtml);reportWindow.document.close();
+ reportWindow.document.title=activeNeedReportName;
+ reportWindow.focus();
+}
 async function showNeedReport(partNumber){
  const output=$('#need-report-output');if(!output||!lastNeedBody)return;
  output.innerHTML='<p class="status">正在生成此配置与本次需求的完整报告…</p>';
@@ -52,19 +61,12 @@ async function showNeedReport(partNumber){
   const html=await r.text();
   $('#sku').value=partNumber;await choose(partNumber);
   const reportName='按描述需求配置报告-'+String(partNumber).replace(/[^A-Za-z0-9-]/g,'-');
-  output.innerHTML='<h3>此配置与本次需求的匹配报告</h3><p><button type="button" id="need-report-print">打印报告／另存为 PDF</button></p><p class="status">建议 PDF 文件名：'+escapeHtml(reportName)+'.pdf（保存时可按需修改）</p>';
+  activeNeedReportHtml=html;activeNeedReportName=reportName;
+  output.innerHTML='<h3>此配置与本次需求的匹配报告</h3><p><button type="button" id="need-report-print">打开独立报告页并打印／另存为 PDF</button></p><p class="status">独立报告页的 PDF 文件名：'+escapeHtml(reportName)+'.pdf（保存时可按需修改）</p>';
   const frame=document.createElement('iframe');frame.title=reportName;frame.style.cssText='width:100%;min-height:900px;border:1px solid #d0d5dd;border-radius:10px;background:white';
   frame.addEventListener('load',()=>{try{frame.style.height=Math.max(900,frame.contentDocument.documentElement.scrollHeight+30)+'px'}catch(_){}});
   output.appendChild(frame);frame.srcdoc=html;
-  $('#need-report-print').addEventListener('click',()=>{
-   // Chromium can name an iframe print job from its parent tab, not the iframe title.
-   const previousTitle=document.title;
-   document.title=reportName;
-   frame.contentDocument.title=reportName;
-   const restoreTitle=()=>{document.title=previousTitle;frame.contentWindow.removeEventListener('afterprint',restoreTitle)};
-   frame.contentWindow.addEventListener('afterprint',restoreTitle,{once:true});
-   try{frame.contentWindow.focus();frame.contentWindow.print()}catch(error){restoreTitle();throw error}
-  });
+  $('#need-report-print').addEventListener('click',openNeedReportPrintWindow);
   output.scrollIntoView({behavior:'smooth',block:'start'});
  }catch(e){output.textContent='无法生成报告：'+e.message}
 }
