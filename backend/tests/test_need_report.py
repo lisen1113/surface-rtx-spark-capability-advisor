@@ -22,6 +22,7 @@ def test_need_report_is_bound_to_selected_sku_and_submitted_need():
     assert response.status_code == 200
     html = response.text
     assert part_number in html
+    assert f"<title>按描述需求配置报告-{part_number}</title>" in html
     assert "本次用户需求" in html
     assert "Microsoft 365" in html
     assert "日常办公" in html
@@ -69,4 +70,6 @@ def test_need_report_button_creates_inline_report_instead_of_scrolling_to_top():
     assert "async function showNeedReport(partNumber)" in html
     assert "frame.srcdoc=html" in html
     assert "need-report-print" in html
+    assert "建议 PDF 文件名：" in html
+    assert "按描述需求配置报告-" in html
     assert "window.scrollTo({top:0" not in html

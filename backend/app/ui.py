@@ -51,8 +51,9 @@ async function showNeedReport(partNumber){
   if(!r.ok){const error=await r.json();throw Error(typeof error.detail==='string'?error.detail:'报告生成失败')}
   const html=await r.text();
   $('#sku').value=partNumber;await choose(partNumber);
-  output.innerHTML='<h3>此配置与本次需求的匹配报告</h3><p><button type="button" id="need-report-print">打印报告／另存为 PDF</button></p>';
-  const frame=document.createElement('iframe');frame.title=partNumber+' 需求匹配报告';frame.style.cssText='width:100%;min-height:900px;border:1px solid #d0d5dd;border-radius:10px;background:white';
+  const reportName='按描述需求配置报告-'+String(partNumber).replace(/[^A-Za-z0-9-]/g,'-');
+  output.innerHTML='<h3>此配置与本次需求的匹配报告</h3><p><button type="button" id="need-report-print">打印报告／另存为 PDF</button></p><p class="status">建议 PDF 文件名：'+escapeHtml(reportName)+'.pdf（保存时可按需修改）</p>';
+  const frame=document.createElement('iframe');frame.title=reportName;frame.style.cssText='width:100%;min-height:900px;border:1px solid #d0d5dd;border-radius:10px;background:white';
   frame.addEventListener('load',()=>{try{frame.style.height=Math.max(900,frame.contentDocument.documentElement.scrollHeight+30)+'px'}catch(_){}});
   output.appendChild(frame);frame.srcdoc=html;
   $('#need-report-print').addEventListener('click',()=>frame.contentWindow.print());
