@@ -15,6 +15,9 @@ def test_deployment_guide_is_reachable_and_evidence_bounded():
     assert "不预设可运行的参数规模或 Token/s" in page
     assert "127.0.0.1" in page
     assert "learn.microsoft.com" in page
+    assert 'id="print-guide"' in page
+    assert "window.print()" in page
+    assert "@media print" in page
 
 
 def test_home_exposes_deployment_tab():
