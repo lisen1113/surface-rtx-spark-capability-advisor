@@ -12,6 +12,7 @@ def test_customer_report_contains_evidence_boundaries():
   assert text in response.text
  assert 'ComfyUI 图像生成' in response.text
  assert 'Microsoft 365' in response.text and 'Blender 3D' in response.text
+ assert response.text.split('<footer>',1)[1].split('</footer>',1)[0] == '© 2026 上海以和信息技术有限公司。保留所有权利。'
 
 def test_missing_report_is_404():
  assert client.get('/api/reports/NOT-FOUND.html').status_code==404

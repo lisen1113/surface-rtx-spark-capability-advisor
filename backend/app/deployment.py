@@ -80,7 +80,6 @@ body{font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif;color:#172033;backgrou
 const sku=document.querySelector('#sku'),out=document.querySelector('#device'),plan=document.querySelector('#skuplan'),printButton=document.querySelector('#print-guide'),fileHint=document.querySelector('#print-filename');
 const brandLogo='<img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="display:block;width:min(240px,70vw);height:auto;background:white;border-radius:6px;padding:5px;margin-bottom:18px">';
 document.querySelector('header').insertAdjacentHTML('afterbegin',brandLogo);
-document.querySelector('footer').insertAdjacentHTML('afterbegin','<img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="display:block;width:145px;height:auto;margin:0 auto 10px">');
 const originalTitle=document.title;
 function reportTitle(){return 'Surface-Laptop-Ultra-Deployment-'+sku.value.replace(/[^A-Za-z0-9-]/g,'-')}
 printButton.addEventListener('click',()=>{document.title=reportTitle();window.print()});

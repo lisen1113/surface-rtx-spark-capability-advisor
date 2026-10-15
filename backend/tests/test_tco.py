@@ -42,14 +42,14 @@ def test_tco_page_has_sku_named_print_report():
     page = response.text
     assert response.headers["cache-control"] == "no-store"
     assert 'id="tco-print"' in page
-    assert 'tco-shortcut' in page
+    assert "createElement('button');tcoShortcut" not in page
     assert page.index('id="tco-print"') < page.index('id="tco-fields"')
     assert "Surface-Laptop-Ultra-TCO-" in page
     assert "printing-tco" in page
     assert "window.print()" in page
     assert 'class="print-only tco-report-header"' in page
     assert 'class="print-only tco-report-footer"' in page
-    assert "以和 · 上海以和信息技术有限公司" in page
+    assert '.tco-report-footer strong{display:none!important}' in page
     assert "@page{size:A4" in page
 
 def test_sku_defaults_use_imported_price_but_label_other_values_as_scenarios():
