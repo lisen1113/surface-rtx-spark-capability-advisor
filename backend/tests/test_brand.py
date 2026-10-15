@@ -18,7 +18,12 @@ def test_product_selector_and_official_specs_are_explained():
     page = TestClient(app).get("/").text
     assert "j.items.sort((a,b)=>" in page
     assert "价格待确认" in page
-    assert "所选料号：导入资料详情" in page
-    assert "微软官方系列技术规格" in page
+    assert "产品规格对照" in page
+    assert "当前 SKU 导入值" in page
+    assert "微软官方系列规格" in page
+    assert "对应关系与限制" in page
     assert "3270 × 2180" in page
-    assert "非此 Part Number 的独立检测报告" in page
+    assert "DARK STEEL" not in page  # Color is read from each imported SKU, not invented in the template.
+    assert "名称与微软官网颜色选项不同" in page
+    assert "续航测试用预生产 6144 核 GPU / 64GB / 1TB" in page
+    assert "#tab-tech-specs" in page
