@@ -1,4 +1,5 @@
-"""Capability Advisor V3 local-first API bootstrap; not production auth."""
+"""Capability Advisor V3 local-first API bootstrap."""
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
@@ -17,8 +18,16 @@ from .auth_ui import router as auth_ui_router
 from .ui import router as ui_router
 from .recommendation import router as recommendation_router
 from .deployment import router as deployment_router
+from .deployment_readiness import assert_deployment_configuration
 
-app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    assert_deployment_configuration()
+    yield
+
+
+app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev", lifespan=lifespan)
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 
 app.include_router(catalog_router, dependencies=[Depends(require_entitled_user)])
