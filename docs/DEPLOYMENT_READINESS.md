@@ -1,10 +1,17 @@
 # 公网正式部署就绪门槛
 
-当前分支仍是本机演示与草稿 PR，**不可直接暴露公网**。`CAPABILITY_DEPLOYMENT_MODE=public` 仅提供必要的配置启动门槛，不代表安全审计或正式发布已通过。`main` 不应在以下项目完成前合并。
+当前分支仍是本机演示与草稿 PR，**不可直接暴露公网**。当前数据层只实现 SQLite，因此 `CAPABILITY_DEPLOYMENT_MODE=public` 会拒绝启动；必须先实现并验证生产数据库后端，不能靠设置环境变量绕过。`main` 不应在以下项目完成前合并。
 
 部署目标是 `surfacedmp.com` 的独立新服务器。该域名旧站内容已被用户声明不再需要，但现有 CentOS 7.8 服务器仍承载 `yiheit.net` 公司官网，**不得重装、停机或修改该服务器**；旧站文件也不要在新站验收前删除。CentOS Linux 7 已于 [2024-06-30 结束维护](https://centos.org/centos-linux/)；官网迁移另立项目，不能混入能力顾问上线任务。腾讯云明确说明[重装会清空系统盘并使实例关机](https://cloud.tencent.com/document/product/1207/44576)，因此不采用“重装旧机”方案。不要假定新服务器已购买、域名已切换或 HTTPS 已完成。
 
-## 新服务器购买建议（尚未购买）
+## 新服务器现状（2026-10-16，按用户控制台截图核对）
+
+- 新购腾讯云轻量应用服务器 `surface-advisor-shanghai`，上海地域，公网 IPv4 `123.207.183.23`；2 vCPU / 4 GB、60 GB SSD、5 Mbps、500 GB/月。Ubuntu Server 24.04.4 LTS x86_64；系统更新及重启后内核 `6.8.0-147-generic`。
+- 已创建初始系统盘快照且控制台状态为正常。仅看到默认防火墙规则：22/TCP、80/TCP 和 ICMP 对全部 IPv4 开放；443/TCP 尚未开放，域名尚未切换。SSH 私钥由用户自行保管，不进入聊天或仓库。
+- 这台服务器只运行 Web/API/数据库，不运行 RTX Spark 本地模型。旧 CentOS 服务器及 `yiheit.net` 不在本任务变更范围内。
+- 购买或基础系统准备完成**不代表应用可发布**；数据库、SMTP、HTTPS、备份恢复、安全审查和业务验收仍未完成。
+
+## 容量选择背景
 
 - 只运行能力顾问 Web/API/数据库，不在该服务器部署 RTX Spark 模型推理；故不需要 GPU 实例。
 - 初期公网试点建议腾讯云轻量应用服务器 **4 vCPU、8 GB 内存、至少 120 GB SSD、x86_64、Ubuntu Server 24.04 LTS**。这是为应用、数据库、反向代理、备份及更新保留余量的工程建议，不是用户数或吞吐量实测保证。腾讯云[产品页列有 4 核 8 GB 套餐](https://cloud.tencent.com/product/lighthouse)；具体磁盘、带宽、价格和可选镜像以购买时所选地域页面为准。Ubuntu 24.04 LTS 的标准安全维护期至 [2029 年 5 月](https://documentation.ubuntu.com/release-notes/24.04/)。

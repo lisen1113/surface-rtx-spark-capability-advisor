@@ -15,6 +15,11 @@ def deployment_configuration_errors() -> list[str]:
         return ["CAPABILITY_DEPLOYMENT_MODE must be local, shared, or public"]
 
     errors = []
+    # The catalog and authentication stores currently use sqlite3 directly.
+    # Do not let a plausible-looking set of environment variables expose the
+    # local demo database to public multi-user traffic.
+    if mode == "public":
+        errors.append("Public deployment requires a tested production database backend; SQLite is not supported")
     if os.getenv("CAPABILITY_REQUIRE_AUTH") != "1":
         errors.append("CAPABILITY_REQUIRE_AUTH must be 1")
     if os.getenv("CAPABILITY_DEV_EXPOSE_TOKENS") == "1":

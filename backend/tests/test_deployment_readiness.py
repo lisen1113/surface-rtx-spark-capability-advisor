@@ -27,8 +27,8 @@ def test_deployment_rejects_anonymous_or_incomplete_configuration(monkeypatch, m
             pass
 
 
-@pytest.mark.parametrize("mode", ["shared", "public"])
-def test_deployment_accepts_configured_https_origin_without_exposing_values(monkeypatch, mode):
+def test_shared_deployment_accepts_configured_https_origin_without_exposing_values(monkeypatch):
+    mode = "shared"
     monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", mode)
     monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
     monkeypatch.setenv("CAPABILITY_SMTP_HOST", "smtp.example.invalid")
@@ -41,6 +41,19 @@ def test_deployment_accepts_configured_https_origin_without_exposing_values(monk
     assert "CAPABILITY_DEV_EXPOSE_TOKENS must be disabled" in deployment_configuration_errors()
     monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "http://advisor.example.invalid")
     assert "CAPABILITY_PUBLIC_BASE_URL must be an HTTPS origin" in deployment_configuration_errors()
+
+
+def test_public_mode_rejects_sqlite_even_with_other_settings_present(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "public")
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    monkeypatch.setenv("CAPABILITY_SMTP_HOST", "smtp.example.invalid")
+    monkeypatch.setenv("CAPABILITY_SMTP_FROM", "advisor@example.invalid")
+    monkeypatch.setenv("CAPABILITY_MFA_MASTER_KEY", "x" * 32)
+    monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "https://advisor.example.invalid")
+    monkeypatch.delenv("CAPABILITY_DEV_EXPOSE_TOKENS", raising=False)
+    assert any("production database backend" in error for error in deployment_configuration_errors())
+    with pytest.raises(RuntimeError, match="production database backend"):
+        assert_deployment_configuration()
 
 
 def test_unknown_deployment_mode_fails_closed(monkeypatch):
