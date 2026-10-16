@@ -71,6 +71,32 @@ def test_password_reset_request_does_not_disclose_unknown_email(monkeypatch):
     assert "development_token" not in response.json()
 
 
+def test_password_reset_request_has_five_minute_cooldown(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
+    monkeypatch.delenv("CAPABILITY_REQUIRE_AUTH", raising=False)
+    _, _ = seed_admin()
+    with connection() as conn:
+        email = conn.execute("SELECT email FROM users WHERE role='admin' ORDER BY id DESC LIMIT 1").fetchone()[0]
+    first = client.post("/api/auth/password-reset/request", json={"email": email})
+    assert first.status_code == 200
+    first_token = first.json()["development_token"]
+    immediate = client.post("/api/auth/password-reset/request", json={"email": email})
+    assert immediate.status_code == 200
+    assert "development_token" not in immediate.json()
+    with connection() as conn:
+        rows = conn.execute("SELECT token_hash FROM password_reset_tokens WHERE user_id="
+                            "(SELECT id FROM users WHERE email=?)", (email,)).fetchall()
+        assert len(rows) == 1
+        conn.execute("UPDATE password_reset_tokens SET created_at=? WHERE token_hash=?",
+                     (iso(now() - timedelta(minutes=6)), hashlib.sha256(first_token.encode()).hexdigest()))
+        conn.commit()
+    later = client.post("/api/auth/password-reset/request", json={"email": email})
+    assert later.status_code == 200
+    assert later.json()["development_token"] != first_token
+    assert client.post("/api/auth/password-reset/confirm", json={
+        "token": first_token, "new_password": "Another-password-789"}).status_code == 400
+
+
 def test_user_verifies_email_with_single_use_token(monkeypatch):
     monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
     monkeypatch.delenv("CAPABILITY_REQUIRE_AUTH", raising=False)

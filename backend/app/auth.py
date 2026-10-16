@@ -334,6 +334,10 @@ def request_password_reset(data: PasswordResetRequestInput):
         user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
         if not user:
             return response
+        latest = conn.execute("SELECT created_at FROM password_reset_tokens WHERE user_id=? "
+                              "ORDER BY created_at DESC LIMIT 1", (user["id"],)).fetchone()
+        if latest and datetime.fromisoformat(latest["created_at"]) > now() - timedelta(minutes=5):
+            return response
         token = secrets.token_urlsafe(32)
         created = now()
         conn.execute("UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND used_at IS NULL", (iso(created), user["id"]))
