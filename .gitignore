@@ -13,4 +13,5 @@ __pycache__/
 *.sqlite3
 coverage/
 preview-*.log
+artifacts/
 .DS_Store
