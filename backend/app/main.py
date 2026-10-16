@@ -2,8 +2,11 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+import os
 import sqlite3
-from fastapi import Depends, FastAPI, HTTPException
+from urllib.parse import urlsplit
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -28,6 +31,26 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Surface / RTX Spark PC Capability Advisor", version="3.0.0-dev", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def shared_host_boundary(request: Request, call_next):
+    """Only the configured public host may reach a shared/public deployment.
+
+    Reverse proxies must forward the original Host and terminate TLS; this
+    check is a defense in depth boundary, not proof that TLS is configured.
+    """
+    if os.getenv("CAPABILITY_DEPLOYMENT_MODE", "local") in {"shared", "public"}:
+        expected = urlsplit(os.getenv("CAPABILITY_PUBLIC_BASE_URL", ""))
+        received = request.headers.get("host", "")
+        if not expected.netloc or received.casefold() != expected.netloc.casefold():
+            return PlainTextResponse("Host not allowed", status_code=400)
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "same-origin"
+    return response
+
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 
 app.include_router(catalog_router, dependencies=[Depends(require_entitled_user)])
