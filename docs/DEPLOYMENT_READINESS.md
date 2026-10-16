@@ -2,13 +2,14 @@
 
 当前分支仍是本机演示与草稿 PR，**不可直接暴露公网**。`CAPABILITY_DEPLOYMENT_MODE=public` 仅提供必要的配置启动门槛，不代表安全审计或正式发布已通过。`main` 不应在以下项目完成前合并。
 
-部署目标是 `surfacedmp.com` 的独立新服务器。现有 CentOS 7.8 服务器还承载 `yiheit.net` 公司官网，**不得重装、停机或修改该服务器**。CentOS Linux 7 已于 [2024-06-30 结束维护](https://centos.org/centos-linux/)；官网迁移另立项目，不能混入能力顾问上线任务。腾讯云明确说明[重装会清空系统盘并使实例关机](https://cloud.tencent.com/document/product/1207/44576)，因此不采用“重装旧机”方案。不要假定新服务器已购买、域名已切换、备案或 HTTPS 已完成。
+部署目标是 `surfacedmp.com` 的独立新服务器。该域名旧站内容已被用户声明不再需要，但现有 CentOS 7.8 服务器仍承载 `yiheit.net` 公司官网，**不得重装、停机或修改该服务器**；旧站文件也不要在新站验收前删除。CentOS Linux 7 已于 [2024-06-30 结束维护](https://centos.org/centos-linux/)；官网迁移另立项目，不能混入能力顾问上线任务。腾讯云明确说明[重装会清空系统盘并使实例关机](https://cloud.tencent.com/document/product/1207/44576)，因此不采用“重装旧机”方案。不要假定新服务器已购买、域名已切换或 HTTPS 已完成。
 
 ## 新服务器购买建议（尚未购买）
 
 - 只运行能力顾问 Web/API/数据库，不在该服务器部署 RTX Spark 模型推理；故不需要 GPU 实例。
 - 初期公网试点建议腾讯云轻量应用服务器 **4 vCPU、8 GB 内存、至少 120 GB SSD、x86_64、Ubuntu Server 24.04 LTS**。这是为应用、数据库、反向代理、备份及更新保留余量的工程建议，不是用户数或吞吐量实测保证。腾讯云[产品页列有 4 核 8 GB 套餐](https://cloud.tencent.com/product/lighthouse)；具体磁盘、带宽、价格和可选镜像以购买时所选地域页面为准。Ubuntu 24.04 LTS 的标准安全维护期至 [2029 年 5 月](https://documentation.ubuntu.com/release-notes/24.04/)。
-- 用户选择中国内地地域，`surfacedmp.com` 备案状态待查。先由域名负责人核对该域名的[网站 ICP 备案和腾讯云接入要求](https://cloud.tencent.com/document/product/243/73180)；未满足前不可将站点对公网开放。
+- 用户选择中国内地地域，并确认 `surfacedmp.com` 已完成备案；备案号、备案主体、腾讯云接入状态、经营性/非经营性类型以及备案网站名称/服务内容是否与新项目一致，仍需在控制台核对。同一腾讯云接入商换到另一腾讯云 IP，非经营性备案通常[不强制重新备案](https://cloud.tencent.com/document/product/243/19617)；如备案服务信息改变，按腾讯云[变更服务指引](https://cloud.tencent.com/document/product/243/19145)办理。若实际需办理接入或变更，重新核对新资源的购买时长要求。
+- 最低成本可以先按月开通新机作**非公开技术验收**，但不要仅凭“域名以前备案过”判断 1 个月套餐足以正式切换；腾讯云在办理备案时对轻量服务器要求[累计购买至少 3 个月且备案期间剩余至少 1 个月](https://cloud.tencent.com/document/product/243/18908)。购买前先核对优惠资格、续费价与是否需要备案手续。
 - 新机分配独立公网 IP；只在预发布验收、HTTPS 和正式批准后变更 `surfacedmp.com` 对应 DNS。不要修改 `yiheit.net` 的 DNS、证书或旧机反向代理。
 
 ## 启动前自动门槛
