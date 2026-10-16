@@ -56,6 +56,8 @@ def test_public_mode_requires_postgres_even_with_other_settings_present(monkeypa
     with pytest.raises(RuntimeError, match="CAPABILITY_AUTH_DATABASE_URL"):
         assert_deployment_configuration()
     monkeypatch.setenv("CAPABILITY_AUTH_DATABASE_URL", "postgresql://localhost/advisor")
+    monkeypatch.setenv("CAPABILITY_SMTP_USERNAME", "advisor@example.invalid")
+    monkeypatch.setenv("CAPABILITY_SMTP_PASSWORD", "test-only-credential")
     assert deployment_configuration_errors() == []
 
 

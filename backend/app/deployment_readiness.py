@@ -24,6 +24,8 @@ def deployment_configuration_errors() -> list[str]:
         errors.append("CAPABILITY_DEV_EXPOSE_TOKENS must be disabled")
     if not os.getenv("CAPABILITY_SMTP_HOST") or not os.getenv("CAPABILITY_SMTP_FROM"):
         errors.append("SMTP host and sender must be configured")
+    if mode == "public" and (not os.getenv("CAPABILITY_SMTP_USERNAME") or not os.getenv("CAPABILITY_SMTP_PASSWORD")):
+        errors.append("SMTP username and credential must be configured")
     if os.getenv("CAPABILITY_SMTP_TLS_MODE", "starttls") not in ("starttls", "ssl"):
         errors.append("SMTP TLS mode must be starttls or ssl")
     if len(os.getenv("CAPABILITY_MFA_MASTER_KEY", "").encode("utf-8")) < 32:

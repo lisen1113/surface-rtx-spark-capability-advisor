@@ -33,10 +33,12 @@ CAPABILITY_PUBLIC_BASE_URL=https://advisor.example.com
 CAPABILITY_AUTH_DATABASE_URL=postgresql://<独立数据库账号>@127.0.0.1:5432/<数据库名>
 CAPABILITY_SMTP_HOST=...
 CAPABILITY_SMTP_FROM=ls@yiheit.net
+CAPABILITY_SMTP_USERNAME=ls@yiheit.net
+CAPABILITY_SMTP_PASSWORD=<仅服务器密钥环境中注入>
 CAPABILITY_MFA_MASTER_KEY=<由密钥管理系统注入>
 ```
 
-用户指定腾讯企业邮箱 `ls@yiheit.net` 作为验证码发件地址。SMTP 主机、端口、TLS 方式及授权码须在企业邮箱管理后台核实并仅在服务器密钥环境中配置；不在聊天、代码或文档中填写授权码。生产依赖使用 `backend/requirements-production.txt`；在专用 PostgreSQL 数据库运行 `backend/sql/auth_postgres_v1.sql`。账号库不得开放公网 5432 端口。产品目录 SQLite 文件在公网模式以只读方式打开；导入/更新须离线构建新版目录文件后重新部署。备份需要同时覆盖 PostgreSQL 和目录文件。
+用户指定腾讯企业邮箱 `ls@yiheit.net` 作为验证码发件地址。腾讯云的[企业邮客户端设置文档](https://main.qcloudimg.com/raw/document/product/pdf/613_46019_cn.pdf)给出普通 SMTP 服务 `smtp.exmail.qq.com`、SSL、465 端口；仍须在该邮箱管理后台核实客户端访问权限与授权码。授权码仅在服务器密钥环境中配置；不在聊天、代码或文档中填写。生产依赖使用 `backend/requirements-production.txt`；在专用 PostgreSQL 数据库运行 `backend/sql/auth_postgres_v1.sql`。账号库不得开放公网 5432 端口。产品目录 SQLite 文件在公网模式以只读方式打开；导入/更新须离线构建新版目录文件后重新部署。备份需要同时覆盖 PostgreSQL 和目录文件。
 
 服务仍需只监听受控内网地址，由 HTTPS 反向代理终止 TLS、限制可接受 Host、设置安全头和请求体上限；应用检查 HTTPS URL 字符串**不能证明**真实网络连接已加密。共享/公网模式会在应用层拒绝与 `CAPABILITY_PUBLIC_BASE_URL` 不一致的 `Host`，并发送 `nosniff`、禁止嵌入及同源 Referrer 安全头；反向代理必须保留正确的原始 `Host`，不能依赖这些应用头替代代理配置。不可直接将 `scripts/start-local.ps1` 的 Uvicorn 开发进程开放公网。
 

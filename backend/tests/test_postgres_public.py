@@ -31,6 +31,8 @@ def test_public_registration_verification_license_and_login(monkeypatch, tmp_pat
     monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
     monkeypatch.setenv("CAPABILITY_SMTP_HOST", "smtp.example.invalid")
     monkeypatch.setenv("CAPABILITY_SMTP_FROM", "advisor@example.invalid")
+    monkeypatch.setenv("CAPABILITY_SMTP_USERNAME", "advisor@example.invalid")
+    monkeypatch.setenv("CAPABILITY_SMTP_PASSWORD", "test-only-credential")
     monkeypatch.setenv("CAPABILITY_MFA_MASTER_KEY", "x" * 32)
     monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "https://advisor.example.invalid")
     monkeypatch.delenv("CAPABILITY_DEV_EXPOSE_TOKENS", raising=False)
