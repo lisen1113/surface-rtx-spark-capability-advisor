@@ -1,9 +1,33 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
+from app import catalog
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def isolated_skus(monkeypatch, tmp_path):
+    """Exercise reports on synthetic products, never on a developer's licensed workbook."""
+    monkeypatch.setattr(catalog, "DB_PATH", tmp_path / "capability.sqlite3")
+    with catalog.connection() as conn:
+        for part_number, platform, memory, price in (
+            ("TEST-S2-24", "S2", 24, 23000),
+            ("TEST-S3-48", "S3", 48, 34000),
+            ("TEST-S3-128", "S3", 128, 49000),
+        ):
+            conn.execute(
+                """INSERT INTO imported_skus
+                (part_number, product_family, raw_configuration, platform_code,
+                 memory_gb, storage_tb, erp_price_cny, operating_system,
+                 source_reference, source_sha256)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (part_number, "Surface Laptop Ultra", f"Synthetic {memory}GB test SKU",
+                 platform, memory, 1, price, "Windows 11 Pro", "test fixture", "synthetic"),
+            )
+        conn.commit()
 
 
 def candidate_for(payload):
