@@ -15,6 +15,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 - http://127.0.0.1:8000/docs （接口文档）
 
 脚本默认在健康检查成功后自动打开浏览器。启动失败时，打开 `logs/startup.log` 查看错误。
+`/health` 只有在本地 SQLite 数据库可访问时才返回 200；数据库目录无权限或文件损坏时返回 503，避免浏览器打开一个无法使用的页面。
 
 ## 按需求推荐产品
 

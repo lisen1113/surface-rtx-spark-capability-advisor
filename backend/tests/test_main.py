@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from app import catalog
 from app.main import app
 
 client = TestClient(app)
@@ -7,6 +8,16 @@ def test_health():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["local"] is True
+    assert response.json()["database"] == "ready"
+
+
+def test_health_reports_database_failure(monkeypatch, tmp_path):
+    blocking_file = tmp_path / "not-a-directory"
+    blocking_file.write_text("occupied")
+    monkeypatch.setattr(catalog, "DB_PATH", blocking_file / "capability.sqlite3")
+    response = client.get("/health")
+    assert response.status_code == 503
+    assert response.json()["detail"] == "本地数据库不可用"
 
 def test_memory_estimate_is_explicitly_estimate():
     response = client.post("/api/estimate/memory", json={

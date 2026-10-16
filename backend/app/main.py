@@ -1,11 +1,12 @@
 """Capability Advisor V3 local-first API bootstrap; not production auth."""
 from datetime import datetime, timezone
 from pathlib import Path
-from fastapi import Depends, FastAPI
+import sqlite3
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .catalog import router as catalog_router
+from .catalog import connection, router as catalog_router
 from .capability import estimate_capacity
 from .auth import require_entitled_user, router as auth_router
 from .tco import router as tco_router
@@ -43,7 +44,12 @@ class MemoryEstimateInput(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "3.0.0-dev", "local": True}
+    try:
+        with connection() as conn:
+            conn.execute("SELECT 1 FROM imported_skus LIMIT 1")
+    except (OSError, sqlite3.Error) as exc:
+        raise HTTPException(503, "本地数据库不可用") from exc
+    return {"status": "ok", "version": "3.0.0-dev", "local": True, "database": "ready"}
 
 @app.get("/api/about")
 def about():
