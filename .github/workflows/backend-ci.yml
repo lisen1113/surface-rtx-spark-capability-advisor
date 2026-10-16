@@ -37,13 +37,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Parse Windows startup script
+      - name: Parse Windows startup and acceptance scripts
         shell: powershell
         run: |
           $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path '.\scripts\start-local.ps1'),
-            [ref]$null,
-            [ref]$errors
-          )
+          foreach ($script in @('.\scripts\start-local.ps1', '.\scripts\verify-local.ps1')) {
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $script), [ref]$null, [ref]$errors
+            )
+          }
           if ($errors.Count) { $errors | Format-List; exit 1 }
