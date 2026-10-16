@@ -97,6 +97,31 @@ def test_password_reset_request_has_five_minute_cooldown(monkeypatch):
         "token": first_token, "new_password": "Another-password-789"}).status_code == 400
 
 
+def test_password_reset_can_retry_after_mail_delivery_failure(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    monkeypatch.setenv("CAPABILITY_SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("CAPABILITY_SMTP_FROM", "advisor@example.com")
+    _, _ = seed_admin()
+    with connection() as conn:
+        email = conn.execute("SELECT email FROM users WHERE role='admin' ORDER BY id DESC LIMIT 1").fetchone()[0]
+
+    def failed_mail(*_args, **_kwargs):
+        from fastapi import HTTPException
+        raise HTTPException(503, "验证邮件发送失败，请稍后重试")
+
+    monkeypatch.setattr(auth, "_send_password_reset_mail", failed_mail)
+    first = client.post("/api/auth/password-reset/request", json={"email": email})
+    assert first.status_code == 503
+    monkeypatch.setattr(auth, "_send_password_reset_mail", lambda *_args, **_kwargs: True)
+    retry = client.post("/api/auth/password-reset/request", json={"email": email})
+    assert retry.status_code == 200
+    with connection() as conn:
+        rows = conn.execute("SELECT used_at FROM password_reset_tokens WHERE user_id="
+                            "(SELECT id FROM users WHERE email=?) ORDER BY created_at", (email,)).fetchall()
+    assert len(rows) == 2
+    assert sum(row["used_at"] is None for row in rows) == 1
+
+
 def test_user_verifies_email_with_single_use_token(monkeypatch):
     monkeypatch.setenv("CAPABILITY_DEV_EXPOSE_TOKENS", "1")
     monkeypatch.delenv("CAPABILITY_REQUIRE_AUTH", raising=False)
