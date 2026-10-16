@@ -1,9 +1,10 @@
 """Customer-facing local model deployment and private-data guide."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 
 from .capability import estimate_capacity
 from .catalog import connection
+from .auth import require_entitled_user
 
 router = APIRouter()
 
@@ -58,7 +59,7 @@ def sku_deployment_plan(sku: dict) -> dict:
 
 
 @router.get("/api/deployment/sku/{part_number}")
-def deployment_plan(part_number: str):
+def deployment_plan(part_number: str, _user=Depends(require_entitled_user)):
     with connection() as conn:
         row = conn.execute("SELECT * FROM imported_skus WHERE part_number=?", (part_number,)).fetchone()
     if not row:
@@ -78,6 +79,7 @@ body{font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif;color:#172033;backgrou
 <section><h2>5. 验收记录与风险清单</h2><p>每次测试保存：Part Number、架构、Windows/驱动/工具版本、模型来源与许可证、权重校验值、量化、上下文、后端、并发、电源模式、任务与提示词、正确性与引用、内存峰值、冷/热启动耗时、实际 Token/s（若测得）、失败日志及测试日期。没有测量的数据保持未知。</p><ul><li>仅监听本机地址；若开放给团队使用，必须增加身份验证、TLS、网络边界、限流和审计，不直接把推理端口暴露公网。</li><li>防止提示注入、恶意文档、输出泄密；工具调用和执行代码须单独授权与隔离。</li><li>原件、索引、缓存、调试日志都按企业数据分类、加密、备份、删除及留存策略处理。</li><li>模型权重与运行时升级后重新回归测试；性能与兼容性不能跨 SKU 或软件版本继承。</li></ul><p><a href="https://learn.microsoft.com/en-us/azure/foundry-local/tutorials/tutorial-build-rag-app" target="_blank" rel="noopener">微软本地 RAG 教程</a> · <a href="https://learn.microsoft.com/en-us/azure/search/search-security-best-practices" target="_blank" rel="noopener">微软检索权限与安全建议</a> · <a href="https://lmstudio.ai/docs/app/offline" target="_blank" rel="noopener">LM Studio 离线说明</a></p><small>以上筛选和测试流程属于工程建议，不是微软或 NVIDIA 对特定 SKU 的性能保证。框架兼容性以当前官方文档和目标设备 PoC 为准。</small></section>
 </main><section style="max-width:1052px;margin:18px auto"><h2>当前 SKU 的试验路线</h2><div id="skuplan" aria-live="polite">正在计算工程筛选起点…</div></section><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer><script>
 const sku=document.querySelector('#sku'),out=document.querySelector('#device'),plan=document.querySelector('#skuplan'),printButton=document.querySelector('#print-guide'),fileHint=document.querySelector('#print-filename');
+const fetch=(url,options={})=>{const token=sessionStorage.getItem('cap_token');return window.fetch(url,{...options,headers:{...(options.headers||{}),...(token?{Authorization:'Bearer '+token}:{})}})};
 const brandLogo='<img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="display:block;width:min(240px,70vw);height:auto;background:white;border-radius:6px;padding:5px;margin-bottom:18px">';
 document.querySelector('header').insertAdjacentHTML('afterbegin',brandLogo);
 const originalTitle=document.title;
@@ -88,4 +90,4 @@ document.querySelector('main section').after(plan.parentElement);
 function element(tag,value){let n=document.createElement(tag);n.textContent=value;return n}
 function renderPlan(d){plan.replaceChildren();plan.append(element('p',`${d.part_number} · ${d.platform_code} · ${d.memory_gb}GB / ${d.storage_tb}TB。以下为工程试验顺序，不是官方认证或实测结果。`));plan.append(element('p',d.first_step));let table=document.createElement('table'),head=document.createElement('tr');for(let x of ['试验级别','估算所需内存','容量筛选','下一步'])head.append(element('th',x));table.append(head);for(let t of d.trials){let row=document.createElement('tr');for(let x of [t.size_label,`${t.required_gb} GB`,t.fit==='fits'?'估算可容纳':'估算超出容量','核对许可证与格式 → 加载 → 查 GPU 后端 → 跑客户任务'])row.append(element('td',x));table.append(row)}plan.append(table);let a=d.assumptions;plan.append(element('p',`计算假设：Q${a.bits_per_weight}、系统预留 ${a.os_reserve_gb}GB、运行时预留 ${a.runtime_reserve_gb}GB、KV Cache ${a.kv_cache_gb}GB、量化开销 10%、单用户、首轮上下文 2048 token。改变上下文或并发时必须重算。`));plan.append(element('p',d.storage_note));plan.append(element('p',d.platform_note));let warning=element('p',d.capacity_boundary);warning.className='note';plan.append(warning)}
 async function show(){printButton.disabled=true;fileHint.textContent='';try{let r=await fetch('/api/deployment/sku/'+encodeURIComponent(sku.value)),d=await r.json();if(!r.ok)throw Error('配置读取失败');out.textContent=`当前配置：${d.part_number} · ${d.platform_code} · 统一内存 ${d.memory_gb} GB · ${d.storage_tb} TB · ${d.operating_system}。具体模型、后端与速度均需按本页验收。`;renderPlan(d);printButton.disabled=false;fileHint.textContent='建议 PDF 文件名：'+reportTitle()+'.pdf'}catch(e){out.textContent=e.message;plan.textContent='暂不能生成该料号的试验路线'}}
-async function init(){try{let r=await fetch('/api/catalog/imported-skus'),d=await r.json();sku.replaceChildren();for(let s of d.items)sku.add(new Option(`${s.part_number} · ${s.memory_gb}GB / ${s.storage_tb}TB`,s.part_number));let requested=new URLSearchParams(location.search).get('sku');if(requested&&d.items.some(s=>s.part_number===requested))sku.value=requested;if(d.items.length)show();else out.textContent='尚无已导入 SKU，请先完成授权数据导入。'}catch(e){out.textContent='无法读取产品数据：'+e.message}}sku.addEventListener('change',show);init();</script></body></html>'''
+async function init(){try{let r=await fetch('/api/catalog/imported-skus');if(r.status===401||r.status===403){out.textContent='请先在账号页登录并确认 License 有效，再查看部署指南。';return}let d=await r.json();if(!r.ok)throw Error(d.detail||'请求失败');sku.replaceChildren();for(let s of d.items)sku.add(new Option(`${s.part_number} · ${s.memory_gb}GB / ${s.storage_tb}TB`,s.part_number));let requested=new URLSearchParams(location.search).get('sku');if(requested&&d.items.some(s=>s.part_number===requested))sku.value=requested;if(d.items.length)show();else out.textContent='尚无已导入 SKU，请先完成授权数据导入。'}catch(e){out.textContent='无法读取产品数据：'+e.message}}sku.addEventListener('change',show);init();</script></body></html>'''

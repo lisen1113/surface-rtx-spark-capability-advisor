@@ -41,3 +41,26 @@ def test_protected_calculation_rechecks_expired_license(monkeypatch):
     response = client.post("/api/tco/calculate", headers={"Authorization":f"Bearer {token}"}, json={"purchase_price_cny":10000})
     assert response.status_code == 403
     assert "过期" in response.json()["detail"]
+
+
+def test_protected_catalog_knowledge_faq_and_deployment_require_license(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    paths = ("/api/catalog/imported-skus", "/api/knowledge/frameworks", "/api/faq",
+             "/api/deployment/sku/EP2-56792")
+    for path in paths:
+        assert client.get(path).status_code == 401
+    token = licensed_user(timedelta(days=30))
+    headers = {"Authorization": f"Bearer {token}"}
+    for path in paths:
+        assert client.get(path, headers=headers).status_code in (200, 404)
+    expired = licensed_user(timedelta(minutes=-1))
+    for path in paths:
+        assert client.get(path, headers={"Authorization": f"Bearer {expired}"}).status_code == 403
+
+
+def test_public_pages_forward_session_token_to_protected_apis():
+    for path in ("/", "/deployment"):
+        page = client.get(path)
+        assert page.status_code == 200
+        assert "sessionStorage.getItem('cap_token')" in page.text
+        assert "Authorization:'Bearer '+token" in page.text
