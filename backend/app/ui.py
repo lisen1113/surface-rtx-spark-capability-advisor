@@ -18,7 +18,7 @@ def index(response: Response):
 body>footer::before{width:165px;height:55px;margin:0 auto 12px}
 .tco-brandmark{background:#fff url('/assets/yihe-logo.png') center/contain no-repeat!important;width:160px!important;height:58px!important;border-radius:0!important;font-size:0!important}
 .tco-report-footer::before,.tco-report-footer strong{display:none!important}
-.spec-scroll{overflow-x:auto;margin:14px 0}.spec-table{width:100%;border-collapse:collapse;min-width:760px;font-size:14px;line-height:1.5}.spec-table th,.spec-table td{border:1px solid var(--line);padding:11px 12px;text-align:left;vertical-align:top}.spec-table thead th{background:#eaf1fb;color:#1849a9}.spec-table tbody th{background:#f9fafb;width:15%}.spec-table td{width:28%}.spec-table tr:hover td{background:#fbfcff}.spec-table .status{font-weight:400}
+.spec-scroll{overflow-x:auto;margin:14px 0}.spec-table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.5}.spec-table th,.spec-table td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}.spec-table tbody th{background:#f9fafb;width:27%;min-width:110px}.spec-table td{overflow-wrap:anywhere}.spec-table tr:hover td{background:#fbfcff}
 @media print{.tco-brandmark{width:130px!important;height:48px!important}}
 </style><script>
 const $=s=>document.querySelector(s);let data=null,tab='ai';const text=v=>(v===null||v===undefined||v==='')?'未知':String(v);const escapeHtml=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const metric=(k,v)=>`<div class="metric"><span class="status">${k}</span><b>${text(v)}</b></div>`;
@@ -129,48 +129,36 @@ function renderProductDetails(s){
  $('#metrics').hidden=true;
  const known=v=>v!==null&&v!==undefined&&v!=='';
  const sku=v=>known(v)?String(v):'未提供';
- const color=String(s.color||'').toUpperCase();
- const colorNote=color&& !['PLATINUM','NIGHTFALL','亮铂金','夜幕色'].includes(color)?'导入颜色名称与中国微软商城的亮铂金/夜幕色不同；不能自动认定同色，须核对料号':'颜色需核对具体料号';
- const storage=known(s.storage_tb)?Number(s.storage_tb)+' TB':'未提供';
- const ssdGeneration=Number(s.storage_tb)===0.5?'第 4 代 SSD':([1,2].includes(Number(s.storage_tb))?'第 5 代 SSD':'代际待核对');
+ const platform=String(s.platform_code||'').toUpperCase();
+ const cpuCores=platform==='S2'?18:platform==='S3'?20:0;
+ const gpuCores=platform==='S2'?5120:platform==='S3'?6144:0;
+ const cpu=cpuCores?`NVIDIA RTX Spark™ N1X（${cpuCores} 核 CPU：${cpuCores/2} 个 Cortex-X925 性能核 + ${cpuCores/2} 个 Cortex-A725 能效核）`:sku(s.cpu_model);
+ const gpu=gpuCores?`NVIDIA Blackwell RTX（${gpuCores} 核 GPU）`:sku(s.gpu_model);
+ const storage=known(s.storage_tb)?Number(s.storage_tb)+' TB 可拆卸式 '+(Number(s.storage_tb)===0.5?'第 4 代 SSD':([1,2].includes(Number(s.storage_tb))?'第 5 代 SSD':'SSD')):'未提供';
  const rows=[
-  ['识别','产品与料号',sku(s.product_family)+' · '+sku(s.part_number),'Surface Laptop Ultra 商用版','料号来自导入；官网技术规格为系列级'],
-  ['识别','原始配置描述',sku(s.raw_configuration),'按处理器、内存、SSD、颜色组合销售','保留导入原文；不自动扩展简写'],
-  ['核心硬件','处理器',sku(s.cpu_model),'NVIDIA RTX Spark N1X：18 核 CPU / 5120 核 GPU，或 20 核 CPU / 6144 核 GPU','导入映射；官网列出两种系列选项，料号对应仍需核对'],
-  ['核心硬件','图形处理器',sku(s.gpu_model),'NVIDIA Blackwell RTX 5120 核或 6144 核 GPU','导入映射；不推导游戏 FPS'],
-  ['核心硬件','NPU',sku(s.npu_spec),'NVIDIA NPU','官网为系列规格；未提供逐料号 NPU 型号或算力'],
-  ['核心硬件','统一内存',known(s.memory_gb)?s.memory_gb+' GB LPDDR5x 统一内存':'未提供','可选 24 / 32 / 48 / 64 / 128 GB LPDDR5x 统一内存','容量取导入、类型按官网补充；导入带宽未获官网此页逐料号核实；非全部可用 GPU 显存'],
-  ['核心硬件','GPU 专用显存',known(s.gpu_memory_gb)?s.gpu_memory_gb+' GB':'未提供','CPU/GPU 共享统一内存；GPU 可寻址量小于总内存','官网未提供独立显存数值；不得填成统一内存容量'],
-  ['核心硬件','SSD',known(s.storage_tb)?storage+' 可拆卸式 '+ssdGeneration:'未提供','512 GB 为第 4 代 SSD；1 / 2 TB 为第 5 代 SSD','容量取导入，代际按中国官网容量规则补充；实机核验'],
-  ['核心硬件','散热',sku(s.thermal_spec),'新散热系统；微软称散热能力相较 Surface Laptop 第 8 代提升 2.5 倍','系列官方声明，非该 SKU 温度或持续性能实测'],
-  ['显示','屏幕与分辨率','未逐料号导入','15 英寸 PixelSense Ultra Mini-LED 触控；3270 × 2180，262 PPI，3:2','系列官方规格'],
-  ['显示','刷新率与色彩','未逐料号导入','动态刷新率最高 120 Hz；DCI-P3 100%；10 点触控；Dolby Vision IQ','系列官方规格；笔输入不受支持'],
-  ['显示','亮度与防眩光','未逐料号导入','SDR 最高 1000 尼特（典型）；HDR 10% 窗口峰值 2000 尼特；防反射','系列官方规格；实际亮度依内容和设置变化'],
-  ['连接','USB 与充电','未逐料号导入','2 × USB-C/USB4 + 1 × USB-C/USB4 Magnetic Connect；最高 40 Gbps；USB-C 支持 140W 充电','充电器随市场和配置变化；至少 115W 充电器支持快充'],
-  ['连接','其他接口','未逐料号导入','HDMI 2.1b、USB-A 3.1、SD 读卡器、3.5 mm 耳机孔','系列官方规格'],
-  ['连接','无线','未逐料号导入','Wi-Fi 7、Bluetooth 5.4','Wi-Fi 6 GHz 频段依地区而定'],
-  ['系统与安全','操作系统',sku(s.operating_system),'Windows 11 专业版；Windows on Arm','中国官网确认系列系统；导入仍保留原始表述'],
-  ['系统与安全','安全与登录','未逐料号导入','Secured-core PC、TPM 2.0、BitLocker 支持、Windows Hello 人脸识别','系列官方规格；企业策略与授权另行确认'],
-  ['影音','摄像头与音频','未逐料号导入','1080p 前置摄像头、双 Studio 麦克风、四 Omnisonic 扬声器','系列官方规格'],
-  ['机身','颜色',sku(s.color),'亮铂金 / 夜幕色（中国官网选项）',colorNote],
-  ['机身','尺寸与重量','未逐料号导入','328.8 × 238.7 × 17.99 mm（不含脚垫）；含脚垫 19.16 mm；约 2.0 kg','重量随配置与制造工艺变化'],
-  ['机身','电池与续航','未逐料号导入','标称 92 Wh；本地视频最长 15 小时，主动网页最长 12 小时','续航测试用预生产 6144 核 GPU / 64GB / 1TB，非此料号实测'],
-  ['机身','键盘与触控板','未逐料号导入','背光机械键盘、F1–F12 功能键、精准触觉触控板','中国官网系列规格；键盘布局以实际销售配置为准'],
-  ['机身','传感器','未逐料号导入','氛围颜色传感器、加速度计、陀螺仪','中国官网系列规格'],
-  ['服务','可维修组件','未逐料号导入','显示组件、键盘、触控板、SSD、电池、主板、风扇等可更换','官网列出组件；维修须遵循授权流程'],
-  ['服务','包装清单','未逐料号导入','设备、USB-C Magnetic Connect 连接线、快速入门指南、安全及保修文档','140 W 电源适配器仅特定市场/配置提供，不能承诺此 SKU 随附'],
-  ['服务','中国市场保修','未逐料号导入','Surface 主机 3 年有限硬件保修（自发票日期起）','按中国微软商城页面；具体服务条款及配件保修另核对'],
-  ['采购','ERP 参考价',known(s.erp_price_cny)?'¥'+Number(s.erp_price_cny).toLocaleString():'未提供','官网页面非此料号 ERP 报价','仅取授权导入价格；'+sku(s.currency_note)],
-  ['溯源','数据状态',sku(s.data_status),'系列技术参数以中国微软商城为基准','官网不证明导入 Part Number 与颜色/配置一一对应'],
+  ['产品型号',sku(s.product_family)+' · '+sku(s.part_number)],
+  ['处理器',cpu],['图形处理器',gpu],['NPU',sku(s.npu_spec)==='未提供'?'NVIDIA NPU':sku(s.npu_spec)],
+  ['统一内存',known(s.memory_gb)?s.memory_gb+' GB LPDDR5x 统一内存':'未提供'],
+  ['显存','共享统一内存（非独立显存；GPU 可用量小于总内存）'],
+  ['内存带宽','300 GB/s（RTX Spark 平台接口规格，非此 SKU 实测吞吐）'],
+  ['存储',storage],['散热',sku(s.thermal_spec)==='未提供'?'新散热系统':sku(s.thermal_spec)],
+  ['显示屏','15 英寸 PixelSense™ Ultra 触控屏；3270 × 2180（262 PPI），3:2'],
+  ['刷新率与色彩','最高 120 Hz 动态刷新率；DCI-P3 100%；10 点触控'],
+  ['屏幕亮度','SDR 最高 1000 尼特（典型值）；HDR 10% 窗口峰值 2000 尼特'],
+  ['USB-C 与充电','2 × USB-C/USB4 + 1 × USB-C/USB4 Magnetic Connect；最高 40 Gbps；支持 140 W 充电'],
+  ['其他接口','HDMI 2.1b、USB-A 3.1、SD 读卡器、3.5 mm 耳机孔'],
+  ['无线连接','Wi-Fi 7、蓝牙 5.4'],
+  ['操作系统',sku(s.operating_system)==='未提供'?'Windows 11 专业版（ARM64）':sku(s.operating_system)],
+  ['安全与登录','安全核心 PC、TPM 2.0、BitLocker 支持、Windows Hello 人脸识别'],
+  ['摄像头与音频','1080p 前置摄像头、双 Studio 麦克风、四 Omnisonic 扬声器'],
+  ['颜色',sku(s.color)],
+  ['尺寸与重量','328.8 × 238.7 × 17.99 mm（不含脚垫）；约 2.0 kg'],
+  ['续航','本地视频最长 15 小时；网页浏览最长 12 小时（官方特定测试配置）'],
+  ['键盘与触控板','背光机械键盘、F1–F12 功能键、精准触觉触控板'],
+  ['保修','中国市场 Surface 主机 3 年有限硬件保修'],
+  ['参考价',known(s.erp_price_cny)?'¥'+Number(s.erp_price_cny).toLocaleString():'未提供'],
  ];
- const tr=([group,name,selected,official,note])=>{
-  const missing=selected==='未逐料号导入'||selected==='未提供';
-  const cannotFill=name==='GPU 专用显存'||name==='ERP 参考价';
-  const value=missing&&!cannotFill?official:selected;
-  const origin=missing&&!cannotFill?'中国微软商城 · 系列规格':missing?'尚无逐料号数值':'授权 V3.4 导入'+(name==='SSD'?' + 中国官网容量规则':name==='统一内存'?' + 中国官网内存类型':'');
-  return `<tr><th scope="row">${escapeHtml(group)}<br><span class="status">${escapeHtml(name)}</span></th><td><b>${escapeHtml(value)}</b></td><td>${escapeHtml(origin)}</td><td>${escapeHtml(note)}</td></tr>`;
- };
- host.innerHTML='<h3>产品技术规格 · '+escapeHtml(s.part_number)+'</h3><p class="status">以授权导入的 SKU 值为主；未导入的系列通用项目用中国微软商城技术规格补充。每行标明来源，不能确定逐料号数值的字段保留待核对。</p><div class="spec-scroll"><table class="spec-table"><thead><tr><th scope="col">类别 / 参数</th><th scope="col">合并后的规格值</th><th scope="col">数据来源</th><th scope="col">限制与核对事项</th></tr></thead><tbody>'+rows.map(tr).join('')+'</tbody></table></div><p class="status">导入来源：'+escapeHtml(s.source_reference||'未提供')+'；原始备注：'+escapeHtml(s.note||'无')+'</p><p><a href="'+microsoftSpecsUrl+'" target="_blank" rel="noopener">查看中国微软商城完整技术规格与脚注</a></p>';
+ host.innerHTML='<h3>产品技术规格 · '+escapeHtml(s.part_number)+'</h3><div class="spec-scroll"><table class="spec-table"><tbody>'+rows.map(([name,value])=>`<tr><th scope="row">${escapeHtml(name)}</th><td><b>${escapeHtml(value)}</b></td></tr>`).join('')+'</tbody></table></div><p class="status">系列参数按 <a href="'+microsoftSpecsUrl+'" target="_blank" rel="noopener">微软官方技术规格</a>和 <a href="https://docs.nvidia.com/rtx-spark/rtx-spark-porting-guide/latest/overview.html" target="_blank" rel="noopener">NVIDIA 平台规格</a>展示；处理器档位、内存、存储、颜色与参考价按所选 SKU 显示。实际可用 GPU 内存、续航和性能因配置及工作负载而异。</p>';
 }
 async function searchFaq(){let q=$('#faqquery').value,c=$('#faqcategory').value,r=await fetch('/api/faq?limit=20&q='+encodeURIComponent(q)+'&category='+encodeURIComponent(c)),d=await r.json();if($('#faqcategory').options.length===1){d.categories.forEach(x=>$('#faqcategory').add(new Option(x,x)))}$('#faqresult').innerHTML=`<p>找到 ${d.total} 条；知识库共 ${d.concept_total} 个独立概念、${d.indexed_total} 条问答。</p>`+d.items.map(x=>`<article class="card"><h3>${x.question}</h3><span class="tag">${x.category}</span><p>${x.easy_answer}</p><p class="status"><b>工程说明：</b>${x.expert_answer}</p><p class="warn"><b>常见误区：</b>${x.misconception}</p><p><b>销售提示：</b>${x.sales_tip}</p><p><a href="${x.source_url}" target="_blank" rel="noopener">查看来源</a></p></article>`).join('')}
 function render(){if(!data)return;let s=data.sku;$('#product').textContent=`${s.product_family} · ${s.part_number}`;$('#metrics').innerHTML=metric('平台',s.platform_code)+metric('统一内存',s.memory_gb+' GB')+metric('存储',s.storage_tb+' TB')+metric('ERP 含税价',s.erp_price_cny?'¥'+Number(s.erp_price_cny).toLocaleString():'未知')+metric('CPU',s.cpu_model)+metric('GPU',s.gpu_model)+metric('颜色',s.color)+metric('操作系统',s.operating_system);renderProductDetails(s);let html='';if(tab==='ai')html=cards(data.ai)+'<h3>同档经验推荐</h3>'+cards(data.ai_recommendations);else if(tab==='gaming')html=cards(data.gaming)+'<h3>同档经验推荐</h3>'+cards(data.gaming_recommendations);else if(tab==='generation')html=cards(data.generation);else if(tab==='productivity')html=cards(data.productivity);else if(tab==='deployment')html=`<div class="card"><h3>本机模型部署与企业私有知识</h3><p>针对当前 ${escapeHtml(s.part_number)} 配置，逐步核对系统架构、模型许可、运行后端、真实任务与数据安全；包含个人试用、开发集成、多人服务、RAG 和微调的选择与验收。</p><p><a href="/deployment?sku=${encodeURIComponent(s.part_number)}">打开此配置的详细部署指南 →</a></p><p class="warn">指南是工程操作建议；模型是否能运行、GPU 加速和速度均需在目标设备实测。</p></div>`;else if(tab==='faq')html=faqForm();else if(tab==='tco')html=tcoForm(s);else html=`<div class="card"><h3>数据边界</h3><p>${data.disclaimer}</p><p class="warn">平台级 1440p / 100 FPS、120B+ 或理论峰值不能转换为本 SKU 的 FPS、Token/s 或稳定运行承诺。</p><p><b>配置状态：</b>${text(s.data_status)}</p><p><b>来源：</b>${text(s.source_reference)}</p><p><b>备注：</b>${text(s.note)}</p></div>`;$('#content').innerHTML=html;if(tab==='faq')searchFaq();if(tab==='tco')loadTcoDefaults(s)}
