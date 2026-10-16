@@ -43,7 +43,7 @@ def test_shared_deployment_accepts_configured_https_origin_without_exposing_valu
     assert "CAPABILITY_PUBLIC_BASE_URL must be an HTTPS origin" in deployment_configuration_errors()
 
 
-def test_public_mode_rejects_sqlite_even_with_other_settings_present(monkeypatch):
+def test_public_mode_requires_postgres_even_with_other_settings_present(monkeypatch):
     monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "public")
     monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
     monkeypatch.setenv("CAPABILITY_SMTP_HOST", "smtp.example.invalid")
@@ -51,9 +51,12 @@ def test_public_mode_rejects_sqlite_even_with_other_settings_present(monkeypatch
     monkeypatch.setenv("CAPABILITY_MFA_MASTER_KEY", "x" * 32)
     monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "https://advisor.example.invalid")
     monkeypatch.delenv("CAPABILITY_DEV_EXPOSE_TOKENS", raising=False)
-    assert any("production database backend" in error for error in deployment_configuration_errors())
-    with pytest.raises(RuntimeError, match="production database backend"):
+    monkeypatch.delenv("CAPABILITY_AUTH_DATABASE_URL", raising=False)
+    assert any("CAPABILITY_AUTH_DATABASE_URL" in error for error in deployment_configuration_errors())
+    with pytest.raises(RuntimeError, match="CAPABILITY_AUTH_DATABASE_URL"):
         assert_deployment_configuration()
+    monkeypatch.setenv("CAPABILITY_AUTH_DATABASE_URL", "postgresql://localhost/advisor")
+    assert deployment_configuration_errors() == []
 
 
 def test_unknown_deployment_mode_fails_closed(monkeypatch):

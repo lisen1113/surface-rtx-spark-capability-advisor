@@ -1,6 +1,7 @@
 """Local-first catalog with explicit provenance. Seed data are illustrative, not benchmarks."""
 from pathlib import Path
 import json
+import os
 import sqlite3
 from fastapi import APIRouter, Body
 
@@ -102,6 +103,10 @@ SEED_EVIDENCE = [
 ]
 
 def connection():
+ if os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public":
+  conn = sqlite3.connect(DB_PATH.as_uri() + "?mode=ro", uri=True)
+  conn.row_factory = sqlite3.Row
+  return conn
  DB_PATH.parent.mkdir(parents=True, exist_ok=True)
  conn = sqlite3.connect(DB_PATH)
  conn.row_factory = sqlite3.Row

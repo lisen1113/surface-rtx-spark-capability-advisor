@@ -17,11 +17,19 @@ from argon2.exceptions import VerifyMismatchError
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from .catalog import connection
+from .auth_store import connection, insert_id
 from .mfa import master_key, matching_counter, provisioning
 
 router = APIRouter(prefix="/api", tags=["auth"])
 hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2, hash_len=32, salt_len=16, type=Type.ID)
+
+
+def _postgres_unique_violation():
+    try:
+        from psycopg.errors import UniqueViolation
+        return UniqueViolation
+    except ImportError:
+        return sqlite3.IntegrityError
 
 
 def now() -> datetime:
@@ -160,13 +168,13 @@ def register_user(data: RegisterInput) -> dict:
     with connection() as conn:
         try:
             created = iso(now())
-            org = conn.execute("INSERT INTO organizations (name,status,created_at) VALUES (?,'pending',?)", (data.organization_name.strip(), created))
-            user = conn.execute("INSERT INTO users (organization_id,email,password_hash,role,status,created_at) VALUES (?,?,?,'owner','pending',?)",
-                                (org.lastrowid, email, hasher.hash(data.password), created))
-            token = _create_email_token(conn, user.lastrowid)
-            audit(conn, "user.registered", actor=user.lastrowid, organization_id=org.lastrowid, target_type="user", target_id=user.lastrowid)
+            org_id = insert_id(conn, "INSERT INTO organizations (name,status,created_at) VALUES (?,'pending',?)", (data.organization_name.strip(), created))
+            user_id = insert_id(conn, "INSERT INTO users (organization_id,email,password_hash,role,status,created_at) VALUES (?,?,?,'owner','pending',?)",
+                                (org_id, email, hasher.hash(data.password), created))
+            token = _create_email_token(conn, user_id)
+            audit(conn, "user.registered", actor=user_id, organization_id=org_id, target_type="user", target_id=user_id)
             conn.commit()
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, _postgres_unique_violation()):
             raise HTTPException(409, "邮箱已注册")
     try:
         sent = _send_verification_mail(email, token)
@@ -191,11 +199,11 @@ def bootstrap_admin(email: str, password: str) -> int:
         if conn.execute("SELECT 1 FROM users WHERE role='admin'").fetchone():
             raise ValueError("An admin already exists")
         created = iso(now())
-        user = conn.execute("INSERT INTO users (organization_id,email,password_hash,role,status,email_verified,created_at,approved_at) VALUES (NULL,?,?,'admin','approved',1,?,?)",
+        user_id = insert_id(conn, "INSERT INTO users (organization_id,email,password_hash,role,status,email_verified,created_at,approved_at) VALUES (NULL,?,?,'admin','approved',1,?,?)",
                             (normalized, hasher.hash(password), created, created))
-        audit(conn, "admin.bootstrapped", actor=user.lastrowid, target_type="user", target_id=user.lastrowid)
+        audit(conn, "admin.bootstrapped", actor=user_id, target_type="user", target_id=user_id)
         conn.commit()
-        return user.lastrowid
+        return user_id
 
 
 def _token_hash(token: str) -> str:
@@ -248,8 +256,8 @@ def _license_check(conn: sqlite3.Connection, user: sqlite3.Row):
         raise HTTPException(403, "组织尚未获得有效 License")
     if datetime.fromisoformat(license_row["expires_at"]) <= now():
         raise HTTPException(403, "License 已过期")
-    active = conn.execute("SELECT COUNT(DISTINCT user_id) FROM sessions s JOIN users u ON u.id=s.user_id WHERE u.organization_id=? AND s.revoked_at IS NULL AND s.expires_at>?",
-                          (user["organization_id"], iso(now()))).fetchone()[0]
+    active = conn.execute("SELECT COUNT(DISTINCT user_id) AS active_count FROM sessions s JOIN users u ON u.id=s.user_id WHERE u.organization_id=? AND s.revoked_at IS NULL AND s.expires_at>?",
+                          (user["organization_id"], iso(now()))).fetchone()["active_count"]
     existing = conn.execute("SELECT 1 FROM sessions WHERE user_id=? AND revoked_at IS NULL AND expires_at>?", (user["id"], iso(now()))).fetchone()
     if not existing and active >= license_row["seats"]:
         raise HTTPException(403, "License 席位已用完")
@@ -488,7 +496,9 @@ def set_license(data: LicenseInput, admin=Depends(require_admin)):
     if data.expires_at <= now(): raise HTTPException(422, "License 到期时间必须在未来")
     with connection() as conn:
         if not conn.execute("SELECT 1 FROM organizations WHERE id=?", (data.organization_id,)).fetchone(): raise HTTPException(404, "组织不存在")
-        conn.execute("INSERT OR REPLACE INTO licenses VALUES (?,?,?,'active',?)", (data.organization_id, data.seats, iso(data.expires_at), iso(now())))
+        conn.execute("INSERT INTO licenses (organization_id,seats,expires_at,status,updated_at) VALUES (?,?,?,'active',?) "
+                     "ON CONFLICT(organization_id) DO UPDATE SET seats=excluded.seats,expires_at=excluded.expires_at,status='active',updated_at=excluded.updated_at",
+                     (data.organization_id, data.seats, iso(data.expires_at), iso(now())))
         audit(conn, "license.updated", actor=admin["id"], organization_id=data.organization_id, target_type="license", target_id=data.organization_id, details={"seats": data.seats, "expires_at": iso(data.expires_at)})
         conn.commit()
     return {"status": "active", "organization_id": data.organization_id, "seats": data.seats, "expires_at": iso(data.expires_at)}

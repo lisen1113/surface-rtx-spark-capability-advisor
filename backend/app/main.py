@@ -22,11 +22,18 @@ from .ui import router as ui_router
 from .recommendation import router as recommendation_router
 from .deployment import router as deployment_router
 from .deployment_readiness import assert_deployment_configuration
+from .auth_store import connection as auth_connection
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     assert_deployment_configuration()
+    if os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public":
+        # Refuse to start when either persistent store or its schema is absent.
+        with connection() as catalog_db:
+            catalog_db.execute("SELECT 1 FROM imported_skus LIMIT 1")
+        with auth_connection() as identity_db:
+            identity_db.execute("SELECT 1 FROM users LIMIT 1")
     yield
 
 
@@ -79,9 +86,13 @@ def health():
     try:
         with connection() as conn:
             conn.execute("SELECT 1 FROM imported_skus LIMIT 1")
-    except (OSError, sqlite3.Error) as exc:
-        raise HTTPException(503, "本地数据库不可用") from exc
-    return {"status": "ok", "version": "3.0.0-dev", "local": True, "database": "ready"}
+        if os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public":
+            with auth_connection() as conn:
+                conn.execute("SELECT 1 FROM users LIMIT 1")
+    except Exception as exc:
+        detail = "数据库不可用" if os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public" else "本地数据库不可用"
+        raise HTTPException(503, detail) from exc
+    return {"status": "ok", "version": "3.0.0-dev", "local": os.getenv("CAPABILITY_DEPLOYMENT_MODE", "local") == "local", "database": "ready"}
 
 @app.get("/api/about")
 def about():
