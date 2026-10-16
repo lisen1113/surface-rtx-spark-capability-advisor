@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from .catalog import connection
+from .mfa import master_key, matching_counter, provisioning
 
 router = APIRouter(prefix="/api", tags=["auth"])
 hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2, hash_len=32, salt_len=16, type=Type.ID)
@@ -45,6 +46,15 @@ class RegisterInput(BaseModel):
 class LoginInput(BaseModel):
     email: str
     password: str
+    mfa_code: str | None = None
+
+
+class MfaEnrollInput(BaseModel):
+    password: str
+
+
+class MfaConfirmInput(BaseModel):
+    code: str
 
 
 class PasswordResetRequestInput(BaseModel):
@@ -222,6 +232,11 @@ def require_entitled_user(authorization: str | None = Header(default=None)) -> d
 def require_admin(user=Depends(current_user)) -> dict:
     if user["role"] != "admin":
         raise HTTPException(403, "需要管理员权限")
+    if os.getenv("CAPABILITY_REQUIRE_AUTH") == "1":
+        master_key()
+        with connection() as conn:
+            if not conn.execute("SELECT 1 FROM admin_mfa WHERE user_id=?", (user["id"],)).fetchone():
+                raise HTTPException(403, "请先启用管理员动态验证码")
     return user
 
 
@@ -315,6 +330,20 @@ def login(data: LoginInput):
         if user["status"] != "approved":
             raise HTTPException(403, "账号等待管理员审批")
         _license_check(conn, user)
+        mfa = conn.execute("SELECT last_counter FROM admin_mfa WHERE user_id=?", (user["id"],)).fetchone() if user["role"] == "admin" else None
+        if mfa:
+            counter = matching_counter(user["id"], data.mfa_code, now().timestamp(), mfa["last_counter"])
+            if counter is None:
+                failures = user["failed_login_count"] + 1
+                locked = iso(now() + timedelta(minutes=15)) if failures >= 5 else None
+                conn.execute("UPDATE users SET failed_login_count=?,locked_until=? WHERE id=?", (failures, locked, user["id"]))
+                audit(conn, "auth.mfa_failed", organization_id=user["organization_id"], target_type="user", target_id=user["id"])
+                conn.commit()
+                raise HTTPException(401, "动态验证码无效或已使用")
+            consumed = conn.execute("UPDATE admin_mfa SET last_counter=? WHERE user_id=? AND last_counter<?",
+                                    (counter, user["id"], counter))
+            if consumed.rowcount != 1:
+                raise HTTPException(401, "动态验证码无效或已使用")
         token = secrets.token_urlsafe(32)
         expires = now() + timedelta(hours=12)
         conn.execute("UPDATE users SET failed_login_count=0,locked_until=NULL WHERE id=?", (user["id"],))
@@ -322,6 +351,48 @@ def login(data: LoginInput):
         audit(conn, "auth.login_succeeded", actor=user["id"], organization_id=user["organization_id"])
         conn.commit()
     return {"access_token": token, "token_type": "bearer", "expires_at": iso(expires)}
+
+
+@router.get("/admin/mfa/status")
+def admin_mfa_status(user=Depends(current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(403, "需要管理员权限")
+    with connection() as conn:
+        enabled = bool(conn.execute("SELECT 1 FROM admin_mfa WHERE user_id=?", (user["id"],)).fetchone())
+    return {"enabled": enabled, "required": os.getenv("CAPABILITY_REQUIRE_AUTH") == "1",
+            "configured": len(os.getenv("CAPABILITY_MFA_MASTER_KEY", "").encode("utf-8")) >= 32}
+
+
+@router.post("/admin/mfa/enroll")
+def admin_mfa_enroll(data: MfaEnrollInput, user=Depends(current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(403, "需要管理员权限")
+    with connection() as conn:
+        if conn.execute("SELECT 1 FROM admin_mfa WHERE user_id=?", (user["id"],)).fetchone():
+            raise HTTPException(409, "管理员 MFA 已启用")
+    try:
+        hasher.verify(user["password_hash"], data.password)
+    except VerifyMismatchError as exc:
+        raise HTTPException(401, "密码错误") from exc
+    return provisioning(user["id"], user["email"])
+
+
+@router.post("/admin/mfa/confirm")
+def admin_mfa_confirm(data: MfaConfirmInput, user=Depends(current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(403, "需要管理员权限")
+    counter = matching_counter(user["id"], data.code, now().timestamp())
+    if counter is None:
+        raise HTTPException(400, "动态验证码无效")
+    with connection() as conn:
+        if conn.execute("SELECT 1 FROM admin_mfa WHERE user_id=?", (user["id"],)).fetchone():
+            raise HTTPException(409, "管理员 MFA 已启用")
+        changed = iso(now())
+        conn.execute("INSERT INTO admin_mfa VALUES (?,?,?)", (user["id"], changed, counter))
+        conn.execute("UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", (changed, user["id"]))
+        audit(conn, "admin.mfa_enabled", actor=user["id"], target_type="user", target_id=user["id"])
+        conn.commit()
+    return {"status": "enabled", "message": "旧会话已撤销，请使用密码和动态验证码重新登录"}
 
 
 @router.post("/auth/password-reset/request")
