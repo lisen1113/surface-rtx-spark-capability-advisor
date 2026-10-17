@@ -50,7 +50,11 @@ async def shared_host_boundary(request: Request, call_next):
     if os.getenv("CAPABILITY_DEPLOYMENT_MODE", "local") in {"shared", "public"}:
         expected = urlsplit(os.getenv("CAPABILITY_PUBLIC_BASE_URL", ""))
         received = request.headers.get("host", "")
-        if not expected.netloc or received.casefold() != expected.netloc.casefold():
+        private_preview = (os.getenv("CAPABILITY_ALLOW_LOOPBACK_PREVIEW") == "1"
+                           and request.client is not None
+                           and request.client.host in {"127.0.0.1", "::1"}
+                           and received.casefold() in {"127.0.0.1:8011", "localhost:8011"})
+        if not expected.netloc or (received.casefold() != expected.netloc.casefold() and not private_preview):
             return PlainTextResponse("Host not allowed", status_code=400)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"

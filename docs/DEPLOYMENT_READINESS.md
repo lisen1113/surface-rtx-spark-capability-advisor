@@ -44,6 +44,8 @@ CAPABILITY_MFA_MASTER_KEY=<由密钥管理系统注入>
 
 新机使用 `deploy/capability-advisor.service` 将应用限制在 `127.0.0.1:8011`，`deploy/Caddyfile` 是待 DNS/证书就绪后启用的 HTTPS 反向代理模板。服务所需 `/etc/capability-advisor.env` 由服务器管理员以仅 root 可读的权限建立；密钥和邮箱授权码不进入仓库。启用前必须在新机本地逐项检查服务、数据库、SMTP 投递、HTTPS 证书、备份恢复和登录/License 流程。不要因为配置文件已复制就提前启动公网监听。
 
+若需在 DNS 切换前通过 SSH 本地端口转发验收真实公网模式账号，可临时安装 `deploy/loopback-preview.conf`。此开关仅接受服务器本机回环来源且 `Host` 为 `127.0.0.1:8011` 或 `localhost:8011`，应用仍只监听 `127.0.0.1:8011`。**正式 DNS/HTTPS 切换前必须删除该 override 并重启服务**；不可将 8011 放入云防火墙公网规则。管理员首次登录后应立刻启用 TOTP MFA；密钥、动态码和密码不得截图或发到聊天。
+
 ## 正式发布前人工与目标环境验收
 
 1. 确定域名、目标云平台/服务器、操作系统、网络边界、证书签发与更新负责人；在隔离预发布环境验证 HTTPS、反向代理、Host 与重定向。

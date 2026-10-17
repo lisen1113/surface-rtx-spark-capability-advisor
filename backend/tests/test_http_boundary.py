@@ -24,6 +24,17 @@ def test_shared_mode_rejects_unexpected_host(monkeypatch):
         assert client.get("/health").status_code == 200
 
 
+def test_loopback_preview_requires_opt_in_and_loopback_peer(monkeypatch):
+    _shared_settings(monkeypatch)
+    with TestClient(app, base_url="http://127.0.0.1:8011", client=("127.0.0.1", 50000)) as client:
+        assert client.get("/health").status_code == 400
+        monkeypatch.setenv("CAPABILITY_ALLOW_LOOPBACK_PREVIEW", "1")
+        assert client.get("/health").status_code == 200
+        assert client.get("/health", headers={"Host": "attacker.example.invalid"}).status_code == 400
+    with TestClient(app, base_url="http://127.0.0.1:8011", client=("192.0.2.20", 50000)) as client:
+        assert client.get("/health").status_code == 400
+
+
 def test_security_headers_on_local_responses(monkeypatch):
     monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "local")
     with TestClient(app) as client:
