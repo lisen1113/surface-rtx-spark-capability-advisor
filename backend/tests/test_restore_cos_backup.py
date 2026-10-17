@@ -6,9 +6,9 @@ from pathlib import Path
 import sys
 
 import pytest
-from cryptography.exceptions import InvalidTag
 
 pytest.importorskip("cryptography")
+from cryptography.exceptions import InvalidTag
 DEPLOY = Path(__file__).resolve().parents[2] / "deploy"
 sys.path.insert(0, str(DEPLOY))
 spec = importlib.util.spec_from_file_location("restore_cos_backup", DEPLOY / "restore_cos_backup.py")
