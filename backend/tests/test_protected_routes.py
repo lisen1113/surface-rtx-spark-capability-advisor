@@ -64,3 +64,11 @@ def test_public_pages_forward_session_token_to_protected_apis():
         assert page.status_code == 200
         assert "sessionStorage.getItem('cap_token')" in page.text
         assert "Authorization:'Bearer '+token" in page.text
+
+
+def test_customer_pdf_requires_valid_license(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    path = "/api/reports/EP2-56792.pdf"
+    assert client.get(path).status_code == 401
+    expired = licensed_user(timedelta(minutes=-1))
+    assert client.get(path, headers={"Authorization": f"Bearer {expired}"}).status_code == 403

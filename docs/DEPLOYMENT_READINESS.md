@@ -40,6 +40,8 @@ CAPABILITY_MFA_MASTER_KEY=<由密钥管理系统注入>
 
 用户指定腾讯企业邮箱 `ls@yiheit.net` 作为验证码发件地址。腾讯云的[企业邮客户端设置文档](https://main.qcloudimg.com/raw/document/product/pdf/613_46019_cn.pdf)给出普通 SMTP 服务 `smtp.exmail.qq.com`、SSL、465 端口；仍须在该邮箱管理后台核实客户端访问权限与授权码。授权码仅在服务器密钥环境中配置；不在聊天、代码或文档中填写。生产依赖使用 `backend/requirements-production.txt`；在专用 PostgreSQL 数据库运行 `backend/sql/auth_postgres_v1.sql`。账号库不得开放公网 5432 端口。产品目录 SQLite 文件在公网模式以只读方式打开；导入/更新须离线构建新版目录文件后重新部署。备份需要同时覆盖 PostgreSQL 和目录文件。
 
+客户 PDF 下载由服务端生成，文件名包含所选 Part Number，并沿用登录/License 校验。为保证中文和英文混排可读，在服务器私有目录安装 [Noto Sans SC 的 OFL 许可 TTF](https://github.com/google/fonts/tree/main/ofl/notosanssc)，例如 `/opt/capability-advisor/fonts/NotoSansSC-VF.ttf`，或通过 `CAPABILITY_PDF_FONT_PATH` 指定实际路径；不要将字体文件混入授权产品目录或原始工作簿。未安装时会退回 PDF 内建中文字体，发布前仍须实测中文渲染与打印。
+
 服务仍需只监听受控内网地址，由 HTTPS 反向代理终止 TLS、限制可接受 Host、设置安全头和请求体上限；应用检查 HTTPS URL 字符串**不能证明**真实网络连接已加密。共享/公网模式会在应用层拒绝与 `CAPABILITY_PUBLIC_BASE_URL` 不一致的 `Host`，并发送 `nosniff`、禁止嵌入及同源 Referrer 安全头；反向代理必须保留正确的原始 `Host`，不能依赖这些应用头替代代理配置。不可直接将 `scripts/start-local.ps1` 的 Uvicorn 开发进程开放公网。
 
 新机使用 `deploy/capability-advisor.service` 将应用限制在 `127.0.0.1:8011`，`deploy/Caddyfile` 是待 DNS/证书就绪后启用的 HTTPS 反向代理模板。服务所需 `/etc/capability-advisor.env` 由服务器管理员以仅 root 可读的权限建立；密钥和邮箱授权码不进入仓库。启用前必须在新机本地逐项检查服务、数据库、SMTP 投递、HTTPS 证书、备份恢复和登录/License 流程。不要因为配置文件已复制就提前启动公网监听。

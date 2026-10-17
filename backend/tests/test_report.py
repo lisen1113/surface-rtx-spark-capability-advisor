@@ -12,7 +12,32 @@ def test_customer_report_contains_evidence_boundaries():
   assert text in response.text
  assert 'ComfyUI 图像生成' in response.text
  assert 'Microsoft 365' in response.text and 'Blender 3D' in response.text
+ assert '保存 PDF 报告' in response.text
+ assert 'window.opener.downloadCustomerPdf' in response.text
+ assert skus[0]['part_number'] in response.text
  assert response.text.split('<footer>',1)[1].split('</footer>',1)[0] == '© 2026 上海以和信息技术有限公司。保留所有权利。'
 
 def test_missing_report_is_404():
  assert client.get('/api/reports/NOT-FOUND.html').status_code==404
+
+def test_customer_pdf_download_has_sku_filename_and_evidence():
+ skus=client.get('/api/catalog/imported-skus').json()['items']
+ if not skus: return
+ part_number=skus[0]['part_number']
+ response=client.get(f'/api/reports/{part_number}.pdf')
+ assert response.status_code==200
+ assert response.headers['content-type']=='application/pdf'
+ assert part_number in response.headers['content-disposition']
+ assert response.headers['cache-control']=='no-store'
+ assert response.content.startswith(b'%PDF-')
+ assert len(response.content)>1000
+
+def test_missing_customer_pdf_is_404():
+ assert client.get('/api/reports/NOT-FOUND.pdf').status_code==404
+
+def test_home_offers_downloadable_pdf():
+ html=client.get('/').text
+ assert '保存 PDF 报告' in html
+ assert 'downloadCustomerPdf()' in html
+ assert 'downloadCustomerPdf(selectedPartNumber)' in html
+ assert "link.download=filename" in html

@@ -1,13 +1,15 @@
 """Printable evidence-backed customer report."""
 from html import escape
+import json
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import Field
 from .auth import require_entitled_user
 from .catalog import connection, rows, source_sheet
 from .generation import generation_guidance
 from .productivity import productivity_guidance
 from .recommendation import RecommendationInput, recommend
+from .report_pdf import build_customer_pdf
 
 router=APIRouter(prefix="/api/reports",tags=["reports"])
 
@@ -117,6 +119,20 @@ def section(title,items,title_keys,result_keys):
  if not rows: rows=["<tr><td colspan='4'>该 SKU 暂无经过验证的直接映射。</td></tr>"]
  return f"<h2>{title}</h2><table><thead><tr><th>工作负载</th><th>判断/结果</th><th>证据等级</th><th>来源</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
 
+
+@router.get("/{part_number}.pdf")
+def download_customer_pdf(part_number: str, _user=Depends(require_entitled_user)):
+ with connection() as conn:
+  row=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
+ if not row: raise HTTPException(404,"未找到该 Part Number")
+ safe_sku="".join(c if c.isascii() and (c.isalnum() or c in "-_" ) else "-" for c in part_number)
+ filename=f"Surface-Laptop-Ultra-Capability-{safe_sku}.pdf"
+ return Response(build_customer_pdf(dict(row)),media_type="application/pdf",headers={
+  "Content-Disposition":f'attachment; filename="{filename}"',
+  "Cache-Control":"no-store",
+  "X-Content-Type-Options":"nosniff",
+ })
+
 @router.get("/{part_number}.html",response_class=HTMLResponse)
 def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  with connection() as conn:
@@ -128,6 +144,7 @@ def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  body+=section("游戏能力",direct("游戏能力映射"),("游戏名称",),("兼容性状态","平均FPS"))
  body+=section("生成式 AI",generation_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("推荐模型/工作负载名称",),("本地运行判断","经验推荐与我的判断"))
  body+=section("生产力能力",productivity_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("软件/工作负载",),("兼容性状态","经验推荐与我的判断"))
+ download_sku = escape(json.dumps(part_number, ensure_ascii=True), quote=True)
  return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>{escape(part_number)} 客户能力报告</title><style>
-body{{font:14px/1.55 system-ui,'Microsoft YaHei',sans-serif;color:#172033;max-width:1000px;margin:35px auto;padding:20px}}h1{{font-size:28px}}h2{{margin-top:28px;font-size:20px}}.meta{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}}.meta div{{background:#f5f7fa;padding:10px}}table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}}th{{background:#eaf1fb}}.notice{{margin-top:28px;color:#7a2e0e}}footer{{margin-top:36px;color:#667085}}@media print{{body{{margin:0}}}}
-</style></head><body><img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="width:200px;height:auto;display:block;margin:0 0 20px"><h1>Surface Laptop Ultra 客户能力报告</h1><p>Part Number：<b>{escape(part_number)}</b></p><div class="meta"><div>平台<br><b>{value(sku,'platform_code')}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>CPU<br><b>{value(sku,'cpu_model')}</b></div><div>GPU<br><b>{value(sku,'gpu_model')}</b></div><div>ERP 参考价<br><b>¥{value(sku,'erp_price_cny')}</b></div></div>{body}<div class="notice"><b>重要限制：</b>本报告严格区分官方声明、实测、经验推荐与未知。平台级 1440p/100 FPS、120B+ 或理论峰值不能转换为本 SKU 的性能保证；空白 Token/s、FPS 和兼容性字段保持未知。</div><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer></body></html>'''
+body{{font:14px/1.55 system-ui,'Microsoft YaHei',sans-serif;color:#172033;max-width:1000px;margin:35px auto;padding:20px}}h1{{font-size:28px}}h2{{margin-top:28px;font-size:20px}}.meta{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}}.meta div{{background:#f5f7fa;padding:10px}}table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}}th{{background:#eaf1fb}}.notice{{margin-top:28px;color:#7a2e0e}}footer{{margin-top:36px;color:#667085}}.actions button{{background:#175cd3;color:white;border:0;border-radius:7px;padding:9px 14px;cursor:pointer}}@media print{{body{{margin:0}}.actions{{display:none}}}}
+</style></head><body><img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="width:200px;height:auto;display:block;margin:0 0 20px"><h1>Surface Laptop Ultra 客户能力报告</h1><p>Part Number：<b>{escape(part_number)}</b></p><p class="actions"><button type="button" onclick="window.opener ? window.opener.downloadCustomerPdf({download_sku}) : alert('请从能力顾问页面打开报告后下载 PDF')">保存 PDF 报告</button></p><div class="meta"><div>平台<br><b>{value(sku,'platform_code')}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>CPU<br><b>{value(sku,'cpu_model')}</b></div><div>GPU<br><b>{value(sku,'gpu_model')}</b></div><div>ERP 参考价<br><b>¥{value(sku,'erp_price_cny')}</b></div></div>{body}<div class="notice"><b>重要限制：</b>本报告严格区分官方声明、实测、经验推荐与未知。平台级 1440p/100 FPS、120B+ 或理论峰值不能转换为本 SKU 的性能保证；空白 Token/s、FPS 和兼容性字段保持未知。</div><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer></body></html>'''
