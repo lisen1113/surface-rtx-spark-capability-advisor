@@ -42,6 +42,8 @@ CAPABILITY_MFA_MASTER_KEY=<由密钥管理系统注入>
 
 服务仍需只监听受控内网地址，由 HTTPS 反向代理终止 TLS、限制可接受 Host、设置安全头和请求体上限；应用检查 HTTPS URL 字符串**不能证明**真实网络连接已加密。共享/公网模式会在应用层拒绝与 `CAPABILITY_PUBLIC_BASE_URL` 不一致的 `Host`，并发送 `nosniff`、禁止嵌入及同源 Referrer 安全头；反向代理必须保留正确的原始 `Host`，不能依赖这些应用头替代代理配置。不可直接将 `scripts/start-local.ps1` 的 Uvicorn 开发进程开放公网。
 
+新机使用 `deploy/capability-advisor.service` 将应用限制在 `127.0.0.1:8011`，`deploy/Caddyfile` 是待 DNS/证书就绪后启用的 HTTPS 反向代理模板。服务所需 `/etc/capability-advisor.env` 由服务器管理员以仅 root 可读的权限建立；密钥和邮箱授权码不进入仓库。启用前必须在新机本地逐项检查服务、数据库、SMTP 投递、HTTPS 证书、备份恢复和登录/License 流程。不要因为配置文件已复制就提前启动公网监听。
+
 ## 正式发布前人工与目标环境验收
 
 1. 确定域名、目标云平台/服务器、操作系统、网络边界、证书签发与更新负责人；在隔离预发布环境验证 HTTPS、反向代理、Host 与重定向。
