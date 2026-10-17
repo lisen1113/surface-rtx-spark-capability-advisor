@@ -1,0 +1,2 @@
+cryptography>=45,<47
+cos-python-sdk-v5>=1.9,<2

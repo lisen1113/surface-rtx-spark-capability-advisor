@@ -75,3 +75,18 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r requirements-production.txt
       - name: Exercise public auth against PostgreSQL
         run: python -m pytest tests/test_postgres_public.py -q
+
+  cos-backup:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backup test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt -r ../deploy/requirements-cos.txt
+      - name: Test encrypted offsite backup without COS credentials
+        run: python -m pytest tests/test_cos_offsite_backup.py -q
