@@ -8,6 +8,7 @@ from fastapi import APIRouter, Body
 from .importer import preview_sku_csv
 from .generation import generation_guidance
 from .productivity import productivity_guidance
+from .spark_updates import agent_guidance, gaming_updates
 
 router = APIRouter(prefix="/api/catalog", tags=["catalog"])
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "capability.sqlite3"
@@ -158,6 +159,8 @@ def advisor(part_number: str):
   return [item for item in source_sheet(sheet) if part_number in str(item.get("适用SKU", item.get("适用SKU内存档", "")))]
  return {
   "sku": dict(sku_row), "ai": direct("AI能力映射"), "gaming": direct("游戏能力映射"),
+  "ai_official_updates": agent_guidance(part_number, int(sku_row["memory_gb"] or 0)),
+  "gaming_official_updates": gaming_updates(part_number),
   "generation": generation_guidance(part_number, int(sku_row["memory_gb"] or 0), sku_row["platform_code"]),
   "generation_source_records": direct("生成能力映射"),
   "productivity": productivity_guidance(part_number, int(sku_row["memory_gb"] or 0), sku_row["platform_code"]),

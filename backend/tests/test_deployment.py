@@ -20,6 +20,9 @@ def test_deployment_guide_is_reachable_and_evidence_bounded():
     assert "@media print" in page
     assert "Surface-Laptop-Ultra-Deployment-" in page
     assert "建议 PDF 文件名" in page
+    assert "PAIR 官方项目将 Windows ARM64 标为实验支持" in page
+    assert "不聚合显存" in page
+    assert "24GB 指特定 2-bit 量化权重" in page
 
 
 def test_home_exposes_deployment_tab():
@@ -46,6 +49,7 @@ def test_sku_guidance_changes_with_memory_storage_and_platform():
     assert all(t["compatible"] == "unknown" and t["usable"] == "unknown"
                for plan in (small, middle, large) for t in plan["trials"])
     assert large["evidence_level"] == "engineering_estimate"
+    assert "不能把 Nemotron 3.5 Bolt" in large["capacity_boundary"]
 
 
 def test_unknown_sku_is_not_given_a_generic_plan():

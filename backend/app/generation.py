@@ -7,6 +7,7 @@ NVIDIA_PORTING = "https://docs.nvidia.com/rtx-spark/rtx-spark-porting-guide/late
 NVIDIA_VIDEO = "https://docs.nvidia.com/video-technologies/pynvvideocodec/read-me/system-requirements-common.html"
 MICROSOFT_SURFACE = "https://blogs.windows.com/devices/2026/05/31/introducing-surface-laptop-ultra-made-for-world-makers/"
 MICROSOFT_WINDOWS_ML = "https://learn.microsoft.com/windows/ai/new-windows-ml/overview"
+NVIDIA_OCTOBER_UPDATE = "https://blogs.nvidia.com/blog/local-ai-rtx-spark-laptops-software-updates/"
 
 
 def _tier(memory_gb: int) -> tuple[str, str]:
@@ -58,10 +59,24 @@ def generation_guidance(part_number: str, memory_gb: int, platform_code: str) ->
             evidence="NVIDIA 官方功能说明 + 本 SKU 待验证",
         ),
         _record(
+            "ComfyUI RTX Video 帧生成与 HDR 节点",
+            "NVIDIA 2026-10-13 公告列出 ComfyUI 的 RTX Video Frame Generation 与 HDR 节点，并给出特定示例工作流；节点可用性取决于软件与驱动版本。",
+            context + " 先确认 ComfyUI/节点版本、输入素材与输出格式，再分别测帧生成、HDR 转换、画质和耗时；示例中的 30→60 fps 是视频后处理，不是本机游戏 FPS 或生成模型吞吐。",
+            NVIDIA_OCTOBER_UPDATE,
+            evidence="NVIDIA 官方工作流公告 + 本 SKU 待验证",
+        ),
+        _record(
             "Blender / OptiX 大型 3D 场景与 AI 辅助创作",
             "NVIDIA 对 RTX Spark 最高配置声明可处理最高约 90GB 的 3D 场景，并支持 OptiX、DLSS；该上限面向最高 128GB 平台，不适用于所有 SKU。",
             context + (" 可将大型场景作为重点验证方向，但 90GB 是平台上限声明而非本机稳定场景保证。" if memory_gb >= 128 else " 不应使用 90GB 平台上限作为该内存配置的承诺。"),
             NVIDIA_PRODUCT,
+        ),
+        _record(
+            "Blender 5.3 测试版与 DLSS 光线重建",
+            "NVIDIA 2026-10-13 公告称 Blender 5.3 测试版加入 RTX Spark 兼容性；DLSS Ray Reconstruction 计划于之后提供，不能当作当前正式版已具备。",
+            context + " 将测试版与正式版分开记录，核对 ARM64 安装包、OptiX 后端、插件和项目文件；未发布功能不纳入当前验收。",
+            NVIDIA_OCTOBER_UPDATE,
+            evidence="NVIDIA 官方发布时间说明 + 目标设备待验证",
         ),
         _record(
             "12K 4:2:2 视频剪辑与硬件编解码",

@@ -11,6 +11,7 @@ ADOBE_ARM = "https://helpx.adobe.com/in/x-productkb/multi/windows-arm-support.ht
 ADOBE_PHOTOSHOP = "https://helpx.adobe.com/photoshop/kb/windows-arm-support.html"
 ADOBE_PREMIERE_GPU = "https://helpx.adobe.com/premiere/desktop/get-started/technical-requirements/gpu-and-gpu-driver-requirements.html"
 BLENDER_ARM = "https://docs.blender.org/manual/en/latest/getting_started/installing/windows.html"
+NVIDIA_OCTOBER_UPDATE = "https://blogs.nvidia.com/blog/local-ai-rtx-spark-laptops-software-updates/"
 
 
 def _tier(memory_gb: int) -> tuple[str, str]:
@@ -72,10 +73,10 @@ def productivity_guidance(part_number: str, memory_gb: int, platform_code: str) 
         ),
         _record(
             "Adobe Premiere Pro / Media Encoder",
-            "NVIDIA 宣布 Adobe 正针对 RTX Spark 重构 Photoshop 与 Premiere，并给出平台级相对性能主张；Adobe 说明 Windows ARM 版 Premiere/Media Encoder 部分功能与 Intel Windows 版本不同。",
-            context + " 视为持续演进兼容性，不承诺 NVIDIA 公布的倍数适用于本 SKU；先测编解码格式、插件、Media Encoder 功能、时间线与导出。",
-            f"{NVIDIA_ANNOUNCEMENT} ; {ADOBE_ARM} ; {ADOBE_PREMIERE_GPU}",
-            status="官方适配中；版本与功能需核对",
+            "NVIDIA 2026-10-13 公告称 Photoshop/Premiere 的部分 RTX Spark 优化已进入测试版、其余分阶段推出；Adobe 说明 Windows ARM 版 Premiere/Media Encoder 的部分功能与 Intel Windows 版不同。",
+            context + " 先记录是否使用获授权测试版及具体版本，再测编解码、插件、时间线和导出；公告中的平台级相对提升不可套用到本 SKU。",
+            f"{NVIDIA_OCTOBER_UPDATE} ; {ADOBE_ARM} ; {ADOBE_PREMIERE_GPU}",
+            status="部分优化为测试版；正式版与功能需核对",
             evidence="NVIDIA/Adobe 官方声明；本 SKU 无绝对实测",
         ),
         _record(
@@ -108,11 +109,11 @@ def productivity_guidance(part_number: str, memory_gb: int, platform_code: str) 
             evidence="Microsoft 官方功能说明",
         ),
         _record(
-            "NVIDIA Broadcast、视频会议降噪与摄像头效果",
-            "NVIDIA RTX Spark 产品资料列出 NVIDIA Broadcast，并描述摄像头背景处理和麦克风降噪等 RTX AI 场景。",
-            context + " 与 Teams、Zoom 或采集设备组合时需验证 ARM64 应用、虚拟设备、驱动和会议策略；不据此推断电池续航。",
-            NVIDIA_PRODUCT,
-            status="NVIDIA 官方平台功能；应用组合待验证",
+            "NVIDIA Broadcast 2.3、离线媒体处理与会议效果",
+            "NVIDIA 2026-10-13 公告称 Broadcast 2.3 已可下载，新增 Video Super Resolution、Frame Generation、离线文件处理和 MCP 控制。",
+            context + " 分别验证实时会议与离线文件路径；检查虚拟摄像头/麦克风、ARM64 宿主应用、驱动、MCP 工具权限和输出质量，不将离线高质量效果视为实时保证。",
+            NVIDIA_OCTOBER_UPDATE,
+            status="NVIDIA 官方应用更新；具体组合待验证",
             evidence="NVIDIA 官方产品资料 + 工程验证要求",
         ),
     ]

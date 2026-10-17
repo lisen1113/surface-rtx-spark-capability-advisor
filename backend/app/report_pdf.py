@@ -19,6 +19,7 @@ from reportlab.platypus import (
 from .catalog import source_sheet
 from .generation import generation_guidance
 from .productivity import productivity_guidance
+from .spark_updates import agent_guidance, gaming_updates
 
 
 _font_candidates = (
@@ -74,7 +75,9 @@ def build_customer_pdf(sku: dict) -> bytes:
     direct = lambda sheet: [row for row in source_sheet(sheet) if row.get("Part Number") == part_number]
     groups = (
         ("AI 模型能力", direct("AI能力映射")),
+        ("AI 官方生态更新（非本 SKU 实测）", agent_guidance(part_number, int(sku.get("memory_gb") or 0))),
         ("游戏能力", direct("游戏能力映射")),
+        ("游戏官方生态更新（非本 SKU FPS）", gaming_updates(part_number)),
         ("生成式 AI", generation_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台")),
         ("生产力能力", productivity_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台")),
     )

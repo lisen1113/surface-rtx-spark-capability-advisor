@@ -8,6 +8,7 @@ from .auth import require_entitled_user
 from .catalog import connection, rows, source_sheet
 from .generation import generation_guidance
 from .productivity import productivity_guidance
+from .spark_updates import agent_guidance, gaming_updates
 from .recommendation import RecommendationInput, recommend
 from .report_pdf import build_customer_pdf
 
@@ -83,9 +84,11 @@ def recommendation_report(data: NeedReportInput, _user=Depends(require_entitled_
     if "ai" in usages:
         sections.append(detail_section("本地 AI：该 SKU 的场景映射（非指定模型实测）", direct("AI能力映射")))
         sections.append(detail_section("本地 AI：经验推荐", recommended("AI经验推荐矩阵")))
+        sections.append(detail_section("本地 AI：RTX Spark 官方生态更新（非本 SKU 实测）", agent_guidance(data.part_number, int(sku.get("memory_gb") or 0))))
     if "gaming" in usages:
         sections.append(detail_section("游戏：该 SKU 的场景映射（非逐款实测）", direct("游戏能力映射")))
         sections.append(detail_section("游戏：经验推荐", recommended("游戏经验推荐矩阵")))
+        sections.append(detail_section("游戏：RTX Spark 官方生态更新（非本 SKU FPS）", gaming_updates(data.part_number)))
     if "generation" in usages:
         generation_terms = {"image": ("图像", "3D", "创作"), "video": ("视频", "Video", "4:2:2")}.get(data.generation_need, ())
         generation_items = generation_guidance(data.part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台")
@@ -141,7 +144,9 @@ def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  sku=dict(row)
  direct=lambda sheet:[x for x in source_sheet(sheet) if x.get("Part Number")==part_number]
  body=section("AI 模型能力",direct("AI能力映射"),("目标模型/场景",),("本地运行判断","预计输出速度_Token/s"))
+ body+=section("AI 官方生态更新（非本 SKU 实测）",agent_guidance(part_number, int(sku.get("memory_gb") or 0)),("推荐模型/工作负载名称",),("本地运行判断",))
  body+=section("游戏能力",direct("游戏能力映射"),("游戏名称",),("兼容性状态","平均FPS"))
+ body+=section("游戏官方生态更新（非本 SKU FPS）",gaming_updates(part_number),("游戏名称",),("兼容性状态",))
  body+=section("生成式 AI",generation_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("推荐模型/工作负载名称",),("本地运行判断","经验推荐与我的判断"))
  body+=section("生产力能力",productivity_guidance(part_number, int(sku.get("memory_gb") or 0), sku.get("platform_code") or "未知平台"),("软件/工作负载",),("兼容性状态","经验推荐与我的判断"))
  download_sku = escape(json.dumps(part_number, ensure_ascii=True), quote=True)
