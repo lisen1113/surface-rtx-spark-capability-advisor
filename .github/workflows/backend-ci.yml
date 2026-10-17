@@ -89,4 +89,4 @@ jobs:
       - name: Install backup test dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt -r ../deploy/requirements-cos.txt
       - name: Test encrypted offsite backup without COS credentials
-        run: python -m pytest tests/test_cos_offsite_backup.py -q
+        run: python -m pytest tests/test_cos_offsite_backup.py tests/test_init_cos_env.py -q
