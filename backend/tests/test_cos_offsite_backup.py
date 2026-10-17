@@ -37,8 +37,8 @@ def test_upload_download_authenticates_encrypted_snapshot(tmp_path, monkeypatch)
     objects = {}
 
     class FakeCOS:
-        def upload_file(self, **kwargs):
-            objects[kwargs["Key"]] = Path(kwargs["LocalFilePath"]).read_bytes()
+        def put_object(self, **kwargs):
+            objects[kwargs["Key"]] = kwargs["Body"].read()
 
         def download_file(self, **kwargs):
             Path(kwargs["DestFilePath"]).write_bytes(objects[kwargs["Key"]])

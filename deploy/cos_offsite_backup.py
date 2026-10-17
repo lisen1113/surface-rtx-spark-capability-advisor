@@ -111,7 +111,10 @@ def upload_verified(directory: Path, client, bucket: str, key: bytes) -> str:
     with tempfile.TemporaryDirectory(prefix="capability-cos-") as temporary:
         encrypted = Path(temporary) / "backup.tar.gcm"
         digest = encrypt_backup(directory, encrypted, key)
-        client.upload_file(Bucket=bucket, Key=object_key, LocalFilePath=str(encrypted))
+        # The verifier is capped at 256 MiB, so a single PUT keeps CAM scope
+        # limited to PutObject rather than multipart-upload permissions.
+        with encrypted.open("rb") as stream:
+            client.put_object(Bucket=bucket, Key=object_key, Body=stream)
         downloaded = Path(temporary) / "downloaded.tar.gcm"
         client.download_file(Bucket=bucket, Key=object_key, DestFilePath=str(downloaded))
         verify_encrypted(downloaded, key, digest)
