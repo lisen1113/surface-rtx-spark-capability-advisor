@@ -43,3 +43,11 @@ def test_security_headers_on_local_responses(monkeypatch):
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["referrer-policy"] == "same-origin"
+
+
+def test_sensitive_pages_and_api_responses_are_not_cached(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "local")
+    with TestClient(app) as client:
+        for path in ("/account", "/admin", "/api/about", "/api/unknown"):
+            response = client.get(path)
+            assert response.headers["cache-control"] == "no-store"

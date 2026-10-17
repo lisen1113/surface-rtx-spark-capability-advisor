@@ -60,6 +60,8 @@ async def shared_host_boundary(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "same-origin"
+    if request.url.path.startswith("/api/") or request.url.path in {"/account", "/admin"}:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
