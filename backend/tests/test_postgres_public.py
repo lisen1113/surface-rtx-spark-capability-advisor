@@ -39,6 +39,19 @@ def test_public_registration_verification_license_and_login(monkeypatch, tmp_pat
     sent = []
     monkeypatch.setattr(auth, "_send_verification_mail", lambda email, token: sent.append(token) or True)
 
+    with pytest.raises(RuntimeError, match="administrator with MFA enabled"):
+        with TestClient(app, base_url="https://advisor.example.invalid"):
+            pass
+    with connection() as db:
+        admin = db.execute(
+            "INSERT INTO users (email,password_hash,role,status,email_verified,created_at) "
+            "VALUES (?,?,?,?,?,?) RETURNING id",
+            ("admin@example.invalid", "test-only-hash", "admin", "approved", 1, iso(now())),
+        ).fetchone()
+        db.execute("INSERT INTO admin_mfa (user_id,enabled_at,last_counter) VALUES (?,?,?)",
+                   (admin["id"], iso(now()), 0))
+        db.commit()
+
     with TestClient(app, base_url="https://advisor.example.invalid") as client:
         assert client.get("/health").status_code == 200
         assert client.get("/api/catalog/skus").status_code == 401

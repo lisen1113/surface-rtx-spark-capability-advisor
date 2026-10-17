@@ -34,6 +34,13 @@ async def lifespan(_app: FastAPI):
             catalog_db.execute("SELECT 1 FROM imported_skus LIMIT 1")
         with auth_connection() as identity_db:
             identity_db.execute("SELECT 1 FROM users LIMIT 1")
+            admin = identity_db.execute(
+                "SELECT 1 FROM users u JOIN admin_mfa m ON m.user_id=u.id "
+                "WHERE u.role='admin' AND u.status='approved' "
+                "AND u.email_verified=1 LIMIT 1"
+            ).fetchone()
+            if admin is None:
+                raise RuntimeError("Public deployment requires an approved, verified administrator with MFA enabled")
     yield
 
 

@@ -22,7 +22,7 @@
 
 ## 启动前自动门槛
 
-公网模式启动时，应用会检查 PostgreSQL URL、`CAPABILITY_REQUIRE_AUTH=1`、开发令牌展示已关闭、SMTP 主机和发件地址、至少 32 字节的管理员 MFA 主密钥，以及 `CAPABILITY_PUBLIC_BASE_URL` 为 HTTPS 站点根地址。任何一项缺失都会拒绝启动。配置应由目标服务器的密钥管理系统注入，不要写进 Git、截图或聊天。
+公网模式启动时，应用会检查 PostgreSQL URL、`CAPABILITY_REQUIRE_AUTH=1`、开发令牌展示已关闭、SMTP 主机和发件地址、至少 32 字节的管理员 MFA 主密钥，以及 `CAPABILITY_PUBLIC_BASE_URL` 为 HTTPS 站点根地址。数据库中还必须存在已批准、邮箱已验证且已启用 MFA 的管理员；首次管理员须在正式服务启动前通过安全预览完成注册和 MFA 启用。任一门槛不满足都会拒绝启动。配置应由目标服务器的密钥管理系统注入，不要写进 Git、截图或聊天。
 
 示意变量名（不是可直接投入生产的配置）：
 
