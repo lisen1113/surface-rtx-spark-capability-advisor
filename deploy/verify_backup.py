@@ -1,6 +1,7 @@
 """Read-only checks for a private backup; not a substitute for a restore drill."""
 
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -35,7 +36,7 @@ def verify_backup(directory: Path) -> None:
     if sha256(catalog) != manifest["catalog_sha256"]:
         raise ValueError("Catalog checksum mismatch")
     subprocess.run(["pg_restore", "--list", str(dump)], check=True, capture_output=True)
-    with sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True)) as db:
         if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("Catalog integrity check failed")
         db.execute("SELECT 1 FROM imported_skus LIMIT 1")
