@@ -10,6 +10,14 @@ import sqlite3
 import subprocess
 
 
+BACKUP_SECRETS = frozenset(("COS_SECRET_ID", "COS_SECRET_KEY", "COS_SESSION_TOKEN", "CAPABILITY_BACKUP_KEY_B64"))
+
+
+def safe_child_env() -> dict[str, str]:
+    """Do not forward COS credentials to database tools."""
+    return {name: value for name, value in os.environ.items() if name not in BACKUP_SECRETS}
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -35,7 +43,7 @@ def verify_backup(directory: Path) -> None:
         raise ValueError("PostgreSQL dump checksum mismatch")
     if sha256(catalog) != manifest["catalog_sha256"]:
         raise ValueError("Catalog checksum mismatch")
-    subprocess.run(["pg_restore", "--list", str(dump)], check=True, capture_output=True)
+    subprocess.run(["pg_restore", "--list", str(dump)], check=True, capture_output=True, env=safe_child_env())
     with closing(sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True)) as db:
         if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise ValueError("Catalog integrity check failed")

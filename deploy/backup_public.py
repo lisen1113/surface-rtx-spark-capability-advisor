@@ -17,6 +17,12 @@ CATALOG = Path("/opt/capability-advisor/data/capability.sqlite3")
 BACKUP_ROOT = Path("/opt/capability-advisor/backups")
 
 
+def safe_child_env() -> dict[str, str]:
+    """Keep COS keys out of the pg_dump child process."""
+    secrets = {"COS_SECRET_ID", "COS_SECRET_KEY", "COS_SESSION_TOKEN", "CAPABILITY_BACKUP_KEY_B64"}
+    return {name: value for name, value in os.environ.items() if name not in secrets}
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -42,7 +48,7 @@ def create_backup(root: Path = BACKUP_ROOT, catalog: Path = CATALOG) -> Path:
     try:
         with dump.open("xb") as stream:
             subprocess.run(["pg_dump", "--format=custom", "--dbname=advisor"],
-                           check=True, stdout=stream, stderr=subprocess.PIPE)
+                           check=True, stdout=stream, stderr=subprocess.PIPE, env=safe_child_env())
         shutil.copyfile(catalog, catalog_copy)
         manifest = {
             "created_at_utc": datetime.now(timezone.utc).isoformat(),

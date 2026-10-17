@@ -18,7 +18,7 @@ import tempfile
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from cos_offsite_backup import MAGIC, NAMES, cos_client, encryption_key
-from verify_backup import verify_backup
+from verify_backup import safe_child_env, verify_backup
 
 
 MAX_CIPHERTEXT = 256 * 1024 * 1024
@@ -59,7 +59,7 @@ def postgres_counts(database: str) -> dict[str, int]:
         result = subprocess.run(
             ["runuser", "-u", "postgres", "--", "psql", "--dbname", database,
              "--tuples-only", "--no-align", "--command", f"SELECT count(*) FROM {table}"],
-            check=True, capture_output=True, text=True,
+            check=True, capture_output=True, text=True, env=safe_child_env(),
         )
         counts[table] = int(result.stdout.strip())
     return counts
@@ -84,20 +84,20 @@ def drill(client, bucket: str, object_key: str, key: bytes) -> tuple[dict[str, i
             sku_count = catalog.execute("SELECT count(*) FROM imported_skus").fetchone()[0]
         subprocess.run(
             ["runuser", "-u", "postgres", "--", "createdb", "--template=template0", database],
-            check=True, capture_output=True,
+            check=True, capture_output=True, env=safe_child_env(),
         )
         try:
             with (snapshot / "accounts.dump").open("rb") as dump:
                 subprocess.run(
                     ["runuser", "-u", "postgres", "--", "pg_restore", "--exit-on-error",
                      "--no-owner", "--no-acl", "--dbname", database],
-                    stdin=dump, check=True, capture_output=True,
+                    stdin=dump, check=True, capture_output=True, env=safe_child_env(),
                 )
             counts = postgres_counts(database)
         finally:
             subprocess.run(
                 ["runuser", "-u", "postgres", "--", "dropdb", "--if-exists", database],
-                check=True, capture_output=True,
+                check=True, capture_output=True, env=safe_child_env(),
             )
     return counts, sku_count
 

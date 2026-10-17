@@ -49,3 +49,11 @@ def test_rejects_tampered_catalog(tmp_path, monkeypatch):
     monkeypatch.setattr(verifier.subprocess, "run", lambda *args, **kwargs: pytest.fail("unexpected pg_restore"))
     with pytest.raises(ValueError, match="Catalog checksum mismatch"):
         verifier.verify_backup(directory)
+
+
+def test_database_child_environment_omits_backup_secrets(monkeypatch):
+    monkeypatch.setenv("COS_SECRET_ID", "test-only-secret")
+    monkeypatch.setenv("CAPABILITY_BACKUP_KEY_B64", "test-only-key")
+    child = verifier.safe_child_env()
+    assert "COS_SECRET_ID" not in child
+    assert "CAPABILITY_BACKUP_KEY_B64" not in child

@@ -33,3 +33,8 @@ def test_refuses_catalog_symlink(tmp_path):
         pytest.skip("Symlinks unavailable on this host")
     with pytest.raises(ValueError, match="regular, local product catalog"):
         backup.create_backup(tmp_path / "backup", link)
+
+
+def test_pg_dump_environment_omits_cos_secrets(monkeypatch):
+    monkeypatch.setenv("COS_SECRET_KEY", "test-only-secret")
+    assert "COS_SECRET_KEY" not in backup.safe_child_env()
