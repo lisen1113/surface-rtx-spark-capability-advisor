@@ -14,3 +14,7 @@ def test_admin_page_has_approval_license_and_audit():
  assert '用户审批' in html and 'License 设置' in html and '最近审计' in html
  assert '/api/admin/mfa/enroll' in html and '/api/admin/mfa/confirm' in html
  assert '${escapeHtml(x.email)}' in html and '${escapeHtml(x.action)}' in html
+ assert 'id="mfasetup" hidden' in html
+ assert "$('#mfasetup').hidden=d.enabled||!d.configured" in html
+ assert "x.email_verified?'':" in html
+ assert "x.status==='approved'?'':" in html
