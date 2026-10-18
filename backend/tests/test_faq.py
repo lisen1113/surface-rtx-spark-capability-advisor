@@ -35,3 +35,19 @@ def test_october_announcement_faq_has_specific_sources_and_release_status():
  hybrid=client.get('/api/faq',params={'q':'hybrid intelligence','limit':250}).json()
  assert any('混合智能' in x['question'] for x in hybrid['items'])
  assert any('实验预览' in x['expert_answer'] for x in client.get('/api/faq',params={'q':'HydraFusion','limit':250}).json()['items'])
+
+def test_surface_training_has_distinct_comparisons_and_primary_sources():
+ body=client.get('/api/faq',params={'category':'Surface Laptop Ultra','limit':250}).json()
+ items=body['items']
+ assert body['total']==len(items)>=20
+ assert any('MacBook Pro' in x['question'] for x in items)
+ assert any('OEM' in x['question'] for x in items)
+ assert all('对 Surface Laptop Ultra 选型和使用有什么影响' not in x['question'] for x in items)
+ comparisons=[x for x in items if x.get('comparison_source_url')]
+ assert comparisons and all(x['comparison_source_url'].startswith('https://') for x in comparisons)
+ assert any('不能' in x['misconception'] for x in comparisons)
+
+def test_faq_category_changes_load_results_without_search_click():
+ page=client.get('/').text
+ assert 'id="faqcategory" onchange="searchFaq()"' in page
+ assert "(c?250:20)" in page

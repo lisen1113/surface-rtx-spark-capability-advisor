@@ -151,11 +151,48 @@ assert sum(len(items) for items in CONCEPTS.values()) == 100
 
 FAQ = []
 for category, concepts in CONCEPTS.items():
+    if category == "Surface Laptop Ultra":
+        continue  # This product needs curated, scenario-specific training, not paired template questions.
     for term, easy, expert, misconception in concepts:
         base = len(FAQ) + 1
         common = {"category": category, "keywords": [term, category], "source_url": SOURCES[category], "review_status": "reviewed_concept", "sku_relevance": "Surface Laptop Ultra / RTX Spark", "framework_relevance": []}
         FAQ.append({"id": f"FAQ-{base:03d}", "question": f"{term}是什么？", "easy_answer": easy, "expert_answer": expert, "misconception": misconception, "sales_tip": f"先确认客户是否真的涉及“{term}”，再说明适用范围、验证条件和未知项。", **common})
         FAQ.append({"id": f"FAQ-{base+1:03d}", "question": f"{term}对 Surface Laptop Ultra 选型和使用有什么影响？", "easy_answer": expert, "expert_answer": f"选型不能只看“{term}”标签；应结合具体 Part Number、内存、软件版本、任务条件和证据等级验证。", "misconception": misconception, "sales_tip": f"不要把“{term}”单项指标当成性能承诺；用客户真实任务做 PoC。", **common})
+
+# Each entry is an independently useful sales-training answer. Product claims
+# come from Microsoft; Apple comparisons link both vendors' current specs.
+SURFACE_SOURCE = "https://www.microsoftstore.com.cn/surface/surface-laptop-ultra-for-business"
+APPLE_SOURCE = "https://www.apple.com.cn/macbook-pro/specs/"
+ARM_SOURCE = "https://learn.microsoft.com/en-us/windows/arm/add-arm-support"
+NVIDIA_ARM_SOURCE = "https://developer.nvidia.com/topics/ai/local-ai/port-apps"
+SURFACE_TRAINING = [
+    ("客户该如何理解 Surface Laptop Ultra 的定位？", "它是兼顾 Windows 商务工作流、触控创作和 RTX Spark 本地 AI 的专业笔记本。", "先识别客户的 Windows 软件、CUDA 工作流、触控需求与移动性，再按具体料号评估；普通办公不一定需要最高配。", "产品定位不是每个 SKU 的性能承诺。", "让客户列出三个最耗时的真实任务，以任务而非宣传词选型。", SURFACE_SOURCE, None),
+    ("与普通 Windows OEM 笔记本相比，优先展示哪些差异？", "展示微软自家 Surface 软硬件体验、15 英寸 3:2 触控屏、RTX Spark 平台和明确的端口配置。", "OEM 产品差异很大；只有在指定竞品型号后，才能逐项比较屏幕、接口、GPU、内存、售后和总成本。", "不能声称所有 OEM 都缺少触屏、USB-A 或 NVIDIA GPU。", "建立同价位具体型号对照表，并让客户亲自体验触控、扩展和工作流。", SURFACE_SOURCE, None),
+    ("15 英寸 PixelSense Ultra 触控屏对专业工作有什么意义？", "3:2 屏幕适合查看长文档和时间线，触控可用于批注、演示与直接交互。", "微软公布 3270×2180 分辨率、最高 120Hz、DCI-P3 100%；色彩关键工作还需实测校准、软件色彩管理和外接屏需求。", "高分辨率和广色域不等于每台设备已经完成专业校色。", "演示客户自己的图纸、表格或创作素材，而非只展示桌面壁纸。", SURFACE_SOURCE, None),
+    ("Surface Laptop Ultra 的接口优势应如何准确表述？", "机身含 USB-C、USB-A、HDMI、SD 读卡器和耳机接口，减少部分转接需求。", "微软称其在 Surface Laptop 系列中接口最丰富；这不是对所有 OEM 或所有 MacBook 的接口数量领先声明。", "不能把“Surface 系列最多”说成“行业最多”。", "列出客户必须直连的显示器、相机卡、旧 USB 设备和底座。", SURFACE_SOURCE, APPLE_SOURCE),
+    ("RTX Spark N1X 的两种 CPU/GPU 档位如何解释？", "18 核 CPU/5120 核 GPU 与 20 核 CPU/6144 核 GPU 是不同硬件配置。", "核心数只是规格；实际速度受功耗、散热、内存、驱动和应用内核影响，不能按核心数比例推算 FPS 或 Token/s。", "高核心档不保证每个应用都更快。", "同时展示具体料号、内存与存储，做客户工作负载 PoC。", SURFACE_SOURCE, None),
+    ("统一内存最高 128GB 的实际价值是什么？", "较大的统一内存可给本地模型、图形任务和多应用并行留出更大容量空间。", "最高值只属于相应 SKU；操作系统、图形与上下文缓存也占用内存，装得下、能运行与体验好要分别验证。", "128GB 并非每台机型标配，也不等于 128GB 独立显存。", "先记录模型格式、量化、上下文和并发，再选内存档位。", SURFACE_SOURCE, None),
+    ("与 MacBook Pro 对比，本产品的销售切入点是什么？", "对依赖 Windows 软件、触控交互、USB-A 或 NVIDIA CUDA 生态的客户，Surface 值得优先验证。", "Apple 当前 MacBook Pro 也提供最高 128GB 统一内存、HDMI、SDXC 和高规格显示屏；比较必须锁定具体 M5 配置与 Surface 料号。", "不能说 MacBook Pro 没有 HDMI/读卡器，或 Surface 在所有任务都更快。", "让客户用同一项目、同一软件版本和外设清单分别试机。", SURFACE_SOURCE, APPLE_SOURCE),
+    ("与 MacBook Pro 相比，触控和操作系统有什么取舍？", "Surface 提供 Windows 11 和机身触控，适合客户已有的 Windows 管理与笔触交互。", "MacBook Pro 的 macOS、ProRes/Final Cut 等工作流可能更合适；不能把不同系统中的软件兼容性或触控偏好当成通用性能胜负。", "不要宣称 macOS 无法做本地 AI，或 Windows 软件都已原生支持 ARM。", "先盘点客户现有软件、设备管理、外设与创作流程。", SURFACE_SOURCE, APPLE_SOURCE),
+    ("与 MacBook Pro 比较续航时怎样避免误导？", "只报告两家官方各自的测试条件，并在客户的真实负载下复测。", "Surface 官方的本地视频与网页续航测试和 Apple 的视频/无线网页测试条件不同；AI 推理、亮度、网络与软件版本都会改变结果。", "不能直接用两个宣传小时数判定谁续航更长。", "安排相同亮度、网络、任务和电源模式的并行测试。", SURFACE_SOURCE, APPLE_SOURCE),
+    ("MacBook Pro 的 Thunderbolt 5 是否是 Surface 的劣势？", "对超高速外设和特定扩展坞，它可能是 Apple 指定机型的优势。", "Surface 官方列出 USB4 USB-C；Apple 不同 MacBook Pro 配置提供不同接口代际。应核对客户实际存储、显示器和扩展坞带宽。", "不能只看接口名称而不看设备两端与线材规格。", "客户若使用高速阵列或多屏底座，应实测吞吐与稳定性。", SURFACE_SOURCE, APPLE_SOURCE),
+    ("Windows on Arm 能否运行客户现有 x64 软件？", "部分 x86/x64 应用可通过仿真运行，但关键软件与驱动必须逐项核验。", "微软说明 Windows on Arm 有仿真能力，但内核驱动必须提供 ARM64 版本；插件、安装器、反作弊和硬件控制程序也可能影响交付。", "“能启动”不等于全部插件可用或性能等同原生。", "列出客户应用、版本、驱动、外设和验收动作，优先做 ARM64 原生验证。", ARM_SOURCE, None),
+    ("CUDA 生态是否意味着所有 AI 工具开箱即用？", "NVIDIA 生态是有价值的开发路径，但每个工具链仍需核对 Windows ARM64 支持。", "NVIDIA 提供 Windows on Arm 移植资料；CUDA Toolkit、框架轮子、算子、驱动和模型后端的版本须分别验证。", "NVIDIA GPU 存在不代表任意 CUDA 应用在 Windows ARM64 可运行。", "按目标工具的官方兼容矩阵和客户模型建立安装与推理 PoC。", NVIDIA_ARM_SOURCE, None),
+    ("本地 AI 与云端 AI 应怎样向客户解释？", "本地有助于降低部分任务的联网依赖，云端仍可提供更大模型和弹性服务。", "本地化的数据边界取决于应用遥测、模型下载、插件、日志和路由策略；成本要算购置、维护、利用率与云端回退。", "本地运行不等于完全离线、零成本或自动合规。", "先确定哪些数据不能出域，再追踪真实应用的数据流。", SURFACE_SOURCE, None),
+    ("24GB、32GB、48GB、64GB、128GB 应怎样推荐？", "按模型容量、创作素材、并行应用和预算选择，不以容量单项决定。", "统一内存需预留系统、图形与中间张量；更大容量提高可容纳空间，不直接证明吞吐或任务成功率。", "不能把内存 GB 数直接换算成模型参数量或 Token/s。", "用目标模型与项目文件测峰值内存、稳定性和响应时间。", SURFACE_SOURCE, None),
+    ("可拆卸 SSD 对企业部署有什么价值？", "有助于部分维修、设备交接和数据管理流程。", "微软列出可拆卸 SSD 的规格；具体拆装、保修、加密密钥、数据擦除和替换流程应遵守官方服务指南与企业制度。", "可拆卸不代表员工可随意拆卸或升级且不影响保修。", "把 BitLocker、资产交接和故障返修纳入采购方案。", SURFACE_SOURCE, None),
+    ("如何向 IT 部门介绍 Surface 的商业价值？", "从 Windows 管理、安全、外设、服务和员工工作流统一评估。", "硬件安全功能不能替代设备管理、补丁、权限、备份与响应流程；企业价值需与现有 Intune/Entra、应用和服务合同匹配。", "产品页列出安全特性不等于客户已完成安全配置。", "请 IT 团队提供标准镜像、策略、资产与维修要求。", SURFACE_SOURCE, None),
+    ("Surface 与 OEM/Apple 的 TCO 应如何比较？", "比较完整使用周期的设备、软件、适配、支持和员工时间，而非只比采购价。", "同一周期纳入外设/转接、应用迁移、管理、维修、能耗和云端 AI 服务；没有客户账单时只能做标注假设的情景估算。", "低首购价或高配置不能自动证明总成本最低。", "用客户现有财务数据和 PoC 工时替换模板默认值。", SURFACE_SOURCE, APPLE_SOURCE),
+    ("给图形创作客户演示时应验证什么？", "演示客户真实项目的预览、渲染、导出和外设连接。", "Blackwell GPU 的架构能力与具体创作软件是否调用相应后端不同；记录插件、编解码器、素材、分辨率和电源状态。", "平台支持某功能不等于每个应用、每个 SKU 都能获得同样收益。", "在同一素材与版本上比完成时间、画质与稳定性。", SURFACE_SOURCE, None),
+    ("给开发团队演示时应验证什么？", "验证目标 IDE、容器、SDK、依赖包和真实构建/推理任务。", "Windows ARM64 与 Linux/WSL、CUDA 工具链的支持状态可能不同；驱动和原生扩展是常见阻碍。", "一个 Hello World 成功不代表完整项目可迁移。", "让开发者带仓库、依赖锁文件与测试集做端到端 PoC。", NVIDIA_ARM_SOURCE, ARM_SOURCE),
+    ("销售对比表的证据等级如何标注？", "把官方规格、客户实测、工程估算和未知分开列。", "对标 Apple 或 OEM 时记录具体型号、日期、版本和测试条件；没有同条件结果就不要填写 FPS、Token/s 或续航胜负。", "官方最高配置和发布会演示不能改写为本 SKU 实测。", "每张比较表附来源链接、测试记录和待验证项。", SURFACE_SOURCE, APPLE_SOURCE),
+]
+for question, easy, expert, misconception, sales_tip, url, comparison_url in SURFACE_TRAINING:
+    FAQ.append({"id": f"FAQ-{len(FAQ)+1:03d}", "category": "Surface Laptop Ultra", "question": question,
+                "easy_answer": easy, "expert_answer": expert, "misconception": misconception,
+                "sales_tip": sales_tip, "keywords": [question, "Surface Laptop Ultra"] + (["N1X 18 核 CPU"] if "定位" in question or "N1X" in question else []),
+                "source_url": url, "comparison_source_url": comparison_url,
+                "review_status": "official_specs_with_sales_inference", "sku_relevance": "按具体 Part Number 核验", "framework_relevance": []})
 
 # October 7, 2026 Microsoft/NVIDIA announcement: each question has its own
 # official citation and release status, rather than inheriting a category URL.
