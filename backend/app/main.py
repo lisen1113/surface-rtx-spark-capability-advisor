@@ -23,6 +23,7 @@ from .recommendation import router as recommendation_router
 from .deployment import router as deployment_router
 from .deployment_readiness import assert_deployment_configuration
 from .auth_store import connection as auth_connection
+from .request_limit import AUTH_LIMITS, limiter, source_address
 
 
 @asynccontextmanager
@@ -63,6 +64,14 @@ async def shared_host_boundary(request: Request, call_next):
                            and received.casefold() in {"127.0.0.1:8011", "localhost:8011"})
         if not expected.netloc or (received.casefold() != expected.netloc.casefold() and not private_preview):
             return PlainTextResponse("Host not allowed", status_code=400)
+        if (os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public"
+                and request.method == "POST" and request.url.path in AUTH_LIMITS):
+            peer = request.client.host if request.client else "unknown"
+            address = source_address(peer, request.headers.get("x-forwarded-for"))
+            retry = limiter.check(address, request.url.path)
+            if retry:
+                return PlainTextResponse("请求过于频繁，请稍后再试", status_code=429,
+                                         headers={"Retry-After": str(retry), "Cache-Control": "no-store"})
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
