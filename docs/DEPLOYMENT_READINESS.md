@@ -1,10 +1,12 @@
 # 公网正式部署就绪门槛
 
-当前分支仍是草稿 PR，**不可直接暴露公网**。已增加 PostgreSQL 账号/License 数据层和只读 SQLite 产品目录，公网模式要求 `CAPABILITY_AUTH_DATABASE_URL`，但目标服务器集成测试、安全验收和发布步骤尚未完成。仅通过环境变量门槛不代表上线许可；`main` 不应在以下项目完成前合并。
+当前分支仍是草稿 PR，`main` 未合并。2026-10-18 经业务方确认，站点已在 `surfacedmp.com` 进入**员工与内部代理商受限公网试点**，并非面向公众的正式发布。下文 2026-10-16／17 的服务器状态与“切换前”操作是历史验收快照，不能当作当前 DNS、HTTPS 或服务状态；实际切换与回退记录见 [PUBLIC_CUTOVER.md](PUBLIC_CUTOVER.md)。
 
-部署目标是 `surfacedmp.com` 的独立新服务器。该域名旧站内容已被用户声明不再需要，但现有 CentOS 7.8 服务器仍承载 `yiheit.net` 公司官网，**不得重装、停机或修改该服务器**；旧站文件也不要在新站验收前删除。CentOS Linux 7 已于 [2024-06-30 结束维护](https://centos.org/centos-linux/)；官网迁移另立项目，不能混入能力顾问上线任务。腾讯云明确说明[重装会清空系统盘并使实例关机](https://cloud.tencent.com/document/product/1207/44576)，因此不采用“重装旧机”方案。新服务器已购买，但域名切换与 HTTPS 尚未完成。
+当前已验证新机 HTTPS、根域名与 `www` 跳转、PostgreSQL 账号与 License、管理员 MFA、SMTP 实际投递、COS 加密备份及隔离恢复、未登录 API 拒绝，以及测试用户登录、返回顾问和下载报告。**独立第三方安全测试、实体 Windows ARM64/GPU 持续负载 PoC 仍未完成**；业务方接受先进行受限试点，不能将其表述为已通过正式发布全部门槛。公网发布状态与功能完成度应分别记录。
 
-## 新服务器现状（2026-10-16，按用户控制台截图核对）
+部署目标是 `surfacedmp.com` 的独立新服务器，域名和 HTTPS 已切换。旧 CentOS 7.8 服务器仍承载 `yiheit.net` 公司官网，**不得重装、停机或修改该服务器**；旧站文件保留用于必要回退。CentOS Linux 7 已于 [2024-06-30 结束维护](https://centos.org/centos-linux/)；官网迁移另立项目，不能混入能力顾问任务。腾讯云明确说明[重装会清空系统盘并使实例关机](https://cloud.tencent.com/document/product/1207/44576)，因此不采用“重装旧机”方案。
+
+## 历史快照：新服务器准备（2026-10-16，按用户控制台截图核对）
 
 - 新购腾讯云轻量应用服务器 `surface-advisor-shanghai`，上海地域，公网 IPv4 `123.207.183.23`；2 vCPU / 4 GB、60 GB SSD、5 Mbps、500 GB/月。Ubuntu Server 24.04.4 LTS x86_64；系统更新及重启后内核 `6.8.0-147-generic`。
 - 已创建初始系统盘快照且控制台状态为正常。2026-10-17 控制台截图确认 443/TCP 已对全部 IPv4 开放，22/TCP、80/TCP 和 ICMP 规则仍在；开放防火墙不等于 HTTPS 服务已启用，域名尚未切换。SSH 私钥由用户自行保管，不进入聊天或仓库。
@@ -12,7 +14,7 @@
 - 购买或基础系统准备完成**不代表应用可发布**；HTTPS、异地加密备份、安全审查和业务验收仍需完成。
 - 隔离预览的可复现操作见 [STAGING_PREVIEW.md](STAGING_PREVIEW.md)；其运行在 127.0.0.1，不是公网发布。
 
-## 目标服务器最新核对（2026-10-17）
+## 历史快照：切换前核对（2026-10-17）
 
 - 应用服务与 PostgreSQL 均在运行，只监听服务器回环地址；隔离预览开关仍存在。Caddy 已从 Ubuntu 安全更新仓库安装，仓库中的正式域名代理配置在目标机通过语法校验，但服务保持停止且禁用。域名在服务器查询时仍解析到旧站 `106.54.124.168`，未切换到新服务器；Caddy 自动证书要求域名指向新机且公网 80/443 可达，不能把配置校验当作 HTTPS 验收。
 - 用户已完成管理员 MFA、测试用户注册/审批/License 与 SMTP 实际收件验证。更新后的应用启动门槛已在隔离预览服务生效：健康检查 200，未登录目录接口 401，账号页发送 `Cache-Control: no-store`。
@@ -27,7 +29,7 @@
 - 初期公网试点建议腾讯云轻量应用服务器 **4 vCPU、8 GB 内存、至少 120 GB SSD、x86_64、Ubuntu Server 24.04 LTS**。这是为应用、数据库、反向代理、备份及更新保留余量的工程建议，不是用户数或吞吐量实测保证。腾讯云[产品页列有 4 核 8 GB 套餐](https://cloud.tencent.com/product/lighthouse)；具体磁盘、带宽、价格和可选镜像以购买时所选地域页面为准。Ubuntu 24.04 LTS 的标准安全维护期至 [2029 年 5 月](https://documentation.ubuntu.com/release-notes/24.04/)。
 - 用户选择中国内地地域，并确认 `surfacedmp.com` 已完成备案；备案号、备案主体、腾讯云接入状态、经营性/非经营性类型以及备案网站名称/服务内容是否与新项目一致，仍需在控制台核对。同一腾讯云接入商换到另一腾讯云 IP，非经营性备案通常[不强制重新备案](https://cloud.tencent.com/document/product/243/19617)；如备案服务信息改变，按腾讯云[变更服务指引](https://cloud.tencent.com/document/product/243/19145)办理。若实际需办理接入或变更，重新核对新资源的购买时长要求。
 - 最低成本可以先按月开通新机作**非公开技术验收**，但不要仅凭“域名以前备案过”判断 1 个月套餐足以正式切换；腾讯云在办理备案时对轻量服务器要求[累计购买至少 3 个月且备案期间剩余至少 1 个月](https://cloud.tencent.com/document/product/243/18908)。购买前先核对优惠资格、续费价与是否需要备案手续。
-- 新机分配独立公网 IP；只在预发布验收、HTTPS 和正式批准后变更 `surfacedmp.com` 与 `www.surfacedmp.com` 的 DNS。用户已授权将 `www` 一起切至新机并永久跳转到 HTTPS 根域名；Caddy 配置包含该跳转，但 DNS 尚未切换、新机证书尚未签发。不要修改 `yiheit.net` 的 DNS、证书或旧机反向代理。
+- 新机分配独立公网 IP；2026-10-18 经受限试点批准后，`surfacedmp.com` 与 `www.surfacedmp.com` 已一起切换，`www` 跳转到 HTTPS 根域名。不要修改 `yiheit.net` 的 DNS、证书或旧机反向代理。
 
 ## 启动前自动门槛
 
@@ -55,9 +57,9 @@ CAPABILITY_MFA_MASTER_KEY=<由密钥管理系统注入>
 
 公网模式已对注册、登录、邮箱验证与重发、密码重置、管理员 MFA 设置请求增加单进程来源地址限流，并保留登录账号级锁定和邮件重发间隔。只信任来自回环反向代理的转发地址；这一实现适用于当前单个 Uvicorn worker，**不是多实例共享限流，也不能替代边缘防护和独立安全评估**。扩容到多 worker/服务器前，须接入共享状态或边缘限流并重新测试。
 
-新机使用 `deploy/capability-advisor.service` 将应用限制在 `127.0.0.1:8011`，`deploy/Caddyfile` 是待 DNS/证书就绪后启用的 HTTPS 反向代理模板。服务所需 `/etc/capability-advisor.env` 由服务器管理员以仅 root 可读的权限建立；密钥和邮箱授权码不进入仓库。启用前必须在新机本地逐项检查服务、数据库、SMTP 投递、HTTPS 证书、备份恢复和登录/License 流程。不要因为配置文件已复制就提前启动公网监听。
+新机使用 `deploy/capability-advisor.service` 将应用限制在 `127.0.0.1:8011`；`deploy/Caddyfile` 已在 DNS 切换后用于 HTTPS 代理和证书自动续期。服务所需 `/etc/capability-advisor.env` 由服务器管理员以仅 root 可读的权限建立；密钥和邮箱授权码不进入仓库。继续定期复核服务、数据库、SMTP 投递、HTTPS 证书、备份恢复和登录/License 流程。
 
-若需在 DNS 切换前通过 SSH 本地端口转发验收真实公网模式账号，可临时安装 `deploy/loopback-preview.conf`。此开关仅接受服务器本机回环来源且 `Host` 为 `127.0.0.1:8011` 或 `localhost:8011`，应用仍只监听 `127.0.0.1:8011`。**正式 DNS/HTTPS 切换前必须删除该 override 并重启服务**；不可将 8011 放入云防火墙公网规则。管理员首次登录后应立刻启用 TOTP MFA；密钥、动态码和密码不得截图或发到聊天。
+切换前曾通过 SSH 本地端口转发和临时 `deploy/loopback-preview.conf` 验收账号。正式切换时该 override 已停用；不可将 8011 放入云防火墙公网规则，也不得在公网部署中重新启用预览 Host。管理员 TOTP MFA 已启用；密钥、动态码和密码不得截图或发到聊天。
 
 ## 正式发布前人工与目标环境验收
 
