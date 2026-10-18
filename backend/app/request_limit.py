@@ -17,6 +17,8 @@ AUTH_LIMITS = {
     "/api/auth/verify-email/resend": (20, 3600),
     "/api/auth/password-reset/request": (20, 3600),
     "/api/auth/password-reset/confirm": (20, 900),
+    "/api/admin/mfa/enroll": (10, 900),
+    "/api/admin/mfa/confirm": (10, 900),
 }
 
 

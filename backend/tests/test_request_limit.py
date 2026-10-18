@@ -19,6 +19,13 @@ def test_only_loopback_proxy_can_supply_forwarded_address():
     assert source_address("127.0.0.1", "203.0.113.9, 127.0.0.1") == "203.0.113.9"
 
 
+def test_mfa_enrollment_and_confirmation_have_brute_force_limits():
+    limiter = RequestLimiter()
+    for path in ("/api/admin/mfa/enroll", "/api/admin/mfa/confirm"):
+        assert all(limiter.check("203.0.113.4", path, 100.0) == 0 for _ in range(10))
+        assert limiter.check("203.0.113.4", path, 100.0) > 0
+
+
 def test_public_middleware_limits_auth_posts_only(monkeypatch):
     monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "public")
     monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "https://advisor.example.invalid")
