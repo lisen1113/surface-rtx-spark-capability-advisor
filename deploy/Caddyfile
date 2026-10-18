@@ -8,3 +8,7 @@ surfacedmp.com {
         Strict-Transport-Security "max-age=31536000"
     }
 }
+
+www.surfacedmp.com {
+    redir https://surfacedmp.com{uri} permanent
+}
