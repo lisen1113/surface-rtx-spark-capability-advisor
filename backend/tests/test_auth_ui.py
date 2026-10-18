@@ -13,6 +13,9 @@ def test_account_page_has_login_and_registration():
  assert '登录' in html and '注册' in html and '至少 12 位' in html
  assert '重置密码' in html and '/api/auth/password-reset/request' in html and '/api/auth/password-reset/confirm' in html
  assert '管理员动态验证码' in html and 'mfa_code' in html
+ assert 'id="advisorlink" hidden' in html
+ assert '进入能力顾问（请在当前标签页打开）' in html
+ assert "$('#advisorlink').hidden=!r.ok" in html
  assert '沪ICP备17029250号-4' in html and 'https://beian.miit.gov.cn/' in html
 
 def test_admin_page_has_approval_license_and_audit():
