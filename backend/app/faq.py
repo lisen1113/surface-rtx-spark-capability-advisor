@@ -223,6 +223,20 @@ for category, question, easy, expert, misconception, sales_tip, url in ANNOUNCEM
                 "source_url": url, "review_status": "official_2026_10_07",
                 "sku_relevance": "Surface Laptop Ultra / RTX Spark", "framework_relevance": []})
 
+# Keep terminology and version boundaries visible in the searchable training FAQ.
+AGENT_TOOL_FAQ = [
+    ("AI基础知识", "MCP、CLI 与 NVIDIA Skills 是同一种东西吗？", "不是。MCP 提供代理调用工具的接口，CLI 是命令行入口，Skills 是教代理如何执行一套工作流的指引。", "NVIDIA 公告介绍应用 MCP 与 CUDA-X Skills；是否能连接取决于目标应用、MCP 服务、代理客户端、权限和版本。安装 Skill 不会自动安装或授权 MCP。", "看到 Skills 库不能说所有 NVIDIA 应用已自动接入代理。", "用一个只读、脱敏任务演示工具连接，并展示权限与调用记录。", "https://blogs.nvidia.com/blog/local-ai-rtx-spark-laptops-software-updates/"),
+    ("本地AI部署", "RTX Spark 用户从哪本 NVIDIA 战术手册开始？", "首次体验先看首个 Agent 手册；办公、创作、开发和多机路由再按实际任务选择。", "NVIDIA 的 RTX Spark 页面分别链接首个 Agent、生产力、创作、开发、本地推理和 PAIR 手册。先用非敏感样本做单机基线，再决定是否连接工作应用或第二台设备。", "官方手册的示例模型、时间和命令不等于每个 SKU 的实测结果。", "推荐客户先完成一次问答，再选择与本职工作相关的一个场景。", "https://build.nvidia.com/rtx-spark"),
+    ("安全与隐私", "给 Agent 连接邮件和 Windows 应用时应授予什么权限？", "从只读或草稿权限开始，发送、删除、购买、发布等操作保留人工确认。", "NVIDIA 首个 Agent 和生产力手册建议优先使用应用提供的连接器/插件，并核对权限；MCP 可能需要额外配置。还应验证沙箱、调用日志、凭据保护与撤权。", "连接成功不代表所有调用都在本地，或客户资料不会出域。", "先拿脱敏样本测试只读访问与拒绝写入，再逐步放权。", "https://build.nvidia.com/rtx-spark/start-with-agent"),
+    ("本地AI部署", "NVIDIA PAIR 能把两台设备的统一内存合并来运行大模型吗？", "不能。PAIR 把独立请求路由给能处理它的某一台设备。", "NVIDIA PAIR 1.0.0 手册列出 RTX Spark 的 Windows ARM64 包和 llama.cpp、Ollama、LM Studio 引擎；每个服务节点仍须独立满足模型权重、上下文和运行时内存要求。", "多机配对不等于显存池化、模型切分或单次推理加速。", "单机验证后再在受信任局域网配对，记录每次请求实际由哪台节点处理。", "https://build.nvidia.com/rtx-spark/pair"),
+]
+for category, question, easy, expert, misconception, sales_tip, url in AGENT_TOOL_FAQ:
+    FAQ.append({"id": f"FAQ-{len(FAQ)+1:03d}", "category": category, "question": question,
+                "easy_answer": easy, "expert_answer": expert, "misconception": misconception,
+                "sales_tip": sales_tip, "keywords": [question, category, "MCP", "RTX Spark"],
+                "source_url": url, "review_status": "official_2026_10_18",
+                "sku_relevance": "RTX Spark；具体料号待验证", "framework_relevance": []})
+
 
 @router.get("")
 def search_faq(q: str | None = None, category: str | None = None, limit: int = Query(default=20, ge=1, le=250)):
@@ -232,7 +246,7 @@ def search_faq(q: str | None = None, category: str | None = None, limit: int = Q
     if q:
         needle = q.casefold()
         items = [x for x in items if needle in (x["question"] + x["easy_answer"] + x["expert_answer"] + x["misconception"] + " ".join(x["keywords"])).casefold()]
-    return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100 + len(ANNOUNCEMENT_FAQ), "categories": sorted(CONCEPTS)}
+    return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100 + len(ANNOUNCEMENT_FAQ) + len(AGENT_TOOL_FAQ), "categories": sorted(CONCEPTS)}
 
 
 @router.get("/{faq_id}")

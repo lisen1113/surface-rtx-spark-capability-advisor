@@ -2,6 +2,7 @@
 
 NVIDIA_UPDATE = "https://blogs.nvidia.com/blog/local-ai-rtx-spark-laptops-software-updates/"
 NVIDIA_PAIR = "https://github.com/NVIDIA/Personal-AI-Router"
+NVIDIA_PLAYBOOKS = "https://build.nvidia.com/rtx-spark"
 
 
 def agent_guidance(part_number: str, memory_gb: int) -> list[dict]:
@@ -19,13 +20,33 @@ def agent_guidance(part_number: str, memory_gb: int) -> list[dict]:
         },
         {
             "推荐模型/工作负载名称": "NVIDIA PAIR 多设备本地推理路由",
-            "官方能力/平台声明": "PAIR 官方项目支持在局域网节点间按请求路由，列出 Ollama、LM Studio、llama.cpp；Windows ARM64 当前标为实验支持。",
+            "官方能力/平台声明": "NVIDIA PAIR 1.0.0 战术手册列出 RTX Spark 的 Windows ARM64 安装包，以及 llama.cpp、Ollama、LM Studio 引擎；在受信任局域网内按独立请求路由。",
             "本地运行判断": "官方工具能力；本 SKU/网络组合待验证",
             "经验推荐与我的判断": context + "先在单机建立基线，再用第二节点测试发现、配对、模型版本与路由日志；逐节点确认引擎、模型许可、网络访问控制和数据去向。",
             "性能指标": "未知（无本 Part Number 多节点吞吐实测）",
             "证据等级": "NVIDIA 官方项目说明 + 工程验证要求",
-            "官方来源URL": NVIDIA_PAIR,
+            "官方来源URL": "https://build.nvidia.com/rtx-spark/pair",
             "依据与限制": "PAIR 不合并 GPU/统一内存，也不把同一请求拆到多机；路由能力不证明每个节点的模型都能运行。",
+        },
+        {
+            "推荐模型/工作负载名称": "AI Agent 连接 Windows 应用：MCP、CLI 与 CUDA-X Skills",
+            "官方能力/平台声明": "NVIDIA 2026-10-13 公告介绍 NVIDIA App、Broadcast、PAIR、Omniverse、RTX Remix 的 MCP 连接，以及 NVIDIA Skills 库；具体连接器须按应用版本核实。",
+            "本地运行判断": "生态入口；本 SKU 的应用、MCP 服务及代理组合未实测",
+            "经验推荐与我的判断": context + "先选一个只读、非敏感任务；确认代理客户端与目标应用版本、MCP/CLI 安装来源和权限，再演示读取或生成草稿。Skills 是代理工作流程，不等于 MCP 服务，也不意味着自动取得应用权限。",
+            "性能指标": "未知（无本 Part Number Agent 任务实测）",
+            "证据等级": "NVIDIA 官方生态公告 + 工程验收建议",
+            "官方来源URL": NVIDIA_UPDATE,
+            "依据与限制": "连接能力取决于实际应用和客户端版本；不要让代理默认获得邮件发送、文件删除或系统设置更改权限。",
+        },
+        {
+            "推荐模型/工作负载名称": "RTX Spark 官方 AI 战术手册：首个 Agent / 创作 / 开发",
+            "官方能力/平台声明": "NVIDIA 提供分场景的入门、生产力、创作、开发、推理与 PAIR 战术手册。",
+            "本地运行判断": "官方操作指南；本 SKU 的安装成功率和速度待验证",
+            "经验推荐与我的判断": context + "非技术用户先完成首个 Agent 与一个只读任务；开发者再按官方推理与开发手册核对 ARM64、模型许可、后端和驱动。详细步骤见本产品的模型部署页。",
+            "性能指标": "未知（无本 Part Number 工作流实测）",
+            "证据等级": "NVIDIA 官方战术手册 + 本站工程引导",
+            "官方来源URL": NVIDIA_PLAYBOOKS,
+            "依据与限制": "手册中的示例模型、时间和命令不是所有 SKU 的兼容性或性能保证；下载前检查来源和权限。",
         },
         {
             "推荐模型/工作负载名称": "本地 Agent、沙箱与本地/云端混合路由",

@@ -23,6 +23,8 @@ def test_advisor_combines_direct_and_recommendation_records():
         assert body["ai_recommendations"][0]["推荐定位"] == "高阶"
         assert any("74B-A9B" in item["推荐模型/工作负载名称"] for item in body["ai_official_updates"])
         assert any("不合并" in item["依据与限制"] for item in body["ai_official_updates"])
+        assert any("MCP、CLI" in item["推荐模型/工作负载名称"] for item in body["ai_official_updates"])
+        assert any("PAIR 1.0.0" in item["官方能力/平台声明"] for item in body["ai_official_updates"])
         assert all(item["性能指标"].startswith("未知") for item in body["ai_official_updates"])
         assert all(item["性能指标"].startswith("未知") for item in body["gaming_official_updates"])
         assert len(body["generation"]) >= 10
@@ -45,3 +47,5 @@ def test_home_page_exposes_all_advisor_modules():
     html = client.get("/").text
     for label in ("Surface Laptop Ultra 能力映射", "AI 模型", "游戏", "生成式 AI", "生产力", "AI FAQ", "TCO 成本", "证据与限制"):
         assert label in html
+    assert "RTX Spark AI 快速体验" in html
+    assert "aiStarter(s)+cards(data.ai)" in html

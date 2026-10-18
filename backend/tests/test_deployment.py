@@ -20,10 +20,15 @@ def test_deployment_guide_is_reachable_and_evidence_bounded():
     assert "@media print" in page
     assert "Surface-Laptop-Ultra-Deployment-" in page
     assert "建议 PDF 文件名" in page
-    assert "PAIR 官方项目将 Windows ARM64 标为实验支持" in page
+    assert "PAIR 1.0.0 手册已列出 RTX Spark Windows ARM64 安装包" in page
     assert "不聚合显存" in page
     assert "24GB 指特定 2-bit 量化权重" in page
     assert '沪ICP备17029250号-4' in page
+    for source in ("/rtx-spark/start-with-agent", "/rtx-spark/agents-for-productivity",
+                   "/rtx-spark/agents-for-creators", "/rtx-spark/setting-up-your-dev-environment",
+                   "/rtx-spark/running-llamacpp", "/rtx-spark/pair"):
+        assert source in page
+    assert "Skills 是教代理如何执行一套工作流的指引" in page
 
 
 def test_home_exposes_deployment_tab():

@@ -51,3 +51,8 @@ def test_faq_category_changes_load_results_without_search_click():
  page=client.get('/').text
  assert 'id="faqcategory" onchange="searchFaq()"' in page
  assert "(c?250:20)" in page
+
+def test_agent_tools_and_playbooks_are_searchable_with_sources():
+ for term in ('MCP、CLI', 'NVIDIA 战术手册', 'PAIR 能把两台设备'):
+  items=client.get('/api/faq',params={'q':term,'limit':250}).json()['items']
+  assert any(term in item['question'] and item['source_url'].startswith('https://') for item in items)
