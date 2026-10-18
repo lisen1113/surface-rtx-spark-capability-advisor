@@ -3,6 +3,11 @@ from app.main import app
 
 client=TestClient(app)
 
+def test_legacy_login_bookmark_redirects_to_account():
+ response=client.get('/login.html', follow_redirects=False)
+ assert response.status_code == 302
+ assert response.headers['location'] == '/account'
+
 def test_account_page_has_login_and_registration():
  html=client.get('/account').text
  assert '登录' in html and '注册' in html and '至少 12 位' in html

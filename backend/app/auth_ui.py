@@ -1,6 +1,6 @@
 """Chinese account and administrator screens for the local application."""
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 router = APIRouter()
 STYLE = """body{font:15px/1.55 system-ui,'Microsoft YaHei';background:#f7f8fa;color:#101828;margin:0}.wrap{max-width:920px;margin:40px auto;padding:20px}.panel{background:white;border:1px solid #e4e7ec;border-radius:14px;padding:22px;margin:14px 0}label{display:block;font-weight:650;margin:10px 0}input{display:block;width:100%;padding:10px;border:1px solid #98a2b3;border-radius:8px}button{padding:10px 16px;background:#175cd3;color:white;border:0;border-radius:8px;cursor:pointer;margin:5px}.muted{color:#667085}.ok{color:#067647}.err{color:#b42318}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d0d5dd;padding:7px;text-align:left}th{background:#eaf1fb}a{color:#175cd3}pre{white-space:pre-wrap}"""
@@ -8,6 +8,12 @@ STYLE = """body{font:15px/1.55 system-ui,'Microsoft YaHei';background:#f7f8fa;co
 
 def page(title: str, body: str, script: str) -> str:
     return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>{STYLE}</style></head><body><main class="wrap">{body}<footer class="muted">© 2026 上海以和信息技术有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">沪ICP备17029250号-4</a></footer></main><script>{script}</script></body></html>'''
+
+
+@router.get("/login.html", include_in_schema=False)
+def legacy_login_page():
+    """Keep old-site login bookmarks usable after the domain cutover."""
+    return RedirectResponse("/account", status_code=302)
 
 
 @router.get("/account", response_class=HTMLResponse)
