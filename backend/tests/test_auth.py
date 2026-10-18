@@ -27,8 +27,13 @@ def test_registration_approval_license_and_login_flow():
     assert registered.status_code == 201
     with connection() as conn:
         user = dict(conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone())
-    assert client.post("/api/auth/login", json={"email":email,"password":"Strong-password-123"}).status_code == 403
     headers={"Authorization":f"Bearer {admin_token}"}
+    listed = client.get("/api/admin/users", headers=headers)
+    assert listed.status_code == 200
+    listed_user = next(item for item in listed.json()["items"] if item["id"] == user["id"])
+    assert listed_user["organization_id"] == user["organization_id"]
+    assert listed_user["organization_name"] == "测试企业"
+    assert client.post("/api/auth/login", json={"email":email,"password":"Strong-password-123"}).status_code == 403
     assert client.post(f"/api/admin/users/{user['id']}/verify-email", headers=headers).status_code == 200
     assert client.post(f"/api/admin/users/{user['id']}/approve", headers=headers).status_code == 200
     assert client.post("/api/auth/login", json={"email":email,"password":"Strong-password-123"}).status_code == 403

@@ -507,12 +507,14 @@ def set_license(data: LicenseInput, admin=Depends(require_admin)):
 @router.get("/admin/users")
 def list_users(status: str | None = None, admin=Depends(require_admin)):
     with connection() as conn:
-        sql = "SELECT id,organization_id,email,role,status,email_verified,created_at,approved_at FROM users"
+        sql = ("SELECT u.id,u.organization_id,o.name AS organization_name,u.email,u.role,"
+               "u.status,u.email_verified,u.created_at,u.approved_at "
+               "FROM users u LEFT JOIN organizations o ON o.id=u.organization_id")
         params = ()
         if status:
-            sql += " WHERE status=?"
+            sql += " WHERE u.status=?"
             params = (status,)
-        items = [dict(row) for row in conn.execute(sql + " ORDER BY created_at DESC", params)]
+        items = [dict(row) for row in conn.execute(sql + " ORDER BY u.created_at DESC", params)]
     return {"items": items}
 
 
