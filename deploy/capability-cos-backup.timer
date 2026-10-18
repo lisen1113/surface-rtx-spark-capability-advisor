@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Capability Advisor encrypted COS backup
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=15m
+Unit=capability-cos-backup.service
+
+[Install]
+WantedBy=timers.target
