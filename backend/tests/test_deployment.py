@@ -28,7 +28,7 @@ def test_deployment_guide_is_reachable_and_evidence_bounded():
                    "/rtx-spark/agents-for-creators", "/rtx-spark/setting-up-your-dev-environment",
                    "/rtx-spark/running-llamacpp", "/rtx-spark/pair"):
         assert source in page
-    assert "Skills 是教代理如何执行一套工作流的指引" in page
+    assert "Skills 是教代理完成工作流的指引" in page
 
 
 def test_home_exposes_deployment_tab():
