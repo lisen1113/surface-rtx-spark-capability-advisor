@@ -47,7 +47,8 @@ def test_sku_guidance_changes_with_memory_storage_and_platform():
     assert [t["size_label"] for t in middle["trials"]] == ["14B Q4", "32B Q4"]
     assert [t["size_label"] for t in large["trials"]] == ["70B Q4", "120B Q4"]
     assert "0.5TB" in small["storage_note"] and "2TB" in large["storage_note"]
-    assert small["platform_note"] != middle["platform_note"]
+    assert small["platform_label"] != middle["platform_label"]
+    assert "S2" not in small["platform_note"] and "S3" not in middle["platform_note"]
     assert all(t["compatible"] == "unknown" and t["usable"] == "unknown"
                for plan in (small, middle, large) for t in plan["trials"])
     assert large["evidence_level"] == "engineering_estimate"

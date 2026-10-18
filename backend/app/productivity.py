@@ -1,5 +1,6 @@
 """Evidence-separated Windows 11 Pro productivity guidance by Surface SKU."""
 from __future__ import annotations
+from .platform_display import platform_label
 
 MICROSOFT_STORE = "https://www.microsoft.com/en-us/d/surface-laptop-ultra-for-business/8wg5vqp0x4d1/"
 MICROSOFT_DEVICE = "https://www.microsoft.com/en-us/surface/devices/surface-laptop-ultra"
@@ -41,7 +42,7 @@ def _record(name: str, official: str, judgment: str, source: str, *, status="需
 
 def productivity_guidance(part_number: str, memory_gb: int, platform_code: str) -> list[dict]:
     tier, guidance = _tier(memory_gb)
-    context = f"{part_number}｜{platform_code}｜{memory_gb}GB｜Windows 11 Pro｜{tier}。{guidance}"
+    context = f"{part_number}｜{platform_label(platform_code)}｜{memory_gb}GB｜Windows 11 Pro｜{tier}。{guidance}"
     return [
         _record(
             "Microsoft 365、Teams、浏览器与日常商务多任务",

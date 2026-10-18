@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from .capability import estimate_capacity
 from .catalog import connection
 from .auth import require_entitled_user
+from .platform_display import platform_label
 
 router = APIRouter()
 
@@ -39,12 +40,11 @@ def sku_deployment_plan(sku: dict) -> dict:
         storage_note = "2TB 配置：可分开存放已批准模型、RAG 索引与测试日志，但仍应设置配额、加密和定期清理，不把容量当作数据授权。"
     else:
         storage_note = "1TB 配置：为模型权重、嵌入索引、临时文件和系统更新分别留余量；先确认实际可用空间，再规划多个模型版本。"
-    platform_note = ("S2 与 S3 的 GPU/CPU 映射来自导入资料，尚需按设备与微软/NVIDIA 官方资料核验；"
-                     "本指南不把核心数转换成 Token/s。" if sku["platform_code"] == "S2" else
-                     "S3 也必须核对实际驱动、Windows ARM64 运行时和 GPU 后端；"
-                     "不能把平台级声明或 S2/S3 核心数换算成 Token/s。")
+    platform_note = ("CPU/GPU 核心数映射来自项目提供的配置资料，尚需按具体料号与实机核验；"
+                     "核对驱动、Windows ARM64 运行时和 GPU 后端，不能把核心数换算成 Token/s。")
     return {
         "part_number": sku["part_number"], "platform_code": sku["platform_code"],
+        "platform_label": platform_label(sku["platform_code"]),
         "memory_gb": memory, "storage_tb": storage, "cpu_model": sku["cpu_model"],
         "gpu_model": sku["gpu_model"], "operating_system": sku["operating_system"],
         "evidence_level": "engineering_estimate", "source_reference": sku["source_reference"],
@@ -89,6 +89,6 @@ printButton.addEventListener('click',()=>{document.title=reportTitle();window.pr
 window.addEventListener('afterprint',()=>{document.title=originalTitle});
 document.querySelector('main section').after(plan.parentElement);
 function element(tag,value){let n=document.createElement(tag);n.textContent=value;return n}
-function renderPlan(d){plan.replaceChildren();plan.append(element('p',`${d.part_number} · ${d.platform_code} · ${d.memory_gb}GB / ${d.storage_tb}TB。以下为工程试验顺序，不是官方认证或实测结果。`));plan.append(element('p',d.first_step));let table=document.createElement('table'),head=document.createElement('tr');for(let x of ['试验级别','估算所需内存','容量筛选','下一步'])head.append(element('th',x));table.append(head);for(let t of d.trials){let row=document.createElement('tr');for(let x of [t.size_label,`${t.required_gb} GB`,t.fit==='fits'?'估算可容纳':'估算超出容量','核对许可证与格式 → 加载 → 查 GPU 后端 → 跑客户任务'])row.append(element('td',x));table.append(row)}plan.append(table);let a=d.assumptions;plan.append(element('p',`计算假设：Q${a.bits_per_weight}、系统预留 ${a.os_reserve_gb}GB、运行时预留 ${a.runtime_reserve_gb}GB、KV Cache ${a.kv_cache_gb}GB、量化开销 10%、单用户、首轮上下文 2048 token。改变上下文或并发时必须重算。`));plan.append(element('p',d.storage_note));plan.append(element('p',d.platform_note));let warning=element('p',d.capacity_boundary);warning.className='note';plan.append(warning)}
-async function show(){printButton.disabled=true;fileHint.textContent='';try{let r=await fetch('/api/deployment/sku/'+encodeURIComponent(sku.value)),d=await r.json();if(!r.ok)throw Error('配置读取失败');out.textContent=`当前配置：${d.part_number} · ${d.platform_code} · 统一内存 ${d.memory_gb} GB · ${d.storage_tb} TB · ${d.operating_system}。具体模型、后端与速度均需按本页验收。`;renderPlan(d);printButton.disabled=false;fileHint.textContent='建议 PDF 文件名：'+reportTitle()+'.pdf'}catch(e){out.textContent=e.message;plan.textContent='暂不能生成该料号的试验路线'}}
+function renderPlan(d){plan.replaceChildren();plan.append(element('p',`${d.part_number} · ${d.platform_label} · ${d.memory_gb}GB / ${d.storage_tb}TB。以下为工程试验顺序，不是官方认证或实测结果。`));plan.append(element('p',d.first_step));let table=document.createElement('table'),head=document.createElement('tr');for(let x of ['试验级别','估算所需内存','容量筛选','下一步'])head.append(element('th',x));table.append(head);for(let t of d.trials){let row=document.createElement('tr');for(let x of [t.size_label,`${t.required_gb} GB`,t.fit==='fits'?'估算可容纳':'估算超出容量','核对许可证与格式 → 加载 → 查 GPU 后端 → 跑客户任务'])row.append(element('td',x));table.append(row)}plan.append(table);let a=d.assumptions;plan.append(element('p',`计算假设：Q${a.bits_per_weight}、系统预留 ${a.os_reserve_gb}GB、运行时预留 ${a.runtime_reserve_gb}GB、KV Cache ${a.kv_cache_gb}GB、量化开销 10%、单用户、首轮上下文 2048 token。改变上下文或并发时必须重算。`));plan.append(element('p',d.storage_note));plan.append(element('p',d.platform_note));let warning=element('p',d.capacity_boundary);warning.className='note';plan.append(warning)}
+async function show(){printButton.disabled=true;fileHint.textContent='';try{let r=await fetch('/api/deployment/sku/'+encodeURIComponent(sku.value)),d=await r.json();if(!r.ok)throw Error('配置读取失败');out.textContent=`当前配置：${d.part_number} · ${d.platform_label} · 统一内存 ${d.memory_gb} GB · ${d.storage_tb} TB · ${d.operating_system}。具体模型、后端与速度均需按本页验收。`;renderPlan(d);printButton.disabled=false;fileHint.textContent='建议 PDF 文件名：'+reportTitle()+'.pdf'}catch(e){out.textContent=e.message;plan.textContent='暂不能生成该料号的试验路线'}}
 async function init(){try{let r=await fetch('/api/catalog/imported-skus');if(r.status===401||r.status===403){out.textContent='请先在账号页登录并确认 License 有效，再查看部署指南。';return}let d=await r.json();if(!r.ok)throw Error(d.detail||'请求失败');sku.replaceChildren();for(let s of d.items)sku.add(new Option(`${s.part_number} · ${s.memory_gb}GB / ${s.storage_tb}TB`,s.part_number));let requested=new URLSearchParams(location.search).get('sku');if(requested&&d.items.some(s=>s.part_number===requested))sku.value=requested;if(d.items.length)show();else out.textContent='尚无已导入 SKU，请先完成授权数据导入。'}catch(e){out.textContent='无法读取产品数据：'+e.message}}sku.addEventListener('change',show);init();</script></body></html>'''

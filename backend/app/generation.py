@@ -1,5 +1,6 @@
 """Evidence-separated Windows 11 creative/generative capability guidance."""
 from __future__ import annotations
+from .platform_display import platform_label
 
 NVIDIA_PRODUCT = "https://www.nvidia.com/en-us/products/rtx-spark/"
 NVIDIA_COMFY = "https://blogs.nvidia.com/blog/rtx-ai-garage-flux-ltx-video-comfyui-gdc/"
@@ -37,7 +38,7 @@ def _record(name: str, official: str, judgment: str, source: str, *, status="需
 
 def generation_guidance(part_number: str, memory_gb: int, platform_code: str) -> list[dict]:
     tier, tier_guidance = _tier(memory_gb)
-    context = f"{part_number}｜{platform_code}｜{memory_gb}GB 统一内存｜Windows 11 Pro｜{tier}。{tier_guidance}"
+    context = f"{part_number}｜{platform_label(platform_code)}｜{memory_gb}GB 统一内存｜Windows 11 Pro｜{tier}。{tier_guidance}"
     return [
         _record(
             "ComfyUI 图像生成（FLUX.2 Klein / NVFP4）",

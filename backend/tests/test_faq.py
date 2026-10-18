@@ -19,7 +19,7 @@ def test_faq_search_and_category_filter():
  assert all(x['category']=='模型架构' for x in body['items'])
 
 def test_faq_covers_customer_training_examples_without_context_clones():
- for term in ('MoE','统一内存','Bit','KV Cache','S2平台','CUDA','Prism模拟'):
+ for term in ('MoE','统一内存','Bit','KV Cache','N1X 18 核 CPU','CUDA','Prism模拟'):
   body=client.get('/api/faq',params={'q':term,'limit':20}).json()
   assert body['total']>=2, term
  assert all('个人日常使用：' not in x['question'] for x in client.get('/api/faq?limit=200').json()['items'])

@@ -20,6 +20,7 @@ from .catalog import source_sheet
 from .generation import generation_guidance
 from .productivity import productivity_guidance
 from .spark_updates import agent_guidance, gaming_updates
+from .platform_display import platform_label, public_configuration
 
 
 _font_candidates = (
@@ -70,7 +71,9 @@ def build_customer_pdf(sku: dict) -> bytes:
         ("数据状态", "data_status"), ("配置来源", "source_reference"),
     )
     for label, key in fields:
-        content.append(Paragraph(f"<b>{escape(label)}：</b>{escape(_text(sku.get(key)))}", styles["body"]))
+        value = (platform_label(sku.get(key)) if key == "platform_code" else
+                 public_configuration(sku.get(key)) if key == "raw_configuration" else _text(sku.get(key)))
+        content.append(Paragraph(f"<b>{escape(label)}：</b>{escape(value)}", styles["body"]))
 
     direct = lambda sheet: [row for row in source_sheet(sheet) if row.get("Part Number") == part_number]
     groups = (
