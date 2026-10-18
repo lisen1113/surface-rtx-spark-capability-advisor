@@ -7,7 +7,7 @@ STYLE = """body{font:15px/1.55 system-ui,'Microsoft YaHei';background:#f7f8fa;co
 
 
 def page(title: str, body: str, script: str) -> str:
-    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>{STYLE}</style></head><body><main class="wrap">{body}</main><script>{script}</script></body></html>'''
+    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>{STYLE}</style></head><body><main class="wrap">{body}<footer class="muted">© 2026 上海以和信息技术有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">沪ICP备17029250号-4</a></footer></main><script>{script}</script></body></html>'''
 
 
 @router.get("/account", response_class=HTMLResponse)

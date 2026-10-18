@@ -23,6 +23,7 @@ def test_deployment_guide_is_reachable_and_evidence_bounded():
     assert "PAIR 官方项目将 Windows ARM64 标为实验支持" in page
     assert "不聚合显存" in page
     assert "24GB 指特定 2-bit 量化权重" in page
+    assert '沪ICP备17029250号-4' in page
 
 
 def test_home_exposes_deployment_tab():
@@ -30,6 +31,7 @@ def test_home_exposes_deployment_tab():
     assert response.status_code == 200
     assert 'data-tab="deployment"' in response.text
     assert "/deployment?sku=" in response.text
+    assert '沪ICP备17029250号-4' in response.text
 
 
 def test_sku_guidance_changes_with_memory_storage_and_platform():
