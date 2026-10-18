@@ -15,7 +15,9 @@ def test_account_page_has_login_and_registration():
  assert '管理员动态验证码' in html and 'mfa_code' in html
  assert 'id="advisorlink" hidden' in html
  assert '进入能力顾问（请在当前标签页打开）' in html
- assert "$('#advisorlink').hidden=!r.ok" in html
+ assert "user.role!=='admin'&&user.status==='approved'&&user.email_verified" in html
+ assert "window.location.assign('/')" in html
+ assert "$('#advisorlink').hidden=!user" in html
  assert '沪ICP备17029250号-4' in html and 'https://beian.miit.gov.cn/' in html
 
 def test_admin_page_has_approval_license_and_audit():
