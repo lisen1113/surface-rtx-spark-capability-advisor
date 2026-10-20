@@ -15,3 +15,5 @@ coverage/
 preview-*.log
 artifacts/
 .DS_Store
+miniprogram/project.config.json
+miniprogram/project.private.config.json
