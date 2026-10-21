@@ -1,6 +1,14 @@
 surfacedmp.com {
     encode gzip
-    reverse_proxy 127.0.0.1:8011
+    @wechat_verify path /58hu67VlEg.txt
+    handle @wechat_verify {
+        root * /var/www/wechat-verification
+        file_server
+        header Cache-Control "no-store"
+    }
+    handle {
+        reverse_proxy 127.0.0.1:8011
+    }
     header {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
