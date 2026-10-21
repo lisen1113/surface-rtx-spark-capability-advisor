@@ -9,6 +9,16 @@ permissions:
   contents: read
 
 jobs:
+  miniprogram-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check native PDF report flow
+        run: node scripts/test-miniprogram-report.cjs
+
   test:
     strategy:
       fail-fast: false
