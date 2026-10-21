@@ -1,0 +1,21 @@
+<view class="home">
+  <view class="hero">
+    <text class="eyebrow">上海以和信息技术有限公司</text>
+    <text class="title">欢迎来到以和</text>
+    <text class="description">选择您要访问的服务。公司官网面向公众；能力顾问仅供获授权的员工与内部代理商使用。</text>
+  </view>
+
+  <navigator class="entry" url="/pages/company/index" hover-class="entry-active">
+    <text class="entry-title">了解以和</text>
+    <text class="entry-description">浏览公司官网与公开信息</text>
+    <text class="entry-action">进入公司官网 →</text>
+  </navigator>
+
+  <navigator class="entry" url="/pages/advisor/index" hover-class="entry-active">
+    <text class="entry-title">Surface / RTX Spark 能力顾问</text>
+    <text class="entry-description">员工与内部代理商培训、选型和客户报告；需登录并通过授权</text>
+    <text class="entry-action">进入内部顾问 →</text>
+  </navigator>
+
+  <text class="footer">© 2026 上海以和信息技术有限公司</text>
+</view>

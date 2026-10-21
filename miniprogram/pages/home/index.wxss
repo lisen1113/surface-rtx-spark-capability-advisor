@@ -1,0 +1,11 @@
+.home { min-height: 100vh; padding: 64rpx 40rpx; box-sizing: border-box; background: #f5f7fb; color: #162033; }
+.hero { display: flex; flex-direction: column; gap: 24rpx; padding: 24rpx 8rpx 56rpx; }
+.eyebrow { color: #315ac4; font-size: 26rpx; font-weight: 600; }
+.title { font-size: 54rpx; font-weight: 700; line-height: 1.2; }
+.description { color: #536077; font-size: 30rpx; line-height: 1.6; }
+.entry { display: flex; flex-direction: column; gap: 16rpx; margin-bottom: 28rpx; padding: 42rpx 36rpx; border: 1rpx solid #dce3f0; border-radius: 28rpx; background: #fff; }
+.entry-active { background: #eaf0ff; }
+.entry-title { font-size: 36rpx; font-weight: 700; line-height: 1.4; }
+.entry-description { color: #536077; font-size: 27rpx; line-height: 1.5; }
+.entry-action { margin-top: 12rpx; color: #2555bf; font-size: 28rpx; font-weight: 600; }
+.footer { display: block; margin-top: 44rpx; color: #69758a; font-size: 23rpx; text-align: center; }

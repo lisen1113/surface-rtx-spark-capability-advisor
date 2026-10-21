@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Check native PDF report flow
         run: node scripts/test-miniprogram-report.cjs
+      - name: Check public and internal landing routes
+        run: node scripts/test-miniprogram-navigation.cjs
 
   test:
     strategy:
