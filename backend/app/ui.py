@@ -20,33 +20,44 @@ body>footer::before{width:165px;height:55px;margin:0 auto 12px}
 .tco-report-footer::before,.tco-report-footer strong{display:none!important}
 .spec-scroll{overflow-x:auto;margin:14px 0}.spec-table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.5}.spec-table th,.spec-table td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}.spec-table tbody th{background:#f9fafb;width:27%;min-width:110px}.spec-table td{overflow-wrap:anywhere}.spec-table tr:hover td{background:#fbfcff}
 @media print{.tco-brandmark{width:130px!important;height:48px!important}}
-</style><script>
+</style><script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script><script>
 const $=s=>document.querySelector(s);let data=null,tab='ai';const text=v=>(v===null||v===undefined||v==='')?'未知':String(v);const escapeHtml=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const metric=(k,v)=>`<div class="metric"><span class="status">${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`;
 const platformLabel=code=>({S2:'NVIDIA RTX Spark™ N1X（18 核 CPU / 5120 核 GPU）',S3:'NVIDIA RTX Spark™ N1X（20 核 CPU / 6144 核 GPU）'})[String(code||'').toUpperCase()]||text(code);
 const safeSourceUrl=value=>{try{const url=new URL(String(value).split(' ; ')[0].trim());return url.protocol==='https:'?url.href:null}catch{return null}};
 const fetch=(url,options={})=>{const token=sessionStorage.getItem('cap_token');return window.fetch(url,{...options,headers:{...(options.headers||{}),...(token?{Authorization:'Bearer '+token}:{})}})};
+const inWechat=/MicroMessenger/i.test(navigator.userAgent);
+async function inMiniProgram(){if(!inWechat||!window.wx||!wx.miniProgram)return false;if(window.__wxjs_environment==='miniprogram')return true;return new Promise(resolve=>wx.miniProgram.getEnv(result=>resolve(Boolean(result.miniprogram))))}
+function showInlineReport(html){let overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:1000;background:white;display:flex;flex-direction:column';let close=document.createElement('button');close.type='button';close.textContent='关闭报告，返回能力顾问';close.style.cssText='margin:8px;padding:12px';close.onclick=()=>overlay.remove();let frame=document.createElement('iframe');frame.title='客户能力报告';frame.style.cssText='border:0;flex:1;width:100%';overlay.append(close,frame);document.body.appendChild(overlay);frame.srcdoc=html}
 async function openCustomerReport(){
  if(!data)return;
- const reportWindow=window.open('','_blank');
- if(!reportWindow){alert('浏览器拦截了报告窗口，请允许本站打开新窗口。');return}
- reportWindow.document.title='正在生成客户报告';
+ const reportWindow=inWechat?null:window.open('','_blank');
+ if(!inWechat&&!reportWindow){alert('浏览器拦截了报告窗口，请允许本站打开新窗口。');return}
+ if(reportWindow)reportWindow.document.title='正在生成客户报告';
  try{
   const response=await fetch('/api/reports/'+encodeURIComponent(data.sku.part_number)+'.html');
   if(!response.ok)throw Error(response.status===401?'请先在账号页登录':response.status===403?'请确认组织 License 有效':'报告生成失败');
-  reportWindow.document.open();reportWindow.document.write(await response.text());reportWindow.document.close();
- }catch(error){reportWindow.document.body.textContent=error.message}
+  const html=await response.text();if(inWechat)showInlineReport(html);else{reportWindow.document.open();reportWindow.document.write(html);reportWindow.document.close()}
+ }catch(error){if(reportWindow)reportWindow.document.body.textContent=error.message;else $('#pdf-status').textContent=error.message}
 }
 async function downloadCustomerPdf(selectedPartNumber){
  if(!data)return;
  const partNumber=String(selectedPartNumber || data.sku.part_number);
  const status=$('#pdf-status');status.textContent='正在生成 PDF…';
  try{
+  if(inWechat){
+   if(!await inMiniProgram())throw Error('微信内请通过小程序打开后再预览 PDF');
+   const ticketResponse=await fetch('/api/reports/mobile-ticket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({part_number:partNumber})});
+   if(!ticketResponse.ok)throw Error('无法创建 PDF 预览授权，请重新登录后重试');
+   const ticket=(await ticketResponse.json()).ticket;
+   wx.miniProgram.navigateTo({url:'/pages/report/index?ticket='+encodeURIComponent(ticket),fail:()=>{status.textContent='无法打开小程序 PDF 预览，请检查版本及下载域名配置'}});
+   status.textContent='正在打开小程序 PDF 预览；请在预览页确认保存';return;
+  }
   const response=await fetch('/api/reports/'+encodeURIComponent(partNumber)+'.pdf');
   if(!response.ok)throw Error(response.status===401?'请先在账号页登录':response.status===403?'请确认组织 License 有效':'PDF 生成失败');
   const filename='Surface-Laptop-Ultra-Capability-'+partNumber.replace(/[^A-Za-z0-9_-]/g,'-')+'.pdf';
   const url=URL.createObjectURL(await response.blob());
   const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='PDF 已下载：'+filename;
+  setTimeout(()=>URL.revokeObjectURL(url),60000);status.textContent='已发起浏览器下载，请在下载记录确认：'+filename;
  }catch(error){status.textContent=error.message}
 }
 // The TCO tab retains its own print action; the duplicate selector-bar shortcut was removed.
@@ -73,6 +84,7 @@ document.querySelectorAll('input[name="usage"]').forEach(x=>x.addEventListener('
 let activeNeedReportHtml='',activeNeedReportName='';
 function openNeedReportPrintWindow(){
  if(!activeNeedReportHtml)return;
+ if(inWechat){$('#need-report-output').scrollIntoView({behavior:'smooth',block:'start'});return}
  const reportWindow=window.open('','_blank');
  if(!reportWindow){alert('浏览器拦截了报告窗口。请允许本站打开新窗口后重试。');return}
  reportWindow.document.open();reportWindow.document.write(activeNeedReportHtml);reportWindow.document.close();

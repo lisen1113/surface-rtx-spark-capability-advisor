@@ -21,6 +21,14 @@ CREATE TABLE IF NOT EXISTS sessions (
  token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id),
  created_at TEXT NOT NULL, expires_at TEXT NOT NULL, revoked_at TEXT
 );
+CREATE TABLE IF NOT EXISTS remember_sessions (
+ token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id),
+ created_at TEXT NOT NULL, expires_at TEXT NOT NULL, revoked_at TEXT
+);
+CREATE TABLE IF NOT EXISTS pdf_download_tickets (
+ token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id),
+ part_number TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT
+);
 CREATE TABLE IF NOT EXISTS admin_mfa (
  user_id BIGINT PRIMARY KEY REFERENCES users(id), enabled_at TEXT NOT NULL,
  last_counter BIGINT NOT NULL

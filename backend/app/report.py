@@ -1,10 +1,13 @@
 """Printable evidence-backed customer report."""
 from html import escape
 import json
+import secrets
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, Response
-from pydantic import Field
-from .auth import require_entitled_user
+from pydantic import BaseModel, Field
+from .auth import _license_check, _token_hash, iso, now, require_entitled_user
+from .auth_store import connection as auth_connection
 from .catalog import connection, rows, source_sheet
 from .generation import generation_guidance
 from .productivity import productivity_guidance
@@ -20,6 +23,48 @@ USAGE_LABELS = {"ai": "本地 AI 模型", "gaming": "游戏", "generation": "生
 
 class NeedReportInput(RecommendationInput):
     part_number: str = Field(min_length=1, max_length=80)
+
+
+class MobilePdfInput(BaseModel):
+    part_number: str = Field(min_length=1, max_length=80)
+
+
+@router.post("/mobile-ticket")
+def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_entitled_user)):
+ if not user: raise HTTPException(403,"小程序 PDF 预览需要登录")
+ with connection() as conn:
+  found=conn.execute("SELECT 1 FROM imported_skus WHERE part_number=?",(data.part_number,)).fetchone()
+ if not found: raise HTTPException(404,"未找到该 Part Number")
+ ticket=secrets.token_urlsafe(32)
+ with auth_connection() as conn:
+  conn.execute("INSERT INTO pdf_download_tickets (token_hash,user_id,part_number,expires_at,used_at) VALUES (?,?,?,?,NULL)",
+               (_token_hash(ticket),user["id"],data.part_number,iso(now()+timedelta(seconds=90))))
+  conn.commit()
+ return {"ticket":ticket,"expires_in":90}
+
+
+@router.get("/mobile-download/{ticket}")
+def mobile_pdf_download(ticket: str):
+ if len(ticket)>128: raise HTTPException(404,"下载授权无效")
+ with auth_connection() as conn:
+  row=conn.execute("SELECT t.part_number,u.* FROM pdf_download_tickets t JOIN users u ON u.id=t.user_id "
+                   "WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>?",
+                   (_token_hash(ticket),iso(now()))).fetchone()
+  if not row: raise HTTPException(404,"下载授权已失效，请重新生成")
+  _license_check(conn,row)
+  consumed=conn.execute("UPDATE pdf_download_tickets SET used_at=? WHERE token_hash=? AND used_at IS NULL",
+                        (iso(now()),_token_hash(ticket)))
+  if consumed.rowcount!=1: raise HTTPException(404,"下载授权已使用")
+  conn.commit()
+  part_number=row["part_number"]
+ with connection() as conn:
+  sku=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
+ if not sku: raise HTTPException(404,"未找到该 Part Number")
+ safe_sku="".join(c if c.isascii() and (c.isalnum() or c in "-_") else "-" for c in part_number)
+ return Response(build_customer_pdf(dict(sku)),media_type="application/pdf",headers={
+  "Content-Disposition":f'attachment; filename="Surface-Laptop-Ultra-Capability-{safe_sku}.pdf"',
+  "Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff",
+ })
 
 
 def detail_section(title: str, items: list[dict]) -> str:
@@ -153,4 +198,4 @@ def customer_report(part_number:str, _user=Depends(require_entitled_user)):
  download_sku = escape(json.dumps(part_number, ensure_ascii=True), quote=True)
  return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>{escape(part_number)} 客户能力报告</title><style>
 body{{font:14px/1.55 system-ui,'Microsoft YaHei',sans-serif;color:#172033;max-width:1000px;margin:35px auto;padding:20px}}h1{{font-size:28px}}h2{{margin-top:28px;font-size:20px}}.meta{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}}.meta div{{background:#f5f7fa;padding:10px}}table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}}th{{background:#eaf1fb}}.notice{{margin-top:28px;color:#7a2e0e}}footer{{margin-top:36px;color:#667085}}.actions button{{background:#175cd3;color:white;border:0;border-radius:7px;padding:9px 14px;cursor:pointer}}@media print{{body{{margin:0}}.actions{{display:none}}}}
-</style></head><body><img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="width:200px;height:auto;display:block;margin:0 0 20px"><h1>Surface Laptop Ultra 客户能力报告</h1><p>Part Number：<b>{escape(part_number)}</b></p><p class="actions"><button type="button" onclick="window.opener ? window.opener.downloadCustomerPdf({download_sku}) : alert('请从能力顾问页面打开报告后下载 PDF')">保存 PDF 报告</button></p><div class="meta"><div>处理器档位<br><b>{escape(platform_label(sku.get('platform_code')))}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>CPU<br><b>{value(sku,'cpu_model')}</b></div><div>GPU<br><b>{value(sku,'gpu_model')}</b></div><div>ERP 参考价<br><b>¥{value(sku,'erp_price_cny')}</b></div></div>{body}<div class="notice"><b>重要限制：</b>本报告严格区分官方声明、实测、经验推荐与未知。平台级 1440p/100 FPS、120B+ 或理论峰值不能转换为本 SKU 的性能保证；空白 Token/s、FPS 和兼容性字段保持未知。</div><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer></body></html>'''
+</style></head><body><img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司" style="width:200px;height:auto;display:block;margin:0 0 20px"><h1>Surface Laptop Ultra 客户能力报告</h1><p>Part Number：<b>{escape(part_number)}</b></p><p class="actions"><button type="button" onclick="(window.opener || (window.parent !== window ? window.parent : null))?.downloadCustomerPdf({download_sku})">保存 PDF 报告</button></p><div class="meta"><div>处理器档位<br><b>{escape(platform_label(sku.get('platform_code')))}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>CPU<br><b>{value(sku,'cpu_model')}</b></div><div>GPU<br><b>{value(sku,'gpu_model')}</b></div><div>ERP 参考价<br><b>¥{value(sku,'erp_price_cny')}</b></div></div>{body}<div class="notice"><b>重要限制：</b>本报告严格区分官方声明、实测、经验推荐与未知。平台级 1440p/100 FPS、120B+ 或理论峰值不能转换为本 SKU 的性能保证；空白 Token/s、FPS 和兼容性字段保持未知。</div><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer></body></html>'''

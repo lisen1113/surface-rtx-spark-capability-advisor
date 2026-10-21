@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/advisor/index"],
+  "pages": ["pages/advisor/index", "pages/report/index"],
   "window": {
     "navigationBarTitleText": "Surface 能力顾问",
     "navigationBarBackgroundColor": "#0b1220",

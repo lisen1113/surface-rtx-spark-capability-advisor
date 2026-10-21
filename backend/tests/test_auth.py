@@ -45,6 +45,40 @@ def test_registration_approval_license_and_login_flow():
     assert client.post("/api/auth/logout", headers={"Authorization":f"Bearer {token}"}).status_code == 204
     assert client.get("/api/auth/me", headers={"Authorization":f"Bearer {token}"}).status_code == 401
 
+
+def test_remembered_member_session_restores_without_password():
+    email = f"remember-{secrets.token_hex(4)}@example.com"
+    created = iso(now())
+    with connection() as conn:
+        org_id = conn.execute("INSERT INTO organizations (name,status,created_at) VALUES ('记忆会话测试','approved',?)", (created,)).lastrowid
+        conn.execute("INSERT INTO users (organization_id,email,password_hash,role,status,email_verified,created_at) VALUES (?,?,?,'owner','approved',1,?)",
+                     (org_id,email,hasher.hash("Strong-password-123"),created))
+        conn.execute("INSERT INTO licenses (organization_id,seats,expires_at,status,updated_at) VALUES (?,?,?,'active',?)",
+                     (org_id,1,iso(now()+timedelta(days=30)),created))
+        conn.commit()
+    browser = TestClient(app)
+    login = browser.post("/api/auth/login",json={"email":email,"password":"Strong-password-123","remember_me":True})
+    assert login.status_code == 200
+    assert "cap_remember=" in login.headers["set-cookie"]
+    assert "httponly" in login.headers["set-cookie"].lower()
+    assert "samesite=strict" in login.headers["set-cookie"].lower()
+    assert login.cookies["cap_remember"] != login.json()["access_token"]
+    restored = browser.get("/api/auth/restore")
+    assert restored.status_code == 200
+    assert restored.json()["access_token"] != login.json()["access_token"]
+    assert restored.cookies["cap_remember"] != login.cookies["cap_remember"]
+    assert browser.post("/api/auth/logout",headers={"Authorization":"Bearer "+restored.json()["access_token"]}).status_code == 204
+    assert browser.get("/api/auth/restore").status_code == 401
+
+
+def test_admin_login_never_sets_remember_cookie():
+    admin_id, _ = seed_admin()
+    with connection() as conn:
+        email = conn.execute("SELECT email FROM users WHERE id=?", (admin_id,)).fetchone()["email"]
+    response = TestClient(app).post("/api/auth/login",json={"email":email,"password":"Admin-password-123","remember_me":True})
+    assert response.status_code == 200
+    assert "cap_remember=\"\"" in response.headers.get("set-cookie", "") or "cap_remember=;" in response.headers.get("set-cookie", "")
+
 def test_failed_login_locks_after_five_attempts():
     email = f"locked-{secrets.token_hex(4)}@example.com"
     created=iso(now())

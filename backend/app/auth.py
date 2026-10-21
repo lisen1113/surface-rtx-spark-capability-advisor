@@ -14,7 +14,7 @@ from email.message import EmailMessage
 
 from argon2 import PasswordHasher, Type
 from argon2.exceptions import VerifyMismatchError
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from .auth_store import connection, insert_id
@@ -55,6 +55,7 @@ class LoginInput(BaseModel):
     email: str
     password: str
     mfa_code: str | None = None
+    remember_me: bool = False
 
 
 class MfaEnrollInput(BaseModel):
@@ -316,7 +317,7 @@ def resend_email_verification(data: PasswordResetRequestInput):
 
 
 @router.post("/auth/login")
-def login(data: LoginInput):
+def login(data: LoginInput, response: Response, cap_remember: str | None = Cookie(default=None)):
     email = _email(data.email)
     with connection() as conn:
         user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
@@ -353,12 +354,54 @@ def login(data: LoginInput):
             if consumed.rowcount != 1:
                 raise HTTPException(401, "动态验证码无效或已使用")
         token = secrets.token_urlsafe(32)
+        remember = data.remember_me and user["role"] != "admin"
+        remember_token = secrets.token_urlsafe(32) if remember else None
         expires = now() + timedelta(hours=12)
         conn.execute("UPDATE users SET failed_login_count=0,locked_until=NULL WHERE id=?", (user["id"],))
+        if cap_remember:
+            conn.execute("UPDATE remember_sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL",
+                         (iso(now()),_token_hash(cap_remember)))
         conn.execute("INSERT INTO sessions VALUES (?,?,?,?,NULL)", (_token_hash(token), user["id"], iso(now()), iso(expires)))
+        if remember_token:
+            conn.execute("INSERT INTO remember_sessions VALUES (?,?,?,?,NULL)",
+                         (_token_hash(remember_token),user["id"],iso(now()),iso(now()+timedelta(days=7))))
         audit(conn, "auth.login_succeeded", actor=user["id"], organization_id=user["organization_id"])
         conn.commit()
+    response.delete_cookie("cap_remember", path="/")
+    if remember:
+        response.set_cookie("cap_remember", remember_token, max_age=7 * 24 * 3600,
+                            httponly=True, secure=os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public",
+                            samesite="strict", path="/")
     return {"access_token": token, "token_type": "bearer", "expires_at": iso(expires)}
+
+
+@router.get("/auth/restore")
+def restore_session(response: Response, cap_remember: str | None = Cookie(default=None)):
+    """Restore a non-admin browser session without storing the password on the device."""
+    if not cap_remember:
+        raise HTTPException(401, "没有可恢复的登录状态")
+    with connection() as conn:
+        row = conn.execute("SELECT r.expires_at AS remember_expires_at,u.* FROM remember_sessions r "
+                           "JOIN users u ON u.id=r.user_id WHERE r.token_hash=? AND r.revoked_at IS NULL AND r.expires_at>?",
+                           (_token_hash(cap_remember),iso(now()))).fetchone()
+        if not row or row["role"] == "admin" or row["status"] != "approved" or not row["email_verified"]:
+            raise HTTPException(401, "记忆登录已失效，请重新登录")
+        _license_check(conn,row)
+        changed=iso(now())
+        revoked=conn.execute("UPDATE remember_sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL",
+                             (changed,_token_hash(cap_remember)))
+        if revoked.rowcount!=1: raise HTTPException(401,"记忆登录已使用，请重新打开账号页")
+        access_token=secrets.token_urlsafe(32)
+        next_remember=secrets.token_urlsafe(32)
+        conn.execute("INSERT INTO sessions VALUES (?,?,?,?,NULL)",
+                     (_token_hash(access_token),row["id"],changed,iso(now()+timedelta(hours=12))))
+        conn.execute("INSERT INTO remember_sessions VALUES (?,?,?,?,NULL)",
+                     (_token_hash(next_remember),row["id"],changed,row["remember_expires_at"]))
+        conn.commit()
+    remaining=max(1,int((datetime.fromisoformat(row["remember_expires_at"])-now()).total_seconds()))
+    response.set_cookie("cap_remember",next_remember,max_age=remaining,httponly=True,
+                        secure=os.getenv("CAPABILITY_DEPLOYMENT_MODE") == "public",samesite="strict",path="/")
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/admin/mfa/status")
@@ -447,6 +490,7 @@ def confirm_password_reset(data: PasswordResetConfirmInput):
         conn.execute("UPDATE users SET password_hash=?,failed_login_count=0,locked_until=NULL WHERE id=?", (hasher.hash(data.new_password), row["user_id"]))
         conn.execute("UPDATE password_reset_tokens SET used_at=? WHERE token_hash=?", (changed, token_hash))
         conn.execute("UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", (changed, row["user_id"]))
+        conn.execute("UPDATE remember_sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", (changed, row["user_id"]))
         audit(conn, "auth.password_reset_completed", actor=row["user_id"], organization_id=row["organization_id"], target_type="user", target_id=row["user_id"])
         conn.commit()
     return {"status": "password_updated"}
@@ -458,12 +502,16 @@ def me(user=Depends(current_user)):
 
 
 @router.post("/auth/logout", status_code=204)
-def logout(authorization: str = Header(), user=Depends(current_user)):
+def logout(response: Response, authorization: str = Header(), cap_remember: str | None = Cookie(default=None), user=Depends(current_user)):
     token = authorization[7:].strip()
     with connection() as conn:
         conn.execute("UPDATE sessions SET revoked_at=? WHERE token_hash=?", (iso(now()), _token_hash(token)))
+        if cap_remember:
+            conn.execute("UPDATE remember_sessions SET revoked_at=? WHERE token_hash=? AND user_id=?",
+                         (iso(now()), _token_hash(cap_remember), user["id"]))
         audit(conn, "auth.logout", actor=user["id"], organization_id=user["organization_id"])
         conn.commit()
+    response.delete_cookie("cap_remember", path="/")
 
 
 @router.post("/admin/users/{user_id}/verify-email")
