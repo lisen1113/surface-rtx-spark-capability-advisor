@@ -83,4 +83,11 @@ def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, m
 
 def test_guest_page_is_linked_from_account_without_unlocking_admin():
     assert 'href="/guest"' in client.get("/account").text
+    homepage = client.get("/")
+    assert homepage.status_code == 200
+    assert 'href="/guest"' in homepage.text
+    assert 'href="/account"' in homepage.text
+    guest_page = client.get("/guest")
+    assert 'id="need-form"' in guest_page.text
+    assert 'id="description"' in guest_page.text
     assert client.get("/api/admin/users").status_code == 401
