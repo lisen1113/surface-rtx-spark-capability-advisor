@@ -66,6 +66,14 @@ cd backend
 
 ARM64 验收前先删除由 x64 Python 创建的 `backend\.venv`，再用 ARM64 Python 重新创建。若某个依赖只能通过 x64 仿真安装，应将其记录为兼容性限制，不能宣称原生 ARM64 支持。
 
+在目标设备上先运行只读架构检查（`-PythonExe` 指向准备运行本应用的 Python）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-windows-architecture.ps1 -PythonExe python -RequireNativePython
+```
+
+脚本记录系统、PowerShell 与 Python 架构，以及 Windows 报告的显卡驱动版本；架构不匹配时返回非零状态。架构一致仅是安装前提，不证明依赖 wheel、GPU 后端、模型或游戏兼容，更不构成 FPS、Token/s 实测。不要把此检查当作实体 ARM64 验收完成。
+
 本机快速验收命令：
 
 ```powershell

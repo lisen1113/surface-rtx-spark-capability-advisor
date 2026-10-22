@@ -55,7 +55,7 @@ jobs:
         shell: powershell
         run: |
           $errors = $null
-          foreach ($script in @('.\scripts\start-local.ps1', '.\scripts\verify-local.ps1')) {
+          foreach ($script in @('.\scripts\start-local.ps1', '.\scripts\verify-local.ps1', '.\scripts\check-windows-architecture.ps1')) {
             [void][System.Management.Automation.Language.Parser]::ParseFile(
               (Resolve-Path $script), [ref]$null, [ref]$errors
             )
