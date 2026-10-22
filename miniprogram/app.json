@@ -2,7 +2,7 @@
   "pages": ["pages/home/index", "pages/company/index", "pages/guest/index", "pages/advisor/index", "pages/report/index"],
   "window": {
     "navigationBarTitleText": "上海以和信息技术",
-    "navigationBarBackgroundColor": "#0b1220",
-    "navigationBarTextStyle": "white"
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
   }
 }

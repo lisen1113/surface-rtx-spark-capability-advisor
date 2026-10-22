@@ -17,6 +17,13 @@ assert.match(home, /url="\/pages\/company\/index"/);
 assert.match(home, /url="\/pages\/guest\/index"/);
 assert.match(home, /url="\/pages\/advisor\/index"/);
 assert.match(home, /需登录并通过授权/);
+assert.match(home, /src="\/assets\/yihe-logo\.png"/);
+assert.match(home, /试用能力顾问/);
+assert.match(home, /走进以和/);
+assert.ok(fs.existsSync(path.join(root, 'assets/yihe-logo.png')));
+const homeStyles = fs.readFileSync(path.join(root, 'pages/home/index.wxss'), 'utf8');
+assert.match(homeStyles, /\.hero/);
+assert.match(homeStyles, /\.bottom-nav/);
 
 function pageData(route) {
   let definition;
