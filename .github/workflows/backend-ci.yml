@@ -20,6 +20,8 @@ jobs:
         run: node scripts/test-miniprogram-report.cjs
       - name: Check public and internal landing routes
         run: node scripts/test-miniprogram-navigation.cjs
+      - name: Check guest recommendation page
+        run: node scripts/test-guest-page.cjs
 
   test:
     strategy:

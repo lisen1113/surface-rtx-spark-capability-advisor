@@ -40,7 +40,35 @@ function showMapping(){const box=byId('mapping');box.replaceChildren();if(!mappi
 async function choose(partNumber){showStatus('mapping-status','正在载入能力映射…');try{const response=await fetch('/api/guest/advisor/'+encodeURIComponent(partNumber));if(!response.ok)throw Error('读取配置失败');mapping=await response.json();selected=partNumber;showFacts(mapping.sku);showMapping()}catch(error){showStatus('mapping-status',error.message)}}
 async function init(){try{const response=await fetch('/api/guest/skus');if(!response.ok)throw Error('产品列表读取失败');const data=await response.json();const select=byId('sku');select.replaceChildren();for(const sku of data.items){const option=el('option',sku.part_number+' · '+sku.platform+' · '+(sku.memory_gb??'未知')+' GB');option.value=sku.part_number;select.append(option)}if(!data.items.length){showStatus('load-status','暂无可公开展示的产品配置');return}select.addEventListener('change',()=>choose(select.value));await choose(select.value);showStatus('load-status',data.note)}catch(error){showStatus('load-status',error.message)}}
 byId('tabs').addEventListener('click',event=>{const button=event.target.closest('button[data-tab]');if(!button)return;activeTab=button.dataset.tab;for(const item of byId('tabs').querySelectorAll('button'))item.setAttribute('aria-selected',String(item===button));showMapping()});
-byId('need-form').addEventListener('submit',async event=>{event.preventDefault();const box=byId('recommendations');box.replaceChildren(el('p','正在筛选…'));const usages=[...document.querySelectorAll('input[name="usage"]:checked')].map(input=>input.value);try{const response=await fetch('/api/guest/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usages,description:byId('description').value})});if(!response.ok)throw Error('推荐请求失败');const data=await response.json();box.replaceChildren(el('p',data.message||data.limitations));for(const item of data.items){const card=el('article');card.className='card';card.append(el('h3',item.part_number+' · '+item.memory_gb+' GB'),el('p',item.reason));const button=el('button','查看此配置');button.type='button';button.addEventListener('click',()=>{byId('sku').value=item.part_number;choose(item.part_number)});card.append(button);box.append(card)}for(const note of data.needs_confirmation||[])box.append(el('p',note))}catch(error){box.replaceChildren(el('p',error.message))}});
+byId('need-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const box=byId('recommendations');
+  box.replaceChildren(el('p','正在筛选…'));
+  const usages=[...document.querySelectorAll('input[name="usage"]:checked')].map(input=>input.value);
+  try{
+    const response=await fetch('/api/guest/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usages,description:byId('description').value})});
+    if(!response.ok)throw Error('推荐请求失败');
+    const data=await response.json();
+    box.replaceChildren(el('p',data.message||data.limitations));
+    if(data.interpreted_need){
+      const labels={ai:'本地 AI 模型',gaming:'游戏',generation:'生成式 AI',productivity:'生产力'};
+      const need=data.interpreted_need;
+      const summary=el('article');summary.className='card';
+      summary.append(el('h3','本次识别的需求'),el('p',(need.usages||[]).map(value=>labels[value]||value).join('、')||'未识别用途'));
+      if(need.ai_size&&need.ai_size!=='unsure')summary.append(el('p','模型规模：'+need.ai_size+'（容量筛选，不代表运行速度）'));
+      for(const reason of data.reasoning||[])summary.append(el('p',reason));
+      box.append(summary);
+    }
+    for(const item of data.items||[]){
+      const card=el('article');card.className='card';
+      card.append(el('h3',item.part_number+' · '+item.memory_gb+' GB'),el('p',item.reason));
+      const button=el('button','查看此配置');button.type='button';
+      button.addEventListener('click',()=>{byId('sku').value=item.part_number;choose(item.part_number)});
+      card.append(button);box.append(card);
+    }
+    for(const note of data.needs_confirmation||[])box.append(el('p',note));
+  }catch(error){box.replaceChildren(el('p',error.message))}
+});
 init();
 </script>
 </body>
