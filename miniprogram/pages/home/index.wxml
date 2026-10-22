@@ -11,6 +11,12 @@
     <text class="entry-action">进入公司官网 →</text>
   </navigator>
 
+  <navigator class="entry" url="/pages/guest/index" hover-class="entry-active">
+    <text class="entry-title">游客体验能力顾问</text>
+    <text class="entry-description">无需登录，查看产品、工程候选及 AI、游戏、生成式 AI、生产力能力映射</text>
+    <text class="entry-action">开始游客体验 →</text>
+  </navigator>
+
   <navigator class="entry" url="/pages/advisor/index" hover-class="entry-active">
     <text class="entry-title">Surface / RTX Spark 能力顾问</text>
     <text class="entry-description">员工与内部代理商培训、选型和客户报告；需登录并通过授权</text>

@@ -1,0 +1,71 @@
+"""Guest access is a narrow public projection, not a License bypass."""
+
+from fastapi.testclient import TestClient
+
+from app import catalog
+from app.guest import public_sku
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def test_unknown_internal_platform_code_is_not_exposed():
+    item = {"part_number": "X", "product_family": "Surface", "platform_code": "SECRET-CODE",
+            "memory_gb": 24, "storage_tb": 1, "cpu_model": None, "gpu_model": None,
+            "operating_system": "Windows"}
+    assert public_sku(item)["platform"] == "处理器配置待核验"
+
+
+def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, monkeypatch):
+    monkeypatch.setattr(catalog, "DB_PATH", tmp_path / "catalog.sqlite3")
+    monkeypatch.delenv("CAPABILITY_DEPLOYMENT_MODE", raising=False)
+    monkeypatch.setenv("CAPABILITY_REQUIRE_AUTH", "1")
+    with catalog.connection() as conn:
+        conn.execute(
+            "INSERT INTO imported_skus "
+            "(part_number,product_family,raw_configuration,platform_code,memory_gb,storage_tb,"
+            "erp_price_cny,currency_note,cpu_model,gpu_model,operating_system,source_reference,"
+            "data_status,note,source_sha256) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            ("GUEST-TEST", "Surface Laptop Ultra", "PRIVATE-RAW-CONFIG", "S3", 128, 1,
+             99999, "PRIVATE-CURRENCY", "N1X", "Blackwell", "Windows 11 Pro",
+             "PRIVATE-SOURCE", "待核验", "PRIVATE-NOTE", "PRIVATE-HASH"),
+        )
+        conn.commit()
+
+    page = client.get("/guest")
+    assert page.status_code == 200
+    assert "游客体验" in page.text and "登录授权版" in page.text
+
+    listing = client.get("/api/guest/skus")
+    assert listing.status_code == 200
+    assert len(listing.json()["items"]) == 1
+    assert listing.json()["items"][0]["part_number"] == "GUEST-TEST"
+    assert "S3" not in listing.text
+
+    advice = client.get("/api/guest/advisor/GUEST-TEST")
+    assert advice.status_code == 200
+    assert len(advice.json()["ai_models"]) == 4
+    assert advice.json()["ai_models"][0]["runtime_compatible"] == "unknown"
+    assert advice.json()["gaming"] and advice.json()["generation"] and advice.json()["productivity"]
+    assert client.get("/api/guest/advisor/NOT-FOUND").status_code == 404
+
+    shortlist = client.post("/api/guest/recommendations", json={"usages": ["ai"], "ai_size": "70B"})
+    assert shortlist.status_code == 200
+    assert shortlist.json()["items"][0]["part_number"] == "GUEST-TEST"
+    assert shortlist.json()["items"][0]["evidence_level"].startswith("工程估算")
+    assert client.post("/api/guest/recommendations", json={"usages": ["ai"], "budget_cny": 100000}).status_code == 422
+
+    for response in (listing, advice, shortlist):
+        for secret in ("99999", "PRIVATE-RAW-CONFIG", "PRIVATE-CURRENCY", "PRIVATE-SOURCE",
+                       "PRIVATE-NOTE", "PRIVATE-HASH", "erp_price_cny", "source_reference"):
+            assert secret not in response.text
+
+    assert client.get("/api/catalog/imported-skus").status_code == 401
+    assert client.get("/api/faq").status_code == 401
+    assert client.get("/api/reports/GUEST-TEST.pdf").status_code == 401
+
+
+def test_guest_page_is_linked_from_account_without_unlocking_admin():
+    assert 'href="/guest"' in client.get("/account").text
+    assert client.get("/api/admin/users").status_code == 401

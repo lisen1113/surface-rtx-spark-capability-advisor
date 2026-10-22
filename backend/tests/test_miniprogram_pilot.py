@@ -17,6 +17,7 @@ def test_miniprogram_pilot_separates_public_and_internal_entries_without_credent
     assert config["appid"].startswith("REPLACE_WITH_")
     assert manifest["pages"][0] == "pages/home/index"
     assert 'url="/pages/company/index"' in home
+    assert 'url="/pages/guest/index"' in home
     assert 'url="/pages/advisor/index"' in home
     assert "https://yiheit.net/" in company_script
     assert "https://surfacedmp.com/account" in advisor_script

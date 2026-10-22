@@ -11,6 +11,7 @@ from time import monotonic
 
 
 AUTH_LIMITS = {
+    "/api/guest/recommendations": (120, 900),
     "/api/auth/register": (10, 3600),
     "/api/auth/login": (60, 900),
     "/api/auth/verify-email": (30, 900),

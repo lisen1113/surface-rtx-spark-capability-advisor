@@ -18,7 +18,7 @@ def legacy_login_page():
 
 @router.get("/account", response_class=HTMLResponse)
 def account_page():
-    body = '''<h1>Capability Advisor 账号</h1><p><a href="/">返回能力顾问</a></p>
+    body = '''<h1>Capability Advisor 账号</h1><p><a href="/">返回能力顾问</a> · <a href="/guest">游客体验（无需登录）</a></p>
 <section class="panel"><h2>登录</h2><label>邮箱<input id="lemail" type="email" autocomplete="email"></label><label>密码<input id="lpassword" type="password" autocomplete="current-password"></label><label>管理员动态验证码（已启用 MFA 时填写）<input id="lmfa" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><label><input id="remember" type="checkbox" checked> 在此设备保持登录 7 天（管理员不适用；请勿在共用设备勾选）</label><button onclick="login()">登录</button><button onclick="logout()">退出</button><p id="loginstatus" class="muted"></p><p id="advisorlink" hidden><a href="/">进入能力顾问（请在当前标签页打开）</a></p></section>
 <section class="panel"><h2>注册</h2><label>组织名称<input id="org"></label><label>邮箱<input id="remail" type="email" autocomplete="email"></label><label>密码（至少 12 位）<input id="rpassword" type="password" autocomplete="new-password"></label><button onclick="register()">提交注册</button><p id="registerstatus" class="muted"></p></section>
 <section class="panel"><h2>邮箱验证</h2><p class="muted">注册后输入邮件中的一次性验证码；验证码有效期为 24 小时。验证完成后，还需等待管理员审批和组织 License 授权。</p><label>登记邮箱<input id="verifyemail" type="email" autocomplete="email"></label><label>邮箱验证码<input id="verifytoken" autocomplete="one-time-code"></label><button onclick="confirmEmail()">确认邮箱</button><button onclick="resendEmail()">重发验证码</button><p id="verifystatus" class="muted"></p></section>

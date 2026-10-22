@@ -21,6 +21,8 @@ from .auth_ui import router as auth_ui_router
 from .ui import router as ui_router
 from .recommendation import router as recommendation_router
 from .deployment import router as deployment_router
+from .guest import router as guest_router
+from .guest_ui import router as guest_ui_router
 from .deployment_readiness import assert_deployment_configuration
 from .auth_store import connection as auth_connection
 from .request_limit import AUTH_LIMITS, limiter, source_address
@@ -83,6 +85,8 @@ async def shared_host_boundary(request: Request, call_next):
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 
 app.include_router(catalog_router, dependencies=[Depends(require_entitled_user)])
+app.include_router(guest_router)
+app.include_router(guest_ui_router)
 app.include_router(auth_router)
 app.include_router(tco_router)
 app.include_router(knowledge_router, dependencies=[Depends(require_entitled_user)])
