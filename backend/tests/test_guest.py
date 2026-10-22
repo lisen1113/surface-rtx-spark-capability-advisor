@@ -31,6 +31,14 @@ def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, m
              99999, "PRIVATE-CURRENCY", "N1X", "Blackwell", "Windows 11 Pro",
              "PRIVATE-SOURCE", "待核验", "PRIVATE-NOTE", "PRIVATE-HASH"),
         )
+        conn.execute(
+            "INSERT INTO imported_skus "
+            "(part_number,product_family,raw_configuration,platform_code,memory_gb,storage_tb,"
+            "erp_price_cny,cpu_model,gpu_model,operating_system,source_reference,source_sha256) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            ("GUEST-SECOND", "Surface Laptop Ultra", "SECOND-PRIVATE-RAW", "S2", 24, 0.5,
+             23188, "N1X", "Blackwell", "Windows 11 Pro", "SECOND-PRIVATE-SOURCE", "SECOND-HASH"),
+        )
         conn.commit()
 
     page = client.get("/guest")
@@ -39,8 +47,14 @@ def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, m
 
     listing = client.get("/api/guest/skus")
     assert listing.status_code == 200
-    assert len(listing.json()["items"]) == 1
-    assert listing.json()["items"][0]["part_number"] == "GUEST-TEST"
+    items = {item["part_number"]: item for item in listing.json()["items"]}
+    assert set(items) == {"GUEST-TEST", "GUEST-SECOND"}
+    for part_number, memory_gb, storage_tb in (("GUEST-TEST", 128, 1), ("GUEST-SECOND", 24, 0.5)):
+        assert items[part_number]["memory_gb"] == memory_gb
+        assert items[part_number]["storage_tb"] == storage_tb
+        assert items[part_number]["cpu_model"] == "N1X"
+        assert items[part_number]["gpu_model"] == "Blackwell"
+        assert items[part_number]["platform"].startswith("NVIDIA RTX Spark")
     assert "S3" not in listing.text
 
     advice = client.get("/api/guest/advisor/GUEST-TEST")
@@ -52,13 +66,14 @@ def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, m
 
     shortlist = client.post("/api/guest/recommendations", json={"usages": ["ai"], "ai_size": "70B"})
     assert shortlist.status_code == 200
-    assert shortlist.json()["items"][0]["part_number"] == "GUEST-TEST"
+    assert shortlist.json()["items"][0]["part_number"] in items
     assert shortlist.json()["items"][0]["evidence_level"].startswith("工程估算")
     assert client.post("/api/guest/recommendations", json={"usages": ["ai"], "budget_cny": 100000}).status_code == 422
 
     for response in (listing, advice, shortlist):
-        for secret in ("99999", "PRIVATE-RAW-CONFIG", "PRIVATE-CURRENCY", "PRIVATE-SOURCE",
-                       "PRIVATE-NOTE", "PRIVATE-HASH", "erp_price_cny", "source_reference"):
+        for secret in ("99999", "23188", "PRIVATE-RAW-CONFIG", "PRIVATE-CURRENCY", "PRIVATE-SOURCE",
+                       "PRIVATE-NOTE", "PRIVATE-HASH", "SECOND-PRIVATE-RAW", "SECOND-PRIVATE-SOURCE",
+                       "SECOND-HASH", "erp_price_cny", "source_reference"):
             assert secret not in response.text
 
     assert client.get("/api/catalog/imported-skus").status_code == 401
