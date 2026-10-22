@@ -68,9 +68,16 @@ def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, m
     assert shortlist.status_code == 200
     assert shortlist.json()["items"][0]["part_number"] in items
     assert shortlist.json()["items"][0]["evidence_level"].startswith("工程估算")
+    described = client.post("/api/guest/recommendations", json={
+        "description": "需要本地运行 32B 模型并用于编程",
+    })
+    assert described.status_code == 200
+    assert described.json()["interpreted_need"]["ai_size"] == "32B"
+    assert set(described.json()["interpreted_need"]["usages"]) == {"ai", "productivity"}
+    assert described.json()["items"]
     assert client.post("/api/guest/recommendations", json={"usages": ["ai"], "budget_cny": 100000}).status_code == 422
 
-    for response in (listing, advice, shortlist):
+    for response in (listing, advice, shortlist, described):
         for secret in ("99999", "23188", "PRIVATE-RAW-CONFIG", "PRIVATE-CURRENCY", "PRIVATE-SOURCE",
                        "PRIVATE-NOTE", "PRIVATE-HASH", "SECOND-PRIVATE-RAW", "SECOND-PRIVATE-SOURCE",
                        "SECOND-HASH", "erp_price_cny", "source_reference"):
