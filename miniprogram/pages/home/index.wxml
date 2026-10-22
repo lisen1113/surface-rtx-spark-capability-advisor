@@ -6,7 +6,7 @@
   <view class="hero">
     <text class="eyebrow">IT 数字化 · AI 应用</text>
     <view class="title"><text>连接产品、技术</text><text>与真实场景。</text></view>
-    <text class="description">从企业数字化服务，到 Surface 与本地 AI 体验。</text>
+    <text class="description">从企业数字化到AI应用一站式解决方案提供商</text>
     <navigator class="hero-action" url="/pages/company/index" hover-class="hero-action-active" aria-label="走进以和，浏览公开官网">
       <text>走进以和</text><text aria-hidden="true">↗</text>
     </navigator>
@@ -14,16 +14,16 @@
 
   <view class="quick-start">
     <text class="section-title">快速开始</text>
-    <navigator class="entry entry-guest" url="/pages/guest/index" hover-class="entry-active" aria-label="试用能力顾问，无需登录">
+    <navigator class="entry entry-guest" url="/pages/guest/index" hover-class="entry-active" aria-label="Surface能力顾问，无需登录">
       <text class="entry-kicker">PUBLIC EXPERIENCE</text>
-      <text class="entry-title">试用能力顾问</text>
+      <text class="entry-title">Surface能力顾问</text>
       <text class="entry-description">选产品 · 看 AI 与生产力场景</text>
       <text class="entry-arrow" aria-hidden="true">→</text>
     </navigator>
     <navigator class="entry entry-internal" url="/pages/advisor/index" hover-class="entry-active" aria-label="进入内部工作台，需登录并通过授权">
       <text class="entry-kicker">TEAM WORKSPACE</text>
       <text class="entry-title">进入内部工作台</text>
-      <text class="entry-description">员工与代理商 · 需登录并通过授权</text>
+      <text class="entry-description">员工与DMP · 需登录并通过授权</text>
       <text class="entry-arrow" aria-hidden="true">→</text>
     </navigator>
   </view>
