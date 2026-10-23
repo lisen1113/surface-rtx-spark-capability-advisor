@@ -15,6 +15,8 @@ for (const id of ['ai-size', 'game-need', 'work-need', 'generation-need', 'model
 assert.match(page, /target_fps:usages\.includes\('gaming'\)/);
 assert.doesNotMatch(page, /budget_cny:/);
 assert.match(page, /本次识别的需求/);
+assert.match(page, /证据级别：/);
+assert.match(page, /if\(data\.limitations\)box\.append/);
 assert.match(page, /\/api\/guest\/recommendations/);
 
 // Exercise the real submit handler with a minimal DOM. Syntax-only checks

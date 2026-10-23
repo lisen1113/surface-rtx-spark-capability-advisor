@@ -54,7 +54,7 @@ byId('need-form').addEventListener('submit',async event=>{
     const response=await fetch('/api/guest/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!response.ok)throw Error(response.status===429?'请求过于频繁，请稍后重试':'推荐请求失败（'+response.status+'），请稍后重试');
     const data=await response.json();
-    box.replaceChildren(el('p',data.message||data.limitations));
+    box.replaceChildren(el('p',data.message||'工程候选如下'));
     if(data.interpreted_need){
       const labels={ai:'本地 AI 模型',gaming:'游戏',generation:'生成式 AI',productivity:'生产力'};
       const need=data.interpreted_need;
@@ -66,12 +66,13 @@ byId('need-form').addEventListener('submit',async event=>{
     }
     for(const item of data.items||[]){
       const card=el('article');card.className='card';
-      card.append(el('h3',item.part_number+' · '+item.memory_gb+' GB'),el('p',item.reason));
+      card.append(el('h3',item.part_number+' · '+item.memory_gb+' GB'),el('p',item.reason),el('p','证据级别：'+item.evidence_level));
       const button=el('button','查看此配置');button.type='button';
       button.addEventListener('click',()=>{byId('sku').value=item.part_number;choose(item.part_number)});
       card.append(button);box.append(card);
     }
     for(const note of data.needs_confirmation||[])box.append(el('p',note));
+    if(data.limitations)box.append(el('p',data.limitations));
   }catch(error){box.replaceChildren(el('p',error.message))}
 });
 init();
