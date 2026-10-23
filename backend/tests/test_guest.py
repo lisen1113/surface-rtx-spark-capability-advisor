@@ -75,9 +75,21 @@ def test_guest_selection_and_mapping_redact_internal_workbook_fields(tmp_path, m
     assert described.json()["interpreted_need"]["ai_size"] == "32B"
     assert set(described.json()["interpreted_need"]["usages"]) == {"ai", "productivity"}
     assert described.json()["items"]
+    detailed = client.post("/api/guest/recommendations", json={
+        "usages": ["ai", "gaming", "generation", "productivity"],
+        "ai_size": "32B", "model_name": "Example Model",
+        "game_need": "aaa", "game_titles": "Example Game",
+        "target_resolution": "1080p", "target_fps": 60,
+        "generation_need": "image", "work_need": "coding",
+        "software_name": "Example IDE",
+    })
+    assert detailed.status_code == 200
+    assert detailed.json()["interpreted_need"]["ai_size"] == "32B"
+    assert detailed.json()["interpreted_need"]["target_fps"] == 60
+    assert detailed.json()["items"]
     assert client.post("/api/guest/recommendations", json={"usages": ["ai"], "budget_cny": 100000}).status_code == 422
 
-    for response in (listing, advice, shortlist, described):
+    for response in (listing, advice, shortlist, described, detailed):
         for secret in ("99999", "23188", "PRIVATE-RAW-CONFIG", "PRIVATE-CURRENCY", "PRIVATE-SOURCE",
                        "PRIVATE-NOTE", "PRIVATE-HASH", "SECOND-PRIVATE-RAW", "SECOND-PRIVATE-SOURCE",
                        "SECOND-HASH", "erp_price_cny", "source_reference"):
