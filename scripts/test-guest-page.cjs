@@ -34,12 +34,13 @@ function node(id) {
   if (!nodes.has(id)) nodes.set(id, {
     value: values[id] || '', textContent: '', hidden: false,
     addEventListener(type, callback) { listeners.set(`${id}:${type}`, callback); },
-    replaceChildren() {}, append() {},
+    replaceChildren(...children) { this.children = children; }, append(...children) { this.children.push(...children); },
     querySelectorAll() { return []; },
   });
   return nodes.get(id);
 }
 let posted;
+let mockResult = { message: 'ok', items: [] };
 const sandbox = {
   URL,
   document: {
@@ -59,7 +60,7 @@ const sandbox = {
     if (url === '/api/guest/skus') return { ok: true, json: async () => ({ items: [] }) };
     if (url === '/api/guest/recommendations') {
       posted = JSON.parse(options.body);
-      return { ok: true, json: async () => ({ message: 'ok', items: [] }) };
+      return { ok: true, json: async () => mockResult };
     }
     throw new Error(`Unexpected request: ${url}`);
   },
@@ -77,5 +78,8 @@ vm.runInNewContext(script[1], sandbox, { filename: 'guest.html' });
   assert.equal(posted.game_need, 'unsure');
   assert.equal(posted.game_titles, '');
   assert.equal(posted.target_fps, null);
+  mockResult = { status: 'no_match', items: [], needs_confirmation: ['请调整需求'] };
+  await listeners.get('need-form:submit')({ preventDefault() {} });
+  assert.equal(node('recommendations').children[0].text, '当前没有匹配的产品配置');
   console.log('Guest page script and interactive recommendation checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
