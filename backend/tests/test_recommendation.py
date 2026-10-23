@@ -52,6 +52,13 @@ def test_video_generation_uses_higher_engineering_tier():
     assert result["items"][0]["part_number"] == "S3-128"
 
 
+def test_productivity_reason_uses_chinese_label_without_changing_tier():
+    result = recommend(RecommendationInput(usages=["productivity"], work_need="coding"), SKUS)
+    assert result["interpreted_need"]["minimum_memory_tier_gb"] == 32
+    assert "编程开发工作负载" in result["reasoning"][0]
+    assert "coding 工作负载" not in result["reasoning"][0]
+
+
 def test_need_form_and_api_are_available():
     client = TestClient(app)
     html = client.get("/").text

@@ -117,9 +117,10 @@ def recommend(data: RecommendationInput, skus: list[dict]) -> dict:
         notes.append(f"游戏 {data.game_titles} 的 Windows on Arm 兼容性及 {data.target_resolution} / {data.target_fps or '未指定'} FPS 目标需逐项实测。")
     if "productivity" in usages:
         work_tiers = {"office": 24, "coding": 32, "video": 64, "cad": 64}
+        work_labels = {"office": "日常办公", "coding": "编程开发", "video": "视频剪辑", "cad": "CAD / 3D"}
         if work_need in work_tiers:
             minimum = max(minimum, work_tiers[work_need])
-            reasons.append(f"{work_need} 工作负载采用 {work_tiers[work_need]}GB 起步的工程筛选档；具体软件与插件需核验。")
+            reasons.append(f"{work_labels[work_need]}工作负载采用 {work_tiers[work_need]}GB 起步的工程筛选档；具体软件与插件需核验。")
         else:
             notes.append("尚未提供具体软件、版本和项目规模；生产力适配需进一步确认。")
     if data.software_name:
