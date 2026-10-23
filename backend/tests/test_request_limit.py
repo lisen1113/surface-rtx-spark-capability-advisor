@@ -26,7 +26,7 @@ def test_mfa_enrollment_and_confirmation_have_brute_force_limits():
         assert limiter.check("203.0.113.4", path, 100.0) > 0
 
 
-def test_public_middleware_limits_auth_posts_only(monkeypatch):
+def test_public_middleware_limits_guarded_posts(monkeypatch):
     monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "public")
     monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "https://advisor.example.invalid")
     monkeypatch.setattr(main, "limiter", RequestLimiter())
@@ -41,3 +41,18 @@ def test_public_middleware_limits_auth_posts_only(monkeypatch):
     assert client.get("/account").status_code == 200
     assert client.post("/api/auth/register", json={},
                        headers={"Host": "evil.example.invalid"}).status_code == 400
+
+
+def test_public_guest_recommendations_are_rate_limited_without_blocking_page(monkeypatch):
+    monkeypatch.setenv("CAPABILITY_DEPLOYMENT_MODE", "public")
+    monkeypatch.setenv("CAPABILITY_PUBLIC_BASE_URL", "https://advisor.example.invalid")
+    monkeypatch.setitem(main.AUTH_LIMITS, "/api/guest/recommendations", (2, 900))
+    monkeypatch.setattr(main, "limiter", RequestLimiter())
+    client = TestClient(main.app, base_url="https://advisor.example.invalid",
+                        client=("203.0.113.11", 50000))
+    for _ in range(2):
+        assert client.post("/api/guest/recommendations", json={"usages": ["invalid"]}).status_code == 422
+    blocked = client.post("/api/guest/recommendations", json={"usages": ["invalid"]})
+    assert blocked.status_code == 429
+    assert int(blocked.headers["retry-after"]) > 0
+    assert client.get("/guest").status_code == 200
