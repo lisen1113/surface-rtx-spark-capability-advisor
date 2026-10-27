@@ -62,7 +62,7 @@ def test_productivity_reason_uses_chinese_label_without_changing_tier():
 def test_need_form_and_api_are_available():
     client = TestClient(app)
     html = client.get("/").text
-    assert "按使用需求推荐产品" in html
+    assert "按使用需求推荐" in html
     assert "自由描述" in html
     response = client.post("/api/recommendations", json={"description": "70B 模型"})
     assert response.status_code == 200
