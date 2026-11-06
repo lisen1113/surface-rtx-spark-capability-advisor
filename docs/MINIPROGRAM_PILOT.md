@@ -1,5 +1,9 @@
 # 微信小程序内嵌试点
 
+2026-11-06 已上传开发版本 `3.2.20261106.1`，新增 `pages/workplace/index` 打开公开租赁订阅页面及预算 PDF 的单次票据原生预览。状态为开发版上传成功，审核提交及正式发布尚未执行。部署与验证见 [本次发布记录](WORKPLACE_RELEASE_2026_11_06.md)。
+
+2026-10-28 新增首页“Surface SKU 查询”入口，原生路由 `pages/surface/index` 打开 `/account?next=%2Fsurface`，登录/恢复会话后只允许跳转到站内 `/surface`。该页提供设备、配件和延保的全部查询条件。PDF 使用现有单次票据通道，签发时 `report_kind=surface`，微信原生预览页保留 `Surface-Product-<SKU>.pdf` 文件名。原 RTX Spark 报告票据继续兼容。小程序代码版本为 `3.1.20261028`，已上传开发版本；预览二维码用于真机测试，不能据此宣称平台正式版已发布。
+
 第一阶段首页分为三个入口：公开官网通过 `web-view` 打开 `https://yiheit.net/`；游客体验打开 `https://surfacedmp.com/guest`，仅提供公开配置与能力映射；内部能力顾问通过另一 `web-view` 打开 `https://surfacedmp.com/account`，沿用现有邮箱/密码、审批、License 与管理员 MFA。非管理员可在私人设备勾选“保持登录 7 天”：服务端会话由 HttpOnly、SameSite=Strict Cookie 恢复，密码不会写入小程序缓存；退出、重置密码、License 失效或会话到期后不能恢复。管理员始终需要重新登录。不使用 AppSecret，不接入微信免登，不把长期访问令牌放入 URL。小程序 AppID 不是密码，但不要把 AppSecret 或登录验证码提交到仓库或聊天。
 
 ## 配置与测试

@@ -48,6 +48,23 @@ def test_rejects_tampered_ciphertext_before_writing_plaintext(tmp_path, monkeypa
     assert not (tmp_path / "restored").exists()
 
 
+def test_commercial_database_included_in_encrypted_restore(tmp_path,monkeypatch):
+    import sqlite3,json,hashlib
+    directory=fixture(tmp_path)
+    with sqlite3.connect(directory/'commercial.sqlite3') as conn:
+        conn.execute('CREATE TABLE commercial_quotes(id TEXT)')
+    manifest=json.loads((directory/'manifest.json').read_text())
+    manifest['commercial_sha256']=hashlib.sha256((directory/'commercial.sqlite3').read_bytes()).hexdigest()
+    (directory/'manifest.json').write_text(json.dumps(manifest))
+    module=sys.modules['cos_offsite_backup']
+    monkeypatch.setattr(module,'verify_backup',lambda path:None)
+    encrypted=tmp_path/'commercial.gcm';key=os.urandom(32)
+    digest=module.encrypt_backup(directory,encrypted,key)
+    module.verify_encrypted(encrypted,key,digest)
+    restore.decrypt_snapshot(encrypted,tmp_path/'restored',key)
+    assert (tmp_path/'restored/commercial.sqlite3').read_bytes()==(directory/'commercial.sqlite3').read_bytes()
+
+
 def test_rejects_unexpected_object_key_before_download(tmp_path, monkeypatch):
     monkeypatch.setattr(restore.os, "geteuid", lambda: 0, raising=False)
 

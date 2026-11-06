@@ -1,0 +1,32 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {chromium}=require(process.env.CAPABILITY_PLAYWRIGHT_MODULE||'playwright');
+const root=path.resolve(__dirname,'..'),base='http://127.0.0.1:8020',output=path.join(root,'artifacts/commercial');
+const credentials=JSON.parse(fs.readFileSync(path.join(root,'.commercial-local/credentials.json'),'utf8'));
+if(process.env.CAPABILITY_ADMIN_CREDENTIALS_FILE)credentials.admin=JSON.parse(fs.readFileSync(process.env.CAPABILITY_ADMIN_CREDENTIALS_FILE,'utf8'));
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CAPABILITY_BROWSER_EXECUTABLE});
+try{const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/workplace');await page.waitForFunction(()=>document.querySelector('#average').textContent.includes('¥'));
+ assert.equal(await page.locator('#login-form').count(),0);assert.equal(await page.evaluate(()=>sessionStorage.getItem('cap_token')),null);
+ await page.locator('[name=feature][value=copilot]').check();await page.waitForFunction(()=>document.querySelector('#selected-summary').textContent.includes('Copilot'));
+ await page.locator('#device-options [data-add]').first().click();await page.waitForFunction(()=>document.querySelector('#rent').textContent!=='—'&&document.querySelector('#rent').textContent!=='¥0.00');
+ const rent36=await page.locator('#rent').textContent();await page.locator('#lease-term').selectOption('24');await page.waitForFunction(old=>document.querySelector('#rent').textContent!=='—'&&document.querySelector('#rent').textContent!==old,rent36);
+ await page.locator('.accessory-section').evaluate(x=>x.open=true);await page.locator('#add-accessory').click();
+ await page.waitForFunction(()=>!document.querySelector('#download-budget').disabled);
+ await page.locator('#see-payments').click();assert.ok((await page.locator('#dialog-body').textContent()).includes('签约时'));await page.locator('#close-dialog').click();
+ const download=page.waitForEvent('download');await page.locator('#download-budget').click();const file=await download;await file.saveAs(path.join(output,'public-budget.pdf'));assert.equal(fs.readFileSync(path.join(output,'public-budget.pdf')).subarray(0,4).toString(),'%PDF');
+ await page.locator('[data-category=cloud]').click();assert.match(await page.locator('#catalog-count').textContent(),/14/);await page.locator('#catalog-search').fill('Copilot');assert.ok(await page.locator('#catalog-grid .product-card').count()>0);await page.locator('#catalog-search').fill('');
+ const quantity=page.locator('#selected-summary [data-quantity]').first();await quantity.fill('5');await quantity.dispatchEvent('change');await page.waitForFunction(()=>!document.querySelector('#download-budget').disabled);
+ await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:path.join(output,'public-desktop.png'),fullPage:true});
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(output,'public-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/workplace/admin');await page.locator('#login-panel').waitFor({state:'visible'});
+ await page.locator('#login-form [name=email]').fill(credentials.admin.email);await page.locator('#login-form [name=password]').fill('Intentionally-wrong-test-password');await page.locator('#login-form button').click();await page.locator('#login-status').waitFor({state:'visible'});assert.match(await page.locator('#login-status').textContent(),/邮箱或密码错误/);
+ await page.locator('#login-form [name=password]').fill(credentials.admin.password);await page.locator('#login-form button').click();await page.locator('#settings-form [name=usd_cny]').waitFor({state:'visible'});await page.waitForFunction(()=>document.querySelector('#settings-form [name=usd_cny]').value!=='');
+ const saved=await page.evaluate(async()=>{const h={Authorization:'Bearer '+sessionStorage.getItem('cap_token')};return (await fetch('/api/commercial/admin/settings',{headers:h})).json();});
+ try{await page.locator('#settings-form [name=usd_cny]').fill('7.21');await page.locator('#settings-form button').click();await page.waitForFunction(()=>document.querySelector('#message').textContent.includes('已发布参数'));const updated=await context.request.get(base+'/api/commercial/public/catalog');assert.equal(updated.status(),200);assert.equal((await updated.json()).budget.usd_cny,'7.21');}
+ finally{const response=await page.evaluate(async config=>{delete config.settings_version;return (await fetch('/api/commercial/admin/settings',{method:'PUT',headers:{Authorization:'Bearer '+sessionStorage.getItem('cap_token'),'Content-Type':'application/json'},body:JSON.stringify(config)})).status;},saved.settings);assert.equal(response,200);}
+ await page.screenshot({path:path.join(output,'public-admin.png'),fullPage:true});
+ await page.evaluate(()=>sessionStorage.removeItem('cap_token'));await page.reload();await page.locator('#login-form [name=email]').fill(credentials.owner.email);await page.locator('#login-form [name=password]').fill(credentials.owner.password);await page.locator('#login-form button').click();await page.waitForFunction(()=>document.querySelector('#identity').textContent.includes('仅限管理员'));assert.equal(await page.locator('#workspace').isVisible(),false);
+ await page.evaluate(()=>sessionStorage.removeItem('cap_token'));await page.goto(base+'/account?next=/workplace/admin');await page.locator('#lemail').fill(credentials.admin.email);await page.locator('#lpassword').fill(credentials.admin.password);await page.getByRole('button',{name:'登录',exact:true}).click();await page.waitForURL(base+'/workplace/admin');await page.locator('#admin-logout').waitFor({state:'visible'});await page.locator('#admin-logout').click();await page.waitForFunction(()=>sessionStorage.getItem('cap_token')===null);await page.locator('#login-panel').waitFor({state:'visible'});
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({anonymous_selection:true,device_rent:true,subscription_match:true,pdf:true,mobile_overflow:false,admin_login:true,owner_login:true,admin_settings:true,legacy_login_redirect:true,logout:true,page_errors:errors}));
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+

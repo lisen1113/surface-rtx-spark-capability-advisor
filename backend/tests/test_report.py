@@ -69,9 +69,10 @@ def test_mobile_pdf_ticket_is_short_lived_and_single_use(monkeypatch):
 
 def test_home_offers_downloadable_pdf():
  html=client.get('/').text
- assert '保存 PDF 报告' in html
+ assert '下载 PDF 报告' in html
  assert 'downloadCustomerPdf()' in html
  assert 'downloadCustomerPdf(selectedPartNumber)' in html
+ assert "encodeURIComponent(ticket.filename)" in html
  assert "link.download=filename" in html
  assert "showInlineReport(html)" in html
  assert "PDF 已下载" not in html

@@ -56,8 +56,7 @@ def test_need_report_is_bound_to_selected_sku_and_submitted_need():
     assert "游戏：该 SKU 的场景映射" not in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "<script>alert(1)</script>" not in html
-    assert "打印／另存为 PDF" in html
-    assert "window.top===window?window.print():window.top.openNeedReportPrintWindow()" in html
+    assert "打印／另存为 PDF" not in html
     assert html.split("<footer>", 1)[1].split("</footer>", 1)[0] == "© 2026 上海以和信息技术有限公司。保留所有权利。"
 
 
@@ -93,11 +92,8 @@ def test_need_report_button_creates_inline_report_instead_of_scrolling_to_top():
     html = client.get("/").text
     assert "查看此配置的详细能力并生成报告" in html
     assert "async function showNeedReport(partNumber)" in html
-    assert "frame.srcdoc=html" in html
-    assert "need-report-print" in html
-    assert "独立报告页的 PDF 文件名：" in html
-    assert "按描述需求配置报告-" in html
-    assert "function openNeedReportPrintWindow()" in html
-    assert "reportWindow.document.write(activeNeedReportHtml)" in html
-    assert "reportWindow.document.title=activeNeedReportName" in html
+    assert "renderReportContent(preview,html)" in html
+    assert "need-report-download" in html
+    assert "Surface-Laptop-Ultra-Capability-" in html
+    assert "frame.srcdoc=html" not in html
     assert "window.scrollTo({top:0" not in html

@@ -11,12 +11,18 @@ def test_legacy_login_bookmark_redirects_to_account():
 def test_account_page_has_login_and_registration():
  html=client.get('/account').text
  assert '登录' in html and '注册' in html and '至少 12 位' in html
+ assert '用户服务协议' in html and '隐私政策' in html
+ assert client.get('/terms').status_code == 200
+ assert client.get('/privacy').status_code == 200
  assert '重置密码' in html and '/api/auth/password-reset/request' in html and '/api/auth/password-reset/confirm' in html
  assert '管理员动态验证码' in html and 'mfa_code' in html
  assert 'id="advisorlink" hidden' in html
  assert '进入能力顾问（请在当前标签页打开）' in html
- assert "user.role!=='admin'&&user.status==='approved'&&user.email_verified" in html
- assert "window.location.assign('/')" in html
+ assert "user.status==='approved'&&user.email_verified" in html
+ assert "user.role!=='admin'||new URLSearchParams(location.search).get('next')==='/workplace/admin'" in html
+ assert "['/surface','/workplace','/workplace/admin'].includes(next)" in html
+ assert "window.location.assign(accountDestination())" in html
+ assert "['/surface','/workplace','/workplace/admin'].includes(new URLSearchParams(location.search).get('next'))" in html
  assert "$('#advisorlink').hidden=!user" in html
  assert '沪ICP备17029250号-4' in html and 'https://beian.miit.gov.cn/' in html
 

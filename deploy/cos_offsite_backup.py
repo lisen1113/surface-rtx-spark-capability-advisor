@@ -20,6 +20,7 @@ from verify_backup import verify_backup
 
 MAGIC = b"CAD-COS-1\n"
 NAMES = ("manifest.json", "accounts.dump", "capability.sqlite3")
+COMMERCIAL_NAMES = NAMES + ('commercial.sqlite3',)
 
 
 def encryption_key() -> bytes:
@@ -54,7 +55,7 @@ def encrypt_backup(directory: Path, output: Path, key: bytes) -> str:
         with output.open("xb") as stream:
             stream.write(MAGIC + nonce)
             with tarfile.open(fileobj=EncryptWriter(stream, encryptor), mode="w|") as archive:
-                for name in NAMES:
+                for name in (COMMERCIAL_NAMES if (directory/'commercial.sqlite3').is_file() else NAMES):
                     archive.add(directory / name, arcname=name, recursive=False)
             stream.write(encryptor.finalize() + encryptor.tag)
         digest = hashlib.sha256()
@@ -82,7 +83,7 @@ def verify_encrypted(path: Path, key: bytes, expected_sha256: str) -> None:
     decryptor = Cipher(algorithms.AES(key), modes.GCM(raw[start:start + 12], raw[-16:])).decryptor()
     plaintext = decryptor.update(raw[start + 12:-16]) + decryptor.finalize()
     with tarfile.open(fileobj=io.BytesIO(plaintext), mode="r:") as archive:
-        if tuple(member.name for member in archive.getmembers()) != NAMES:
+        if tuple(member.name for member in archive.getmembers()) not in (NAMES,COMMERCIAL_NAMES):
             raise ValueError("Unexpected backup members")
         for member in archive.getmembers():
             if not member.isfile() or member.size == 0:

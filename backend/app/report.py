@@ -2,6 +2,7 @@
 from html import escape
 import json
 import secrets
+from typing import Literal
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, Response
@@ -27,20 +28,23 @@ class NeedReportInput(RecommendationInput):
 
 class MobilePdfInput(BaseModel):
     part_number: str = Field(min_length=1, max_length=80)
+    report_kind: Literal['advisor', 'surface'] = 'advisor'
 
 
 @router.post("/mobile-ticket")
 def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_entitled_user)):
  if not user: raise HTTPException(403,"小程序 PDF 预览需要登录")
  with connection() as conn:
-  found=conn.execute("SELECT 1 FROM imported_skus WHERE part_number=?",(data.part_number,)).fetchone()
+  table = 'sku_lookup' if data.report_kind == 'surface' else 'imported_skus'
+  found=conn.execute(f"SELECT 1 FROM {table} WHERE part_number=?",(data.part_number,)).fetchone()
  if not found: raise HTTPException(404,"未找到该 Part Number")
  ticket=secrets.token_urlsafe(32)
  with auth_connection() as conn:
   conn.execute("INSERT INTO pdf_download_tickets (token_hash,user_id,part_number,expires_at,used_at) VALUES (?,?,?,?,NULL)",
-               (_token_hash(ticket),user["id"],data.part_number,iso(now()+timedelta(seconds=90))))
+               (_token_hash(ticket),user["id"],('surface:' if data.report_kind == 'surface' else '')+data.part_number,iso(now()+timedelta(seconds=90))))
   conn.commit()
- return {"ticket":ticket,"expires_in":90}
+ safe_sku=''.join(c if c.isascii() and (c.isalnum() or c in '-_') else '-' for c in data.part_number)
+ return {"ticket":ticket,"expires_in":90,"filename":('Surface-Product-' if data.report_kind == 'surface' else 'Surface-Laptop-Ultra-Capability-')+safe_sku+'.pdf'}
 
 
 @router.get("/mobile-download/{ticket}")
@@ -57,6 +61,9 @@ def mobile_pdf_download(ticket: str):
   if consumed.rowcount!=1: raise HTTPException(404,"下载授权已使用")
   conn.commit()
   part_number=row["part_number"]
+ if part_number.startswith('surface:'):
+  from .catalog import quick_search_pdf
+  return quick_search_pdf(part_number[len('surface:'):])
  with connection() as conn:
   sku=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
  if not sku: raise HTTPException(404,"未找到该 Part Number")
@@ -151,7 +158,7 @@ def recommendation_report(data: NeedReportInput, _user=Depends(require_entitled_
     filename = "按描述需求配置报告-" + "".join(c if c.isascii() and (c.isalnum() or c == "-") else "-" for c in data.part_number)
     return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>{escape(filename)}</title><style>
 body{{font:14px/1.6 system-ui,'Microsoft YaHei',sans-serif;color:#172033;background:#f5f7fb;margin:0}}.page{{max-width:1040px;margin:25px auto;background:white;padding:32px;box-shadow:0 3px 18px #17203312}}header{{border-bottom:3px solid #175cd3;padding-bottom:15px}}header img{{width:190px;height:auto}}h1{{margin:12px 0 4px;font-size:27px}}h2{{font-size:19px;margin:0 0 10px}}section{{margin:24px 0;break-inside:avoid}}.meta{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}}.meta div{{background:#eff4ff;padding:12px;border-radius:8px}}table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #d0d5dd;padding:8px;text-align:left;vertical-align:top}}th{{background:#eaf1fb;width:25%}}.record{{border:1px solid #d0d5dd;border-radius:8px;margin:10px 0;padding:10px;break-inside:avoid}}dl{{display:grid;grid-template-columns:190px 1fr;margin:0}}dt,dd{{padding:6px 8px;border-bottom:1px solid #e4e7ec;margin:0;overflow-wrap:anywhere}}dt{{font-weight:700;background:#f9fafb}}.warn{{background:#fff8ed;border-left:4px solid #b54708;padding:10px 14px}}.status{{color:#586476}}footer{{border-top:1px solid #d0d5dd;margin-top:30px;padding-top:12px;color:#586476;text-align:center}}.actions{{padding:12px 0}}button{{background:#175cd3;color:white;border:0;border-radius:7px;padding:9px 14px;cursor:pointer}}@media(max-width:650px){{.page{{padding:16px;margin:0}}.meta{{grid-template-columns:1fr}}dl{{grid-template-columns:1fr}}}}@media print{{body{{background:white}}.page{{box-shadow:none;padding:0;margin:0;max-width:none}}.actions{{display:none}}@page{{size:A4;margin:15mm}}}}
-</style></head><body><div class="page"><header><img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司"><h1>Surface Laptop Ultra 需求匹配报告</h1><p>料号：<strong>{escape(data.part_number)}</strong> · 本报告只对应下述本次需求</p></header><div class="actions"><button type="button" onclick="window.top===window?window.print():window.top.openNeedReportPrintWindow()">打印／另存为 PDF</button></div><section><h2>所选产品配置</h2><div class="meta"><div>处理器档位<br><b>{escape(platform_label(sku.get('platform_code')))}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>处理器<br><b>{value(sku,'cpu_model')}</b></div><div>图形处理器<br><b>{value(sku,'gpu_model')}</b></div><div>导入参考价<br><b>{escape(price)}</b></div></div><p class="status">配置与价格来自授权导入资料；价格口径：{value(sku,'currency_note')}。采购前须复核。</p><table>{sku_html}</table><p><a href="https://www.microsoftstore.com.cn/surface/surface-laptop-ultra-for-business" target="_blank" rel="noopener">中国微软商城系列技术规格</a>为系列资料，未逐料号核实的参数不作为本报告实测。</p></section><section><h2>本次用户需求</h2><table>{summary_html}</table></section><section><h2>为何列为候选</h2><p>{escape(candidate['reason'])}</p><ul>{reasons}</ul><p class="warn">{escape(result['limitations'])}</p>{'<p class="warn">当前候选超出输入预算。</p>' if candidate['over_budget'] else ''}</section>{''.join(sections)}<section><h2>待确认与验收</h2><ul>{confirmations}</ul><p>请在目标设备验证 Windows on Arm 软件/驱动兼容性、实际模型量化与上下文、游戏版本/画质、业务任务正确性及稳定性。未测得的 FPS、Token/s 保持未知。</p></section><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer></div></body></html>'''
+</style></head><body><div class="page"><header><img src="/assets/yihe-logo.png" alt="上海以和信息技术有限公司"><h1>Surface Laptop Ultra 需求匹配报告</h1><p>料号：<strong>{escape(data.part_number)}</strong> · 本报告只对应下述本次需求</p></header><section><h2>所选产品配置</h2><div class="meta"><div>处理器档位<br><b>{escape(platform_label(sku.get('platform_code')))}</b></div><div>统一内存<br><b>{value(sku,'memory_gb')} GB</b></div><div>存储<br><b>{value(sku,'storage_tb')} TB</b></div><div>处理器<br><b>{value(sku,'cpu_model')}</b></div><div>图形处理器<br><b>{value(sku,'gpu_model')}</b></div><div>导入参考价<br><b>{escape(price)}</b></div></div><p class="status">配置与价格来自授权导入资料；价格口径：{value(sku,'currency_note')}。采购前须复核。</p><table>{sku_html}</table><p><a href="https://www.microsoftstore.com.cn/surface/surface-laptop-ultra-for-business" target="_blank" rel="noopener">中国微软商城系列技术规格</a>为系列资料，未逐料号核实的参数不作为本报告实测。</p></section><section><h2>本次用户需求</h2><table>{summary_html}</table></section><section><h2>为何列为候选</h2><p>{escape(candidate['reason'])}</p><ul>{reasons}</ul><p class="warn">{escape(result['limitations'])}</p>{'<p class="warn">当前候选超出输入预算。</p>' if candidate['over_budget'] else ''}</section>{''.join(sections)}<section><h2>待确认与验收</h2><ul>{confirmations}</ul><p>请在目标设备验证 Windows on Arm 软件/驱动兼容性、实际模型量化与上下文、游戏版本/画质、业务任务正确性及稳定性。未测得的 FPS、Token/s 保持未知。</p></section><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer></div></body></html>'''
 
 def value(item,key):
  v=item.get(key)

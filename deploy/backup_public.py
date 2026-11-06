@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import sqlite3
 import subprocess
 import sys
 
@@ -49,12 +50,20 @@ def create_backup(root: Path = BACKUP_ROOT, catalog: Path = CATALOG) -> Path:
         with dump.open("xb") as stream:
             subprocess.run(["pg_dump", "--format=custom", "--dbname=advisor"],
                            check=True, stdout=stream, stderr=subprocess.PIPE, env=safe_child_env())
-        shutil.copyfile(catalog, catalog_copy)
+        with sqlite3.connect(catalog.as_uri()+'?mode=ro',uri=True) as source, sqlite3.connect(catalog_copy) as target:
+            source.backup(target)
         manifest = {
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
             "accounts_dump_sha256": sha256(dump),
             "catalog_sha256": sha256(catalog_copy),
         }
+        commercial=catalog.parent/'commercial.sqlite3'
+        if commercial.exists():
+            if commercial.is_symlink() or not commercial.is_file():
+                raise ValueError('Commercial database must be a regular local file')
+            with sqlite3.connect(commercial.as_uri()+'?mode=ro',uri=True) as source,sqlite3.connect(destination/'commercial.sqlite3') as target:
+                source.backup(target)
+            manifest['commercial_sha256']=sha256(destination/'commercial.sqlite3')
         (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     except BaseException:
         print("Backup incomplete; inspect the private destination before retrying", file=sys.stderr)

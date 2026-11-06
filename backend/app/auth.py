@@ -49,6 +49,8 @@ class RegisterInput(BaseModel):
     organization_name: str = Field(min_length=2, max_length=120)
     email: str = Field(min_length=5, max_length=254)
     password: str = Field(min_length=12, max_length=256)
+    accepted_terms: bool = False
+    accepted_privacy: bool = False
 
 
 class LoginInput(BaseModel):
@@ -163,17 +165,22 @@ def _development_token(response: dict, token: str):
         response["development_token"] = token
 
 
-def register_user(data: RegisterInput) -> dict:
+def register_user(data: RegisterInput, *, role: str = "owner") -> dict:
+    if role not in {"owner", "customer_owner"}:
+        raise ValueError("Unsupported registration role")
+    if not data.accepted_terms or not data.accepted_privacy:
+        raise HTTPException(400, "请先阅读并同意用户服务协议和隐私政策")
     _require_mail_for_protected_registration()
     email = _email(data.email)
     with connection() as conn:
         try:
             created = iso(now())
             org_id = insert_id(conn, "INSERT INTO organizations (name,status,created_at) VALUES (?,'pending',?)", (data.organization_name.strip(), created))
-            user_id = insert_id(conn, "INSERT INTO users (organization_id,email,password_hash,role,status,created_at) VALUES (?,?,?,'owner','pending',?)",
-                                (org_id, email, hasher.hash(data.password), created))
+            user_id = insert_id(conn, "INSERT INTO users (organization_id,email,password_hash,role,status,created_at) VALUES (?,?,?,?,'pending',?)",
+                                (org_id, email, hasher.hash(data.password), role, created))
             token = _create_email_token(conn, user_id)
-            audit(conn, "user.registered", actor=user_id, organization_id=org_id, target_type="user", target_id=user_id)
+            audit(conn, "user.registered", actor=user_id, organization_id=org_id, target_type="user", target_id=user_id,
+                  details={"terms_version": "2026-10-31", "privacy_version": "2026-10-31"})
             conn.commit()
         except (sqlite3.IntegrityError, _postgres_unique_violation()):
             raise HTTPException(409, "邮箱已注册")
@@ -232,6 +239,8 @@ def require_entitled_user(authorization: str | None = Header(default=None)) -> d
     if os.getenv("CAPABILITY_REQUIRE_AUTH") != "1":
         return None
     user = current_user(authorization)
+    if user["role"] in {"customer_owner", "customer_member"}:
+        raise HTTPException(403, "此账号仅可使用客户方案工作台，不能访问内部 ERP 与能力顾问")
     with connection() as conn:
         row = conn.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
         _license_check(conn, row)

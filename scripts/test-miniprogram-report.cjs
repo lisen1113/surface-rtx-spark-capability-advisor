@@ -47,4 +47,34 @@ function loadPage(wx) {
   assert.match(page.data.status, /已过期或下载失败/);
 }
 
+{
+  let request;
+  let preview;
+  const page = loadPage({
+    env: { USER_DATA_PATH: '/user' },
+    downloadFile(options) { request = options; },
+    openDocument(options) { preview = options; }
+  });
+  page.onLoad({ ticket: 'c'.repeat(20), filename: 'Surface-Product-EP2-77145.pdf' });
+  assert.equal(request.filePath, '/user/Surface-Product-EP2-77145.pdf');
+  request.success({ statusCode: 200, filePath: request.filePath });
+  assert.equal(preview.filePath, request.filePath);
+}
+
+{
+  let request;
+  const page = loadPage({
+    env: { USER_DATA_PATH: '/user' },
+    downloadFile(options) { request = options; }
+  });
+  page.onLoad({ ticket: 'd'.repeat(20), filename: 'Surface-Laptop-Ultra-Capability-EP2-56927.pdf' });
+  assert.equal(request.filePath, '/user/Surface-Laptop-Ultra-Capability-EP2-56927.pdf');
+}
 process.stdout.write('Mini-program PDF report checks passed.\n');
+{
+  let request;
+  const page=loadPage({env:{USER_DATA_PATH:'/user'},downloadFile(options){request=options;}});
+  page.onLoad({kind:'workplace',ticket:'e'.repeat(43),filename:'Surface-Workplace-Budget-123abc.pdf'});
+  assert.equal(request.url,'https://surfacedmp.com/api/commercial/public/budget-download/'+'e'.repeat(43));
+  assert.equal(request.filePath,'/user/Surface-Workplace-Budget-123abc.pdf');
+}

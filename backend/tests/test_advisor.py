@@ -45,7 +45,21 @@ def test_unknown_part_number_is_404():
 
 def test_home_page_exposes_all_advisor_modules():
     html = client.get("/").text
-    for label in ("Surface Laptop Ultra 能力映射", "AI 模型", "游戏", "生成式 AI", "生产力", "AI FAQ", "TCO 成本", "证据与限制"):
+    for label in ("Surface AI Workplace及RTX Spark能力与选型顾问", "AI 模型", "游戏", "生成式 AI", "生产力", "AI FAQ", "TCO 成本", "证据与限制"):
         assert label in html
     assert "RTX Spark AI 快速体验" in html
     assert "aiStarter(s)+cards(data.ai)" in html
+
+
+def test_home_page_exposes_v31_quick_search_and_erp_quote_factor():
+    home = client.get('/').text
+    assert 'id="quick-lookup"' not in home
+    assert 'href="/surface"' in home
+    html = client.get("/surface").text
+    assert 'id="needform"' not in html
+    assert "Surface SKU 快速查询" in html
+    assert 'id="quick-query"' in html
+    assert 'id="quick-quote-factor"' in html
+    assert "/api/catalog/quick-search" in html
+    assert '高通 Snapdragon' in html
+    assert '下载 PDF 产品资料' in html

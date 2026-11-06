@@ -15,7 +15,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_TABLES = (
     "skus", "models", "evidence", "source_imports", "source_records",
-    "imported_skus", "imported_evidence",
+    "imported_skus", "imported_evidence", "sku_lookup",
 )
 REQUIRED_TABLES = {"source_records", "imported_skus"}
 

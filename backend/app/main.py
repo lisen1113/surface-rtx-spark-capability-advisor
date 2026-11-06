@@ -26,6 +26,9 @@ from .guest_ui import router as guest_ui_router
 from .deployment_readiness import assert_deployment_configuration
 from .auth_store import connection as auth_connection
 from .request_limit import AUTH_LIMITS, limiter, source_address
+from .commercial.api import router as commercial_router
+from .commercial.ui import router as commercial_ui_router
+from .commercial.public import router as commercial_public_router
 
 
 @asynccontextmanager
@@ -96,6 +99,9 @@ app.include_router(auth_ui_router)
 app.include_router(ui_router)
 app.include_router(recommendation_router)
 app.include_router(deployment_router)
+app.include_router(commercial_router)
+app.include_router(commercial_ui_router)
+app.include_router(commercial_public_router)
 
 class MemoryEstimateInput(BaseModel):
     parameters_billion: float = Field(gt=0, le=1000)

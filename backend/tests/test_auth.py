@@ -10,6 +10,16 @@ from app.main import app
 
 client = TestClient(app)
 
+
+def test_registration_requires_both_explicit_consents():
+    email = f"consent-{secrets.token_hex(4)}@example.com"
+    base = {"organization_name": "同意测试企业", "email": email, "password": "Strong-password-123"}
+    assert client.post("/api/auth/register", json=base).status_code == 400
+    assert client.post("/api/auth/register", json={**base, "accepted_terms": True}).status_code == 400
+    assert client.post("/api/auth/register", json={**base, "accepted_privacy": True}).status_code == 400
+    with connection() as conn:
+        assert conn.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone() is None
+
 def seed_admin() -> tuple[int, str]:
     email = f"admin-{secrets.token_hex(4)}@example.com"
     token = secrets.token_urlsafe(24)
@@ -23,7 +33,7 @@ def seed_admin() -> tuple[int, str]:
 def test_registration_approval_license_and_login_flow():
     _, admin_token = seed_admin()
     email = f"user-{secrets.token_hex(4)}@example.com"
-    registered = client.post("/api/auth/register", json={"organization_name":"测试企业","email":email,"password":"Strong-password-123"})
+    registered = client.post("/api/auth/register", json={"organization_name":"测试企业","email":email,"password":"Strong-password-123","accepted_terms":True,"accepted_privacy":True})
     assert registered.status_code == 201
     with connection() as conn:
         user = dict(conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone())
@@ -167,7 +177,7 @@ def test_user_verifies_email_with_single_use_token(monkeypatch):
     monkeypatch.delenv("CAPABILITY_SMTP_HOST", raising=False)
     email = f"verify-{secrets.token_hex(4)}@example.com"
     registered = client.post("/api/auth/register", json={
-        "organization_name": "邮箱自助验证企业", "email": email, "password": "Strong-password-123"})
+        "organization_name": "邮箱自助验证企业", "email": email, "password": "Strong-password-123", "accepted_terms": True, "accepted_privacy": True})
     assert registered.status_code == 201
     token = registered.json()["development_token"]
     assert registered.json()["verification_mail_sent"] is False
@@ -184,7 +194,7 @@ def test_verification_resend_invalidates_old_code_and_throttles(monkeypatch):
     monkeypatch.delenv("CAPABILITY_SMTP_HOST", raising=False)
     email = f"resend-{secrets.token_hex(4)}@example.com"
     first = client.post("/api/auth/register", json={
-        "organization_name": "重发测试企业", "email": email, "password": "Strong-password-123"}).json()["development_token"]
+        "organization_name": "重发测试企业", "email": email, "password": "Strong-password-123", "accepted_terms": True, "accepted_privacy": True}).json()["development_token"]
     immediate = client.post("/api/auth/verify-email/resend", json={"email": email})
     assert immediate.status_code == 200 and "development_token" not in immediate.json()
     with connection() as conn:
@@ -202,7 +212,7 @@ def test_protected_registration_requires_mail_configuration(monkeypatch):
     monkeypatch.delenv("CAPABILITY_SMTP_HOST", raising=False)
     response = client.post("/api/auth/register", json={
         "organization_name": "生产注册测试", "email": f"prod-{secrets.token_hex(4)}@example.com",
-        "password": "Strong-password-123"})
+        "password": "Strong-password-123", "accepted_terms": True, "accepted_privacy": True})
     assert response.status_code == 503
 
 
@@ -234,7 +244,7 @@ def test_configured_smtp_sends_verification_and_reset_codes(monkeypatch):
     monkeypatch.delenv("CAPABILITY_SMTP_PASSWORD", raising=False)
     email = f"mail-{secrets.token_hex(4)}@example.com"
     registered = client.post("/api/auth/register", json={
-        "organization_name": "邮件测试企业", "email": email, "password": "Strong-password-123"})
+        "organization_name": "邮件测试企业", "email": email, "password": "Strong-password-123", "accepted_terms": True, "accepted_privacy": True})
     assert registered.status_code == 201
     assert registered.json()["verification_mail_sent"] is True
     assert "development_token" not in registered.json()

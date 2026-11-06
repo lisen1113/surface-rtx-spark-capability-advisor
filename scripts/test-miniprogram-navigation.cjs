@@ -38,4 +38,10 @@ function pageData(route) {
 assert.equal(pageData('pages/company/index').companyUrl, 'https://yiheit.net/');
 assert.equal(pageData('pages/guest/index').guestUrl, 'https://surfacedmp.com/guest');
 assert.equal(pageData('pages/advisor/index').advisorUrl, 'https://surfacedmp.com/account');
+assert.ok(config.pages.includes('pages/surface/index'));
+assert.match(home, /url="\/pages\/surface\/index"/);
+assert.equal(pageData('pages/surface/index').surfaceUrl, 'https://surfacedmp.com/account?next=%2Fsurface');
+assert.ok(config.pages.includes('pages/workplace/index'));
+assert.match(home,/url="\/pages\/workplace\/index"/);
+assert.equal(pageData('pages/workplace/index').workplaceUrl,'https://surfacedmp.com/workplace');
 process.stdout.write('Mini-program landing navigation checks passed.\n');

@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 import os
 import sqlite3
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException, Query
 
 from .importer import preview_sku_csv
 from .generation import generation_guidance
@@ -11,7 +11,7 @@ from .productivity import productivity_guidance
 from .spark_updates import agent_guidance, gaming_updates
 
 router = APIRouter(prefix="/api/catalog", tags=["catalog"])
-DB_PATH = Path(__file__).resolve().parents[2] / "data" / "capability.sqlite3"
+DB_PATH = Path(os.getenv("CAPABILITY_CATALOG_PATH", str(Path(__file__).resolve().parents[2] / "data" / "capability.sqlite3"))).resolve()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS skus (
@@ -48,6 +48,45 @@ CREATE TABLE IF NOT EXISTS imported_skus (
  operating_system TEXT, source_reference TEXT, data_status TEXT, note TEXT,
  source_sha256 TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS sku_lookup (
+ part_number TEXT PRIMARY KEY,
+ source_sheet TEXT NOT NULL,
+ source_row INTEGER NOT NULL,
+ original_family TEXT NOT NULL,
+ raw_description TEXT NOT NULL,
+ product_type TEXT NOT NULL,
+ series_group TEXT NOT NULL,
+ mapping_rule_id TEXT,
+ product_name TEXT,
+ platform TEXT,
+ cpu_raw TEXT,
+ cpu_official TEXT,
+ memory_gb INTEGER,
+ storage_capacity TEXT,
+ color TEXT,
+ connectivity TEXT,
+ power_supply TEXT,
+ display TEXT,
+ resolution TEXT,
+ refresh_rate TEXT,
+ npu TEXT,
+ gpu TEXT,
+ weight TEXT,
+ battery TEXT,
+ operating_system TEXT,
+ erp_price_cny REAL,
+ adr_price_cny REAL,
+ official_source_url TEXT,
+ source_checked_at TEXT,
+ match_level TEXT NOT NULL,
+ pn_visible TEXT,
+ unknown_fields TEXT,
+ exception_note TEXT,
+ review_status TEXT,
+ source_sha256 TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sku_lookup_type_series ON sku_lookup(product_type, series_group);
+CREATE INDEX IF NOT EXISTS idx_sku_lookup_memory_price ON sku_lookup(memory_gb, erp_price_cny);
 CREATE TABLE IF NOT EXISTS imported_evidence (
  evidence_id TEXT PRIMARY KEY, category TEXT, publisher TEXT, claim TEXT,
  value_range TEXT, scope TEXT, evidence_level TEXT, limitations TEXT,
@@ -151,6 +190,152 @@ def sources():
 def imported_skus():
  return {"items": rows("imported_skus"), "note": "来自授权工作簿；原始记录按工作表逐行保留"}
 
+
+def _lookup_filters(*, q: str, product_type: str | None, series: str | None,
+                    memory_gb: int | None, max_erp_price_cny: float | None,
+                    include_excluded: bool) -> tuple[str, list]:
+ conditions = []
+ params: list = []
+ if not include_excluded:
+  conditions.append("match_level NOT LIKE 'N/A%'")
+ if q:
+  like = f"%{q.strip()}%"
+  columns = (
+   "part_number", "original_family", "raw_description", "product_name", "platform",
+   "cpu_raw", "cpu_official", "storage_capacity", "color", "connectivity",
+   "mapping_rule_id", "review_status",
+  )
+  conditions.append("(" + " OR ".join(f"COALESCE({column}, '') LIKE ? COLLATE NOCASE" for column in columns) + ")")
+  params.extend([like] * len(columns))
+ if product_type:
+  conditions.append("product_type = ?")
+  params.append(product_type)
+ if series:
+  conditions.append("series_group = ?")
+  params.append(series)
+ if memory_gb is not None:
+  conditions.append("memory_gb = ?")
+  params.append(memory_gb)
+ if max_erp_price_cny is not None:
+  conditions.append("erp_price_cny IS NOT NULL AND erp_price_cny <= ?")
+  params.append(max_erp_price_cny)
+ return (" WHERE " + " AND ".join(conditions)) if conditions else "", params
+
+
+def _lookup_item(row: sqlite3.Row) -> dict:
+ item = dict(row)
+ item.pop("source_sha256", None)
+ if item.get('product_type') == 'Surface 设备':
+  import re
+  raw = item.get('raw_description') or ''
+  item['power_supply'] = '不带电源' if re.search(r'xP|No-PSU', raw, re.I) else ''
+ return item
+
+
+@router.get("/quick-search/options")
+def quick_search_options():
+ with connection() as conn:
+  base = " WHERE match_level NOT LIKE 'N/A%'"
+  product_types = [dict(row) for row in conn.execute(
+   "SELECT product_type AS value, COUNT(*) AS count FROM sku_lookup" + base +
+   " GROUP BY product_type ORDER BY CASE product_type WHEN 'Surface 设备' THEN 1 WHEN '配件' THEN 2 WHEN '延保' THEN 3 ELSE 4 END"
+  )]
+  series = [dict(row) for row in conn.execute(
+   "SELECT series_group AS value, COUNT(*) AS count FROM sku_lookup" + base +
+   " GROUP BY series_group ORDER BY CASE series_group WHEN 'Surface Pro' THEN 1 WHEN 'Surface Laptop' THEN 2 WHEN 'Surface Go' THEN 3 WHEN '配件' THEN 4 WHEN '延保' THEN 5 ELSE 6 END, series_group"
+  )]
+  memory = [row[0] for row in conn.execute(
+   "SELECT DISTINCT memory_gb FROM sku_lookup" + base + " AND memory_gb IS NOT NULL ORDER BY memory_gb"
+  )]
+  storage = [row[0] for row in conn.execute("SELECT DISTINCT storage_capacity FROM sku_lookup WHERE product_type='Surface 设备' AND storage_capacity IS NOT NULL AND storage_capacity != '' ORDER BY storage_capacity")]
+  price = conn.execute(
+   "SELECT MIN(erp_price_cny), MAX(erp_price_cny), COUNT(*) FROM sku_lookup" + base
+  ).fetchone()
+ return {
+  "product_types": product_types,
+  "series": series,
+  "memory_gb": memory,
+  "storage_capacity": storage,
+  "price": {"min": price[0], "max": price[1]},
+  "searchable_count": price[2],
+  "note": "默认不展示标记为 N/A 的 NVIDIA 记录；价格来自用户提供的原始表格。",
+ }
+
+
+@router.get("/quick-search")
+def quick_search(
+ q: str = Query(default="", max_length=120),
+ product_type: str | None = Query(default=None, max_length=40),
+ series: str | None = Query(default=None, max_length=80),
+ memory_gb: int | None = Query(default=None, ge=1, le=1024),
+ max_erp_price_cny: float | None = Query(default=None, ge=0),
+ limit: int = Query(default=30, ge=1, le=300),
+ offset: int = Query(default=0, ge=0),
+ include_excluded: bool = False,
+ processor: str | None = Query(default=None, pattern='^(Intel|Snapdragon)$'),
+ storage_capacity: str | None = Query(default=None, max_length=30),
+ screen_size: str | None = Query(default=None, pattern=r'^(12|13|13\.8|15)$'),
+ network: str | None = Query(default=None, pattern='^(wifi|5g)$'),
+):
+ if product_type in ('配件', '延保'):
+  q, series, memory_gb, max_erp_price_cny, processor, storage_capacity = '', None, None, None, None, None
+  screen_size = None
+  network = None
+ where, params = _lookup_filters(
+  q=q, product_type=product_type, series=series, memory_gb=memory_gb,
+  max_erp_price_cny=max_erp_price_cny, include_excluded=include_excluded,
+ )
+ if processor:
+  where += (' AND ' if where else ' WHERE ') + 'platform LIKE ?'
+  params.append('%' + processor + '%')
+ if storage_capacity:
+  where += (' AND ' if where else ' WHERE ') + 'storage_capacity = ?'
+  params.append(storage_capacity)
+ if screen_size:
+  where += (' AND ' if where else ' WHERE ') + "display LIKE ?"
+  params.append(screen_size + ' 英寸%')
+ if network:
+  where += (' AND ' if where else ' WHERE ') + ("LOWER(COALESCE(connectivity,'')) LIKE '%5g%'" if network == '5g' else "LOWER(COALESCE(connectivity,'')) NOT LIKE '%5g%' AND LOWER(REPLACE(REPLACE(REPLACE(COALESCE(connectivity,''),'‑','-'),'–','-'),' ','')) LIKE '%wi-fi%'")
+ with connection() as conn:
+  total = conn.execute("SELECT COUNT(*) FROM sku_lookup" + where, params).fetchone()[0]
+  sort_params: list = []
+  order = "product_type, erp_price_cny IS NULL, erp_price_cny, part_number"
+  if q.strip():
+   order = "CASE WHEN part_number = ? COLLATE NOCASE THEN 0 WHEN part_number LIKE ? COLLATE NOCASE THEN 1 ELSE 2 END, " + order
+   sort_params = [q.strip(), q.strip() + "%"]
+  query = "SELECT * FROM sku_lookup" + where + " ORDER BY " + order + " LIMIT ? OFFSET ?"
+  found = conn.execute(query, params + sort_params + [limit, offset]).fetchall()
+ return {
+  "items": [_lookup_item(row) for row in found], "total": total, "limit": limit, "offset": offset,
+  "price_basis": "ERP 含税价来自用户提供的原始表格；报价系数由用户在页面上另行输入。",
+ }
+
+
+@router.get("/quick-search/{part_number}")
+def quick_search_detail(part_number: str):
+ with connection() as conn:
+  row = conn.execute("SELECT * FROM sku_lookup WHERE part_number = ? COLLATE NOCASE", (part_number,)).fetchone()
+ if row is None:
+  raise HTTPException(status_code=404, detail="未找到该 Part Number")
+ item = _lookup_item(row)
+ sheet = {"配件": "配件映射", "延保": "延保清单"}.get(item["product_type"])
+ if sheet:
+  with connection() as conn:
+   records = conn.execute("SELECT record_json FROM source_records WHERE source_sha256=? AND sheet_name=? ORDER BY row_number", (row["source_sha256"], sheet)).fetchall()
+  item["service_details"] = next((json.loads(r[0]) for r in records if json.loads(r[0]).get("Part Number") == item["part_number"]), {})
+ return {"item": item, "price_basis": "价格以用户提供的原始表格为准。"}
+
+@router.get('/quick-search/{part_number}/pdf')
+def quick_search_pdf(part_number: str):
+ from .surface_pdf import build_surface_pdf
+ from fastapi.responses import Response
+ item = quick_search_detail(part_number)['item']
+ safe = ''.join(c if c.isascii() and (c.isalnum() or c in '-_') else '-' for c in item['part_number'])
+ return Response(build_surface_pdf(item), media_type='application/pdf', headers={
+  'Content-Disposition': f'attachment; filename="Surface-Product-{safe}.pdf"',
+  'Cache-Control': 'no-store',
+ })
+
 @router.get("/imports")
 def imports(): return {"items": rows("source_imports")}
 
@@ -159,7 +344,6 @@ def advisor(part_number: str):
  with connection() as conn:
   sku_row = conn.execute("SELECT * FROM imported_skus WHERE part_number=?", (part_number,)).fetchone()
  if not sku_row:
-  from fastapi import HTTPException
   raise HTTPException(status_code=404, detail="未找到该 Part Number")
  def direct(sheet):
   return [item for item in source_sheet(sheet) if item.get("Part Number") == part_number]

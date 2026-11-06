@@ -17,7 +17,7 @@ import tempfile
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from cos_offsite_backup import MAGIC, NAMES, cos_client, encryption_key
+from cos_offsite_backup import MAGIC, NAMES, COMMERCIAL_NAMES, cos_client, encryption_key
 from verify_backup import safe_child_env, verify_backup
 
 
@@ -39,7 +39,7 @@ def decrypt_snapshot(encrypted: Path, destination: Path, key: bytes) -> None:
     plaintext = decryptor.update(raw[offset + 12:-16]) + decryptor.finalize()
     with tarfile.open(fileobj=io.BytesIO(plaintext), mode="r:") as archive:
         members = archive.getmembers()
-        if tuple(member.name for member in members) != NAMES:
+        if tuple(member.name for member in members) not in (NAMES,COMMERCIAL_NAMES):
             raise ValueError("Unexpected backup members")
         if any(not member.isfile() or member.size == 0 for member in members):
             raise ValueError("Unsafe backup member")

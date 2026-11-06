@@ -43,6 +43,16 @@ def verify_backup(directory: Path) -> None:
         raise ValueError("PostgreSQL dump checksum mismatch")
     if sha256(catalog) != manifest["catalog_sha256"]:
         raise ValueError("Catalog checksum mismatch")
+    commercial=directory/'commercial.sqlite3'
+    if commercial.exists() != ('commercial_sha256' in manifest):
+        raise ValueError('Commercial backup does not match manifest')
+    if 'commercial_sha256' in manifest:
+        if commercial.is_symlink() or not commercial.is_file() or sha256(commercial)!=manifest['commercial_sha256']:
+            raise ValueError('Commercial backup checksum mismatch')
+        with closing(sqlite3.connect(commercial.as_uri()+'?mode=ro',uri=True)) as db:
+            if db.execute('PRAGMA integrity_check').fetchone()[0]!='ok':
+                raise ValueError('Commercial backup integrity failed')
+            db.execute('SELECT 1 FROM commercial_quotes LIMIT 1')
     subprocess.run(["pg_restore", "--list", str(dump)], check=True, capture_output=True, env=safe_child_env())
     with closing(sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True)) as db:
         if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
