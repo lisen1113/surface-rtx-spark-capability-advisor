@@ -55,9 +55,12 @@ def test_public_registration_verification_license_and_login(monkeypatch, tmp_pat
     with TestClient(app, base_url="https://advisor.example.invalid") as client:
         assert client.get("/health").status_code == 200
         assert client.get("/api/catalog/skus").status_code == 401
+        assert client.post('/api/auth/register',json={
+            'organization_name':'集成测试企业','email':'integration@example.invalid',
+            'password':'Integration-password-123'}).status_code==400
         registered = client.post("/api/auth/register", json={
             "organization_name": "集成测试企业", "email": "integration@example.invalid",
-            "password": "Integration-password-123"})
+            "password": "Integration-password-123", "accepted_terms": True, "accepted_privacy": True})
         assert registered.status_code == 201, registered.text
         assert "development_token" not in registered.json()
         assert client.post("/api/auth/verify-email", json={"token": sent[0]}).status_code == 200
