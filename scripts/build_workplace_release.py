@@ -12,7 +12,7 @@ from app.commercial import store
 def build(output,admin_id):
     source=ROOT/'.commercial-local/commercial-public.sqlite3'
     files={str(p.relative_to(ROOT)).replace('\\','/'):p for p in (ROOT/'backend/app').rglob('*') if p.is_file() and p.suffix in ('.py','.css','.js','.html','.png') and '__pycache__' not in p.parts}
-    for name in ('backend/requirements.txt','deploy/preflight_workplace.py','deploy/release_workplace.py','deploy/backup_public.py','deploy/verify_backup.py','deploy/cos_offsite_backup.py','deploy/restore_cos_backup.py'):
+    for name in ('backend/requirements.txt','deploy/preflight_workplace.py','deploy/release_workplace.py','deploy/update_workplace.py','deploy/backup_public.py','deploy/verify_backup.py','deploy/cos_offsite_backup.py','deploy/restore_cos_backup.py'):
         files[name]=ROOT/name
     output=output.resolve();output.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='workplace-release-',dir=ROOT/'artifacts') as temporary:

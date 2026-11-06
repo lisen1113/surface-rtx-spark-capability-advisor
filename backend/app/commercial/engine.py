@@ -4,6 +4,7 @@ from contextlib import closing
 from decimal import Decimal, ROUND_HALF_UP, localcontext
 import json
 import sqlite3
+import re
 
 from fastapi import HTTPException
 from .. import catalog
@@ -34,7 +35,29 @@ def catalog_items():
     try:
         with closing(sqlite3.connect(catalog.DB_PATH.as_uri() + "?mode=ro", uri=True)) as conn:
             conn.row_factory = sqlite3.Row
-            return [dict(r) for r in conn.execute("SELECT * FROM sku_lookup WHERE match_level NOT LIKE 'N/A%' ORDER BY part_number")]
+            items={r['part_number']:dict(r) for r in conn.execute("SELECT * FROM sku_lookup WHERE match_level NOT LIKE 'N/A%' ORDER BY part_number")}
+            # A reviewed Part Number must exist in both datasets. ERP price and
+            # original description remain from sku_lookup; specs are enriched
+            # only from that exact SKU, never inferred from the platform name.
+            rows=conn.execute("""SELECT l.*,s.memory_gb AS spark_memory,s.storage_tb AS spark_storage,
+                s.source_sha256 AS spark_source_sha256 FROM sku_lookup l JOIN imported_skus s ON l.part_number=s.part_number
+                WHERE l.original_family='Surface Laptop Ultra' AND s.product_family='Surface Laptop Ultra'
+                AND l.product_type LIKE 'NVIDIA%' AND s.platform_code IN ('S2','S3')""")
+            for row in rows:
+                item=dict(row)
+                memory=item.pop('spark_memory');storage=item.pop('spark_storage')
+                item['spec_source_sha256']=item.pop('spark_source_sha256')
+                item['source_product_type']=item['product_type']
+                item['rental_family']='RTX Spark'
+                item['product_type']='RTX Spark 设备'
+                item['series_group']='Laptop Ultra（RTX Spark）'
+                item['product_name']='Surface Laptop Ultra（RTX Spark）'
+                if item['memory_gb'] is None:item['memory_gb']=memory
+                if not item['storage_capacity'] and storage is not None:
+                    matches=re.findall(r'(\d+(?:\.\d+)?)\s*(TB|TGB|GB)',item['raw_description'],re.I)
+                    item['storage_capacity']=(matches[-1][0]+matches[-1][1].upper().replace('TGB','TB')) if len(matches)>1 else f'{storage:g}TB'
+                items[item['part_number']]=item
+            return sorted(items.values(),key=lambda x:x['part_number'])
     except sqlite3.Error as exc:
         raise HTTPException(503, "Surface 查询库尚未就绪，请先导入授权 ERP 数据") from exc
 
@@ -105,11 +128,11 @@ def calculate(conn, data):
     rent_total, final_rent_total, hardware_cost, residual_total = D(0), D(0), D(0), D(0)
     all_items = {x["part_number"]: x for x in catalog_items()} if data.hardware else {}
     if data.hardware and not any(rental.is_device(all_items.get(line.part_number, {})) for line in data.hardware):
-        raise HTTPException(422, "配件或延保不能单独作为 Surface 租赁方案，请先加入设备")
+        raise HTTPException(422, "配件或延保不能单独作为租赁方案，请先加入设备")
     for line in data.hardware:
         item = all_items.get(line.part_number)
-        if not item or "NVIDIA" in item["product_type"] or "Spark" in (item["product_name"] or ""):
-            raise HTTPException(422, f"{line.part_number} 不在 Surface 租赁范围内")
+        if not item or not rental.in_scope(item):
+            raise HTTPException(422, f"{line.part_number} 不在已核验的设备租赁范围内")
         if item["erp_price_cny"] is None or D(str(item["erp_price_cny"])) <= 0:
             raise HTTPException(409, f"{line.part_number} 缺少有效 ERP 价格")
         price = money(str(item["erp_price_cny"]))
@@ -122,6 +145,8 @@ def calculate(conn, data):
             price, residual, rent = details['cost'], details['residual'], details['monthly']
             monthly, final_monthly, rate = rent, details['final_monthly'], D(0)
         else:
+            if rental.is_rtx_spark(item):
+                raise HTTPException(422,'RTX Spark 请使用常规租赁规则并单独确认残值')
             if n == 12:
                 raise HTTPException(422, '旧版租赁政策不支持 12 个月，请管理员发布常规租赁规则')
             residual_rate = D(policy[f"residual_rate_{n}"]) if is_device else D(0)
@@ -150,6 +175,9 @@ def calculate(conn, data):
                                    'residual_rate': str(details['residual_rate']), 'term_multiplier': str(details['multiplier']),
                                    'priced_amount_cny': cash(details['priced_amount']), 'term_total_cny': cash(details['term_total']*line.quantity),
                                    'calculation_method': rental.METHOD})
+            if details['brand']=='RTX Spark' and not details['residual_confirmed']:
+                blockers.append('RTX Spark 残值尚未单独确认，请管理员保存对应规则后重新报价')
+                warnings.append('RTX Spark 当前按通用残值试算，正式订购前需单独确认。')
 
     public_cloud, internal_cloud = [], []
     annual_sell, annual_cost, annual_tax = D(0), D(0), D(0)

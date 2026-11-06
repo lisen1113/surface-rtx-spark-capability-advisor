@@ -18,7 +18,9 @@ def verify():
         catalog=client.get('/api/commercial/public/catalog')
         assert catalog.status_code==200,catalog.text
         data=catalog.json()
-        assert len(data['cloud'])==14 and len(data['hardware'])==226
+        assert len(data['cloud'])==14 and len(data['hardware'])==237
+        spark=[x for x in data['hardware'] if x['brand']=='RTX Spark']
+        assert len(spark)==11 and all(x['is_device'] and x['memory_gb'] for x in spark)
         assert data['budget']['lease_terms']==[12,24,36]
         for field in ('erp_price_cny','software_cost_factor','residual_by_brand'):
             assert field not in catalog.text
@@ -31,6 +33,11 @@ def verify():
         assert sum(Decimal(x['due_cny']) for x in result['payment_schedule'])==Decimal(result['total_cny'])
         assert result['hardware'][0]['unit_monthly_cny']==selected['monthly']['12']
         assert 'erp_unit_cost_cny' not in estimate.text
+        for term in (12,24,36):
+            test=client.post('/api/commercial/public/estimate',json={'term_months':term,'hardware':[{'part_number':spark[0]['part_number'],'quantity':2}]})
+            assert test.status_code==200,test.text
+            values=test.json()
+            assert sum(Decimal(x['due_cny']) for x in values['payment_schedule'])==Decimal(values['total_cny'])
         plans=client.post('/api/commercial/public/recommendations',json={'users':10,'copilot_users':3}).json()
         assert plans['items'][0]['monthly_average_usd']=='168.50'
         ticket=client.post('/api/commercial/public/budget-ticket',json=inputs)
@@ -39,7 +46,7 @@ def verify():
         pdf=client.get(route)
         assert pdf.status_code==200 and pdf.content.startswith(b'%PDF')
         assert client.get(route).status_code==404
-    print(json.dumps({'status':'passed','hardware':226,'cloud':14,'protected_admin':True,'public_estimate':True,'mobile_pdf_single_use':True}))
+    print(json.dumps({'status':'passed','hardware':237,'spark_skus':11,'cloud':14,'protected_admin':True,'public_estimate':True,'mobile_pdf_single_use':True}))
 
 
 if __name__=='__main__':

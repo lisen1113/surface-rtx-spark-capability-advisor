@@ -95,7 +95,7 @@ def catalog():
             cloud[-1]["features"] = FEATURES.get(price["product_id"], [])
     hardware = []
     for item in engine.catalog_items():
-        if "NVIDIA" in item["product_type"] or "Spark" in (item["product_name"] or ""):
+        if not rental.in_scope(item):
             continue
         card = {key: item[key] for key in ("part_number", "product_name", "raw_description", "product_type", "series_group", "memory_gb", "storage_capacity", "cpu_official", "color", "connectivity", "weight", "display")}
         card['brand'] = rental.brand(item)
@@ -103,8 +103,10 @@ def catalog():
         card["monthly"] = {}
         if policy and item["erp_price_cny"] is not None and Decimal(str(item["erp_price_cny"])) > 0:
             cost = engine.money(str(item["erp_price_cny"]))
-            device = item["product_type"] == "Surface 设备"
+            device = rental.is_device(item)
             for months in (12, 24, 36):
+                if rental.is_rtx_spark(item) and policy.get('calculation_method')!=rental.METHOD:
+                    continue
                 if policy.get('calculation_method') == rental.METHOD:
                     result = rental.price(item,policy,months)
                     card['monthly'][str(months)] = engine.cash(result['monthly'])

@@ -67,14 +67,14 @@ class ResidualRates(Input):
 class RentalRulesInput(Input):
     name: str = Field(default='常规硬件租赁', min_length=2, max_length=150)
     surface_erp_cost_factor: Decimal = Field(default=Decimal('1'), gt=0, le=1, decimal_places=6)
-    residual_by_brand: dict[Literal['Surface', 'Apple', 'Think'], ResidualRates]
+    residual_by_brand: dict[Literal['Surface', 'Apple', 'Think', 'RTX Spark'], ResidualRates]
     terms_reference: str = Field(min_length=2, max_length=1000)
     approved_for_formal: bool = False
 
     @field_validator('residual_by_brand')
     @classmethod
     def all_brands(cls, value):
-        if set(value) != {'Surface', 'Apple', 'Think'}:
+        if not {'Surface', 'Apple', 'Think'}.issubset(value):
             raise ValueError('请完整设置 Surface、Apple、Think 的残值比例')
         return value
 

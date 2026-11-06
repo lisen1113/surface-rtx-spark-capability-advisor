@@ -1,5 +1,7 @@
 # surface-rtx-spark-capability-advisor
 
+租赁选型已加入 11 个 Laptop Ultra（RTX Spark）SKU，支持专属筛选、12 / 24 / 36 月预算及 PDF。按原始 ERP 核算，管理员单独配置 RTX Spark 残值；不套用 Surface 成本折扣。
+
 硬件租赁已按用户示例增加 12 / 24 / 36 月固定计价系数 1.15 / 1.30 / 1.45，管理员可按品牌及租期调整残值，并设置 Surface ERP 成本比例。原始 ERP 与历史报价保留，月租尾差在末期调整。
 
 新增本地独立客户入口 `/workplace`（无需登录）及管理员入口 `/workplace/admin`：Surface 租赁、M365/Copilot 标准价组合、客户资料、预算/正式报价和 Azure 独立合同用量。软件成本按公开标准价的 85% 核算，客户按标准价报价。使用隔离预览库的启动、配置与验证见 [商业工作台说明](docs/COMMERCIAL_WORKSPACE.md)。2026-11-06 经授权更新 surfacedmp.com，并上传小程序开发版本 3.2.20261106.1；审核与正式发布尚待微信平台完成，详见 [发布记录](docs/WORKPLACE_RELEASE_2026_11_06.md)。

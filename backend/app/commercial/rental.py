@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 METHOD = 'fixed-term-v1'
 MULTIPLIERS = {12: Decimal('1.15'), 24: Decimal('1.30'), 36: Decimal('1.45')}
-BRANDS = ('Surface', 'Apple', 'Think')
+BRANDS = ('Surface', 'Apple', 'Think', 'RTX Spark')
 SOURCE_SHA256 = '936e5e433f5317aa04722920afbcf4342d9ebbdf581b7065e28843d95f02c77b'
 
 
@@ -12,7 +12,16 @@ def money(value):
     return Decimal(value).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
 
 
+def is_rtx_spark(item):
+    return item.get('rental_family')=='RTX Spark'
+
+
+def in_scope(item):
+    return is_rtx_spark(item) or ('NVIDIA' not in item.get('product_type','') and 'Spark' not in (item.get('product_name') or ''))
+
+
 def brand(item):
+    if is_rtx_spark(item):return 'RTX Spark'
     text = ' '.join(str(item.get(k) or '') for k in ('product_type', 'product_name', 'original_family', 'series_group', 'raw_description')).lower()
     if any(x in text for x in ('apple', '苹果', 'macbook', 'imac', 'mac mini', 'mac studio', 'mac pro', 'ipad')):
         return 'Apple'
@@ -24,6 +33,7 @@ def brand(item):
 
 
 def is_device(item):
+    if is_rtx_spark(item):return True
     kind = item.get('product_type', '')
     if 'NVIDIA' in kind or 'Spark' in (item.get('product_name') or ''):
         return False
@@ -52,9 +62,11 @@ def price(item, policy, months):
     if cost <= 0:
         raise HTTPException(422, '折扣后的硬件成本必须大于零')
     device = is_device(item)
-    if device and product_brand not in policy['residual_by_brand']:
+    confirmed=product_brand in policy['residual_by_brand']
+    if device and not confirmed and product_brand!='RTX Spark':
         raise HTTPException(422, '设备品牌没有配置残值规则')
-    residual_rate = Decimal(policy['residual_by_brand'][product_brand][f'months_{months}']) if device else Decimal(0)
+    defaults={12:Decimal('.5'),24:Decimal('.4'),36:Decimal('.3')}
+    residual_rate = (Decimal(policy['residual_by_brand'][product_brand][f'months_{months}']) if confirmed else defaults[months]) if device else Decimal(0)
     residual = money(cost * residual_rate)
     multiplier = MULTIPLIERS[months]
     priced = money(cost * multiplier)
@@ -63,6 +75,6 @@ def price(item, policy, months):
     total = money(cost * (multiplier - residual_rate))
     monthly = money(total / months)
     final = total - monthly * (months - 1)
-    return {'brand': product_brand, 'erp_cost': erp, 'cost_factor': factor, 'cost': cost,
+    return {'brand': product_brand, 'erp_cost': erp, 'cost_factor': factor, 'cost': cost,'residual_confirmed':confirmed,
             'residual_rate': residual_rate, 'residual': residual, 'multiplier': multiplier,
             'priced_amount': priced, 'monthly': monthly, 'final_monthly': final, 'term_total': total}

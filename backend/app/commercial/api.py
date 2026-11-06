@@ -80,7 +80,7 @@ def products(user=Depends(customer)):
 
 @router.get("/hardware")
 def hardware(q: str = Query(default="", max_length=100), user=Depends(customer)):
-    items = [x for x in engine.catalog_items() if "NVIDIA" not in x["product_type"]
+    items = [x for x in engine.catalog_items() if rental.in_scope(x)
              and q.casefold() in (x["part_number"] + " " + (x["product_name"] or "") + " " + x["raw_description"]).casefold()]
     fields = ("part_number", "product_name", "raw_description", "product_type", "memory_gb", "erp_price_cny")
     # ERP is an internal cost, not returned by the new customer workflow.
@@ -89,7 +89,7 @@ def hardware(q: str = Query(default="", max_length=100), user=Depends(customer))
 
 @router.post("/recommendations")
 def recommend(data: RecommendInput, user=Depends(customer)):
-    items = [x for x in engine.catalog_items() if x["product_type"] == data.product_type and "NVIDIA" not in x["product_type"]
+    items = [x for x in engine.catalog_items() if x["product_type"] == data.product_type and rental.in_scope(x)
              and x["memory_gb"] is not None and x["memory_gb"] >= data.min_memory_gb
              and x["erp_price_cny"] is not None and Decimal(str(x["erp_price_cny"])) > 0
              and (data.max_erp_cny is None or Decimal(str(x["erp_price_cny"])) <= data.max_erp_cny)]
@@ -333,7 +333,7 @@ def put_rental_rules(data: RentalRulesInput, user=Depends(admin)):
     identifier = store.identifier('LP')
     payload = rental.policy_payload(data)
     for item in engine.catalog_items():
-        if 'NVIDIA' in item['product_type'] or 'Spark' in (item['product_name'] or ''):
+        if not rental.in_scope(item):
             continue
         if item['erp_price_cny'] is not None and Decimal(str(item['erp_price_cny'])) > 0:
             for months in rental.MULTIPLIERS:
