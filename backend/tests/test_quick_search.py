@@ -21,7 +21,8 @@ def test_power_supply_marks_follow_user_configuration_codes():
 
 
 def test_surface_mobile_pdf_ticket_preserves_sku_filename_and_single_use(monkeypatch, tmp_path):
-    from app.auth import require_entitled_user, now, iso
+    from app.auth import now, iso
+    from app.advisor_access import require_advisor_user as require_entitled_user
     from datetime import timedelta
     monkeypatch.delenv('CAPABILITY_AUTH_DATABASE_URL', raising=False)
     monkeypatch.setattr(catalog, 'DB_PATH', tmp_path / 'mobile.sqlite3')

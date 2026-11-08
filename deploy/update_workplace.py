@@ -11,11 +11,13 @@ ROOT=Path('/opt/capability-advisor')
 def run(command,**kwargs):return subprocess.run(command,check=True,**kwargs)
 
 
-def update(archive,expected):
+def update(archive,expected,public_advisor=False):
     archive=Path(archive).resolve()
     assert hashlib.sha256(archive.read_bytes()).hexdigest()==expected.lower()
     env={}
-    for line in Path('/etc/capability-advisor.env').read_text().splitlines():
+    environment_path=Path('/etc/capability-advisor.env')
+    original_environment=environment_path.read_text()
+    for line in original_environment.splitlines():
         if line.strip() and not line.lstrip().startswith('#') and '=' in line:
             key,value=line.split('=',1);env[key]=value.strip().strip('"').strip("'")
     assert env.get('CAPABILITY_REQUIRE_AUTH')=='1' and env.get('CAPABILITY_COMMERCIAL_ENABLED')=='1'
@@ -24,6 +26,9 @@ def update(archive,expected):
     account=pwd.getpwnam('advisor')
     backup=ROOT/'backups'/('workplace-update-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     backup.mkdir(mode=0o700)
+    if public_advisor:
+        shutil.copy2(environment_path,backup/'environment.before')
+        env['CAPABILITY_PUBLIC_ADVISOR']='1'
     run(['systemctl','start','capability-cos-backup.service'])
     with closing(sqlite3.connect(catalog.as_uri()+'?mode=ro',uri=True)) as conn:
         counts={t:conn.execute('SELECT COUNT(*) FROM '+t).fetchone()[0] for t in ('sku_lookup','imported_skus')}
@@ -50,6 +55,9 @@ def update(archive,expected):
                 target=ROOT/name;existed[name]=target.exists()
                 if target.exists():destination=backup/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(target,destination)
             run(['systemctl','stop','capability-advisor']);installed=True
+            if public_advisor:
+                updated_environment='\n'.join(line for line in original_environment.splitlines() if not line.startswith('CAPABILITY_PUBLIC_ADVISOR='))+'\nCAPABILITY_PUBLIC_ADVISOR=1\n'
+                environment_path.write_text(updated_environment)
             for name in files:
                 destination=ROOT/name;destination.parent.mkdir(parents=True,exist_ok=True)
                 pending=destination.with_name(destination.name+'.update-new');shutil.copy2(temporary/name,pending)
@@ -65,6 +73,7 @@ def update(archive,expected):
     except BaseException:
         if installed:
             subprocess.run(['systemctl','stop','capability-advisor'],check=False)
+            if public_advisor:environment_path.write_text(original_environment)
             for name in files:
                 target=ROOT/name
                 if existed[name]:shutil.copy2(backup/name,target);os.chown(target,account.pw_uid,account.pw_gid)
@@ -73,4 +82,7 @@ def update(archive,expected):
         raise
 
 
-if __name__=='__main__':update(sys.argv[1],sys.argv[2])
+if __name__=='__main__':
+    assert len(sys.argv) in (3,4)
+    if len(sys.argv)==4:assert sys.argv[3]=='--public-advisor'
+    update(sys.argv[1],sys.argv[2],len(sys.argv)==4)

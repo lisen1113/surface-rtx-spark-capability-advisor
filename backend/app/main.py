@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from .catalog import connection, router as catalog_router
 from .capability import estimate_capacity
 from .auth import require_entitled_user, router as auth_router
+from .advisor_access import require_advisor_user, require_catalog_user
 from .tco import router as tco_router
 from .knowledge import router as knowledge_router
 from .faq import router as faq_router
@@ -87,13 +88,13 @@ async def shared_host_boundary(request: Request, call_next):
 
 app.mount("/assets", StaticFiles(directory=Path(__file__).resolve().parent / "assets"), name="assets")
 
-app.include_router(catalog_router, dependencies=[Depends(require_entitled_user)])
+app.include_router(catalog_router, dependencies=[Depends(require_catalog_user)])
 app.include_router(guest_router)
 app.include_router(guest_ui_router)
 app.include_router(auth_router)
 app.include_router(tco_router)
-app.include_router(knowledge_router, dependencies=[Depends(require_entitled_user)])
-app.include_router(faq_router, dependencies=[Depends(require_entitled_user)])
+app.include_router(knowledge_router, dependencies=[Depends(require_advisor_user)])
+app.include_router(faq_router, dependencies=[Depends(require_advisor_user)])
 app.include_router(report_router)
 app.include_router(auth_ui_router)
 app.include_router(ui_router)
@@ -137,7 +138,7 @@ def about():
     }
 
 @app.post("/api/estimate/memory")
-def estimate_memory(data: MemoryEstimateInput, _user=Depends(require_entitled_user)):
+def estimate_memory(data: MemoryEstimateInput, _user=Depends(require_advisor_user)):
     result = estimate_capacity(**data.model_dump()).as_dict()
     # Keep the original fields during the V3 bootstrap API transition.
     result["estimated_weight_gb"] = result["weight_gb"]

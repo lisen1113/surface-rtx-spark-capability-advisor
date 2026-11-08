@@ -2,7 +2,7 @@
 import math
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, model_validator
-from .auth import require_entitled_user
+from .advisor_access import require_advisor_user, public_advisor_enabled
 from .catalog import connection
 
 router = APIRouter(prefix="/api/tco", tags=["tco"])
@@ -63,15 +63,21 @@ def sku_defaults(sku: dict) -> dict:
 
 
 @router.get("/defaults/{part_number}")
-def defaults_for_sku(part_number: str, _user=Depends(require_entitled_user)):
+def defaults_for_sku(part_number: str, _user=Depends(require_advisor_user)):
     with connection() as conn:
         row = conn.execute("SELECT * FROM imported_skus WHERE part_number=?", (part_number,)).fetchone()
     if not row:
         raise HTTPException(404, "未找到该 Part Number")
+    if public_advisor_enabled():
+        result=sku_defaults({**dict(row),'erp_price_cny':0,'source_reference':None})
+        result.pop('source_reference',None)
+        result['provenance']['purchase_price_cny']='请填写客户实际采购报价；0 仅为占位，不是设备价格'
+        result['warning']='请先填写客户采购报价、残值及运维等实际参数。当前 0 元仅是空白占位，不能据此判断节省；其他参数亦为可编辑示例。'
+        return result
     return sku_defaults(dict(row))
 
 @router.post("/calculate")
-def calculate(data: TcoInput, _user=Depends(require_entitled_user)):
+def calculate(data: TcoInput, _user=Depends(require_advisor_user)):
     electricity = data.power_watts / 1000 * data.hours_per_day * data.days_per_year * data.years * data.electricity_cny_per_kwh
     maintenance = data.annual_maintenance_cny * data.years
     allocated_purchase = (data.purchase_price_cny - data.residual_value_cny) * data.device_cost_allocation_ratio

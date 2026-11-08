@@ -11,6 +11,11 @@ from time import monotonic
 
 
 AUTH_LIMITS = {
+    "/api/recommendations": (120, 900),
+    "/api/estimate/memory": (120, 900),
+    "/api/reports/mobile-ticket": (30, 900),
+    "/api/reports/recommendation": (60, 900),
+    "/api/tco/calculate": (120, 900),
     "/api/commercial/public/catalog": (180, 900),
     "/api/commercial/public/recommendations": (180, 900),
     "/api/commercial/public/estimate": (180, 900),

@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 from fastapi import APIRouter, Body, HTTPException, Query
+from .advisor_access import public_product
 
 from .importer import preview_sku_csv
 from .generation import generation_guidance
@@ -188,7 +189,12 @@ def sources():
 
 @router.get("/imported-skus")
 def imported_skus():
- return {"items": rows("imported_skus"), "note": "来自授权工作簿；原始记录按工作表逐行保留"}
+ from .advisor_access import public_advisor_enabled
+ items = rows("imported_skus")
+ if public_advisor_enabled():
+  keys = {"part_number", "product_family", "platform_code", "memory_gb", "storage_tb", "cpu_model", "gpu_model", "operating_system"}
+  items = [{k: v for k, v in item.items() if k in keys} for item in items]
+ return {"items": items, "note": "产品配置与参考价；实际能力按证据级别及实机验证"}
 
 
 def _lookup_filters(*, q: str, product_type: str | None, series: str | None,
@@ -350,7 +356,7 @@ def advisor(part_number: str):
  def recommended(sheet):
   return [item for item in source_sheet(sheet) if part_number in str(item.get("适用SKU", item.get("适用SKU内存档", "")))]
  return {
-  "sku": dict(sku_row), "ai": direct("AI能力映射"), "gaming": direct("游戏能力映射"),
+  "sku": public_product(dict(sku_row)), "ai": direct("AI能力映射"), "gaming": direct("游戏能力映射"),
   "ai_official_updates": agent_guidance(part_number, int(sku_row["memory_gb"] or 0)),
   "gaming_official_updates": gaming_updates(part_number),
   "generation": generation_guidance(part_number, int(sku_row["memory_gb"] or 0), sku_row["platform_code"]),

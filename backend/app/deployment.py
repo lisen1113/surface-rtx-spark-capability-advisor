@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 
 from .capability import estimate_capacity
 from .catalog import connection
-from .auth import require_entitled_user
+from .advisor_access import require_advisor_user
 from .platform_display import platform_label
 from .branding import apply_theme
 
@@ -60,7 +60,7 @@ def sku_deployment_plan(sku: dict) -> dict:
 
 
 @router.get("/api/deployment/sku/{part_number}")
-def deployment_plan(part_number: str, _user=Depends(require_entitled_user)):
+def deployment_plan(part_number: str, _user=Depends(require_advisor_user)):
     with connection() as conn:
         row = conn.execute("SELECT * FROM imported_skus WHERE part_number=?", (part_number,)).fetchone()
     if not row:

@@ -1,6 +1,7 @@
 """Validate an enabled public deployment without changing live customer records."""
 from decimal import Decimal
 import json
+import os
 from fastapi.testclient import TestClient
 from app.main import app
 from app.commercial import store
@@ -14,7 +15,8 @@ def verify():
         assert client.get('/workplace').status_code==200
         assert client.get('/workplace/admin').status_code==200
         assert client.get('/api/commercial/admin/settings').status_code==401
-        assert client.get('/api/catalog/imported-skus').status_code==401
+        assert client.get('/api/catalog/imported-skus').status_code==(200 if os.getenv('CAPABILITY_PUBLIC_ADVISOR')=='1' else 401)
+        assert client.get('/api/catalog/sources').status_code==401
         catalog=client.get('/api/commercial/public/catalog')
         assert catalog.status_code==200,catalog.text
         data=catalog.json()

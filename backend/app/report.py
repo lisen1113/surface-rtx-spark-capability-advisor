@@ -2,22 +2,28 @@
 from html import escape
 import json
 import secrets
+from threading import Lock
+from time import monotonic
 from typing import Literal
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 from .auth import _license_check, _token_hash, iso, now, require_entitled_user
+from .advisor_access import require_advisor_user, public_advisor_enabled, public_product
 from .auth_store import connection as auth_connection
 from .catalog import connection, rows, source_sheet
 from .generation import generation_guidance
 from .productivity import productivity_guidance
 from .spark_updates import agent_guidance, gaming_updates
-from .recommendation import RecommendationInput, recommend
+from .recommendation import RecommendationInput, recommend, recommend_products
 from .report_pdf import build_customer_pdf
 from .platform_display import platform_label, public_configuration
 
 router=APIRouter(prefix="/api/reports",tags=["reports"])
+
+PUBLIC_PDF_TICKETS = {}
+PUBLIC_PDF_LOCK = Lock()
 
 USAGE_LABELS = {"ai": "本地 AI 模型", "gaming": "游戏", "generation": "生成式 AI", "productivity": "生产力"}
 
@@ -32,12 +38,24 @@ class MobilePdfInput(BaseModel):
 
 
 @router.post("/mobile-ticket")
-def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_entitled_user)):
- if not user: raise HTTPException(403,"小程序 PDF 预览需要登录")
+def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_advisor_user), authorization: str | None = Header(default=None)):
+ if data.report_kind == 'surface' and public_advisor_enabled():
+  user = require_entitled_user(authorization)
+ if not user and not (public_advisor_enabled() and data.report_kind == 'advisor'):
+  raise HTTPException(403,"小程序 PDF 预览需要登录")
  with connection() as conn:
   table = 'sku_lookup' if data.report_kind == 'surface' else 'imported_skus'
   found=conn.execute(f"SELECT 1 FROM {table} WHERE part_number=?",(data.part_number,)).fetchone()
  if not found: raise HTTPException(404,"未找到该 Part Number")
+ if not user:
+  ticket='public-'+secrets.token_urlsafe(32)
+  with PUBLIC_PDF_LOCK:
+   expired=[key for key, value in PUBLIC_PDF_TICKETS.items() if value[1] <= monotonic()]
+   for key in expired: PUBLIC_PDF_TICKETS.pop(key, None)
+   if len(PUBLIC_PDF_TICKETS)>=1024: raise HTTPException(429,"下载请求繁忙，请稍后重试")
+   PUBLIC_PDF_TICKETS[ticket]=(data.part_number,monotonic()+90)
+  safe_sku=''.join(c if c.isascii() and (c.isalnum() or c in '-_') else '-' for c in data.part_number)
+  return {"ticket":ticket,"expires_in":90,"filename":'Surface-Laptop-Ultra-Capability-'+safe_sku+'.pdf'}
  ticket=secrets.token_urlsafe(32)
  with auth_connection() as conn:
   conn.execute("INSERT INTO pdf_download_tickets (token_hash,user_id,part_number,expires_at,used_at) VALUES (?,?,?,?,NULL)",
@@ -50,6 +68,11 @@ def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_entitled_
 @router.get("/mobile-download/{ticket}")
 def mobile_pdf_download(ticket: str):
  if len(ticket)>128: raise HTTPException(404,"下载授权无效")
+ if ticket.startswith('public-'):
+  if not public_advisor_enabled(): raise HTTPException(404,"下载授权无效")
+  with PUBLIC_PDF_LOCK: entry=PUBLIC_PDF_TICKETS.pop(ticket,None)
+  if not entry or entry[1] <= monotonic(): raise HTTPException(404,"下载授权已失效，请重新生成")
+  return download_customer_pdf(entry[0])
  with auth_connection() as conn:
   row=conn.execute("SELECT t.part_number,u.* FROM pdf_download_tickets t JOIN users u ON u.id=t.user_id "
                    "WHERE t.token_hash=? AND t.used_at IS NULL AND t.expires_at>?",
@@ -68,7 +91,7 @@ def mobile_pdf_download(ticket: str):
   sku=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
  if not sku: raise HTTPException(404,"未找到该 Part Number")
  safe_sku="".join(c if c.isascii() and (c.isalnum() or c in "-_") else "-" for c in part_number)
- return Response(build_customer_pdf(dict(sku)),media_type="application/pdf",headers={
+ return Response(build_customer_pdf(public_product(dict(sku))),media_type="application/pdf",headers={
   "Content-Disposition":f'attachment; filename="Surface-Laptop-Ultra-Capability-{safe_sku}.pdf"',
   "Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff",
  })
@@ -97,13 +120,13 @@ def related_records(items: list[dict], key: str, terms: tuple[str, ...]) -> list
 
 
 @router.post("/recommendation", response_class=HTMLResponse)
-def recommendation_report(data: NeedReportInput, _user=Depends(require_entitled_user)):
+def recommendation_report(data: NeedReportInput, _user=Depends(require_advisor_user)):
     """Printable report bound to both the submitted need and selected candidate SKU."""
-    all_skus = rows("imported_skus")
+    all_skus = [public_product(item) for item in rows("imported_skus")]
     sku = next((item for item in all_skus if item["part_number"] == data.part_number), None)
     if sku is None:
         raise HTTPException(404, "未找到该 Part Number")
-    result = recommend(data, all_skus)
+    result = recommend_products(data) if public_advisor_enabled() else recommend(data, all_skus)
     candidate = next((item for item in result["items"] if item["part_number"] == data.part_number), None)
     if candidate is None:
         raise HTTPException(422, "该配置不在本次需求的候选结果中，请重新查找配置")
@@ -177,24 +200,24 @@ def section(title,items,title_keys,result_keys):
 
 
 @router.get("/{part_number}.pdf")
-def download_customer_pdf(part_number: str, _user=Depends(require_entitled_user)):
+def download_customer_pdf(part_number: str, _user=Depends(require_advisor_user)):
  with connection() as conn:
   row=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
  if not row: raise HTTPException(404,"未找到该 Part Number")
  safe_sku="".join(c if c.isascii() and (c.isalnum() or c in "-_" ) else "-" for c in part_number)
  filename=f"Surface-Laptop-Ultra-Capability-{safe_sku}.pdf"
- return Response(build_customer_pdf(dict(row)),media_type="application/pdf",headers={
+ return Response(build_customer_pdf(public_product(dict(row))),media_type="application/pdf",headers={
   "Content-Disposition":f'attachment; filename="{filename}"',
   "Cache-Control":"no-store",
   "X-Content-Type-Options":"nosniff",
  })
 
 @router.get("/{part_number}.html",response_class=HTMLResponse)
-def customer_report(part_number:str, _user=Depends(require_entitled_user)):
+def customer_report(part_number:str, _user=Depends(require_advisor_user)):
  with connection() as conn:
   row=conn.execute("SELECT * FROM imported_skus WHERE part_number=?",(part_number,)).fetchone()
  if not row: raise HTTPException(404,"未找到该 Part Number")
- sku=dict(row)
+ sku=public_product(dict(row))
  direct=lambda sheet:[x for x in source_sheet(sheet) if x.get("Part Number")==part_number]
  body=section("AI 模型能力",direct("AI能力映射"),("目标模型/场景",),("本地运行判断","预计输出速度_Token/s"))
  body+=section("AI 官方生态更新（非本 SKU 实测）",agent_guidance(part_number, int(sku.get("memory_gb") or 0)),("推荐模型/工作负载名称",),("本地运行判断",))

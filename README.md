@@ -1,5 +1,7 @@
 # surface-rtx-spark-capability-advisor
 
+RTX Spark 完整顾问经授权向游客开放，无需注册或登录，包含推荐、全部能力栏目、知识库、部署指南、TCO 与报告。部署设置 `CAPABILITY_PUBLIC_ADVISOR=1`，管理员及客户资料继续受保护；详见 [游客模式](docs/GUEST_MODE.md)。
+
 租赁选型已加入 11 个 Laptop Ultra（RTX Spark）SKU，支持专属筛选、12 / 24 / 36 月预算及 PDF。按原始 ERP 核算，管理员单独配置 RTX Spark 残值；不套用 Surface 成本折扣。
 
 硬件租赁已按用户示例增加 12 / 24 / 36 月固定计价系数 1.15 / 1.30 / 1.45，管理员可按品牌及租期调整残值，并设置 Surface ERP 成本比例。原始 ERP 与历史报价保留，月租尾差在末期调整。

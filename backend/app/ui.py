@@ -9,7 +9,10 @@ router = APIRouter()
 @router.get("/", response_class=HTMLResponse)
 def index(response: Response):
  from .home_intro import render
+ from .advisor_access import public_advisor_enabled
  page=apply_theme(render(_commercial_link(_render_page(response))))
+ if public_advisor_enabled():
+  page=page.replace('ERP 含税价','参考价格').replace("metric('参考价格',s.erp_price_cny?'¥'+Number(s.erp_price_cny).toLocaleString():'未知')+",'').replace('SKU 导入价自动填入；其余仅是可编辑的预算示例','请先填写实际客户采购报价；其余为可编辑的预算示例')
  return page.replace('</head>','<link rel="stylesheet" href="/assets/home-hero.css?v=20261106"></head>',1)
 
 @router.get('/surface', response_class=HTMLResponse)

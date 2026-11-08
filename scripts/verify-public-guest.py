@@ -40,7 +40,7 @@ def assert_public_projection(value: object) -> None:
 
 def verify(base: str) -> None:
     status, page = request(base, "/guest")
-    assert status == 200 and b"/api/guest/recommendations" in page, "游客页面不可用"
+    assert status == 200 and b"/api/recommendations" in page, "完整游客顾问页面不可用"
 
     status, raw = request(base, "/api/guest/skus")
     assert status == 200, f"游客产品列表 HTTP {status}"
@@ -60,9 +60,12 @@ def verify(base: str) -> None:
     assert_public_projection(recommendation)
 
     status, _ = request(base, "/api/catalog/imported-skus")
-    assert status == 401, f"未登录目录应返回 401，实际为 {status}"
+    assert status == 200, f"未登录顾问目录应返回 200，实际为 {status}"
     status, _ = request(base, "/api/reports/" + quote(listing["items"][0]["part_number"], safe="") + ".pdf")
-    assert status == 401, f"未登录报告应返回 401，实际为 {status}"
+    assert status == 200, f"未登录报告应返回 200，实际为 {status}"
+    for path in ("/api/admin/users", "/api/catalog/sources", "/api/catalog/imports"):
+        status, _ = request(base, path)
+        assert status == 401, f"管理/导入边界错误：{path} HTTP {status}"
     print("游客页面、产品列表、需求推荐、数据脱敏和授权边界均通过。")
 
 

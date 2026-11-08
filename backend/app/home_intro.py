@@ -1,5 +1,6 @@
 """Homepage introduction and primary product entry points."""
 import re
+from .advisor_access import public_advisor_enabled
 
 
 def render(page):
@@ -19,6 +20,8 @@ def render(page):
         intro+='<p>通过 Surface AI Workplace，按团队需求组合 <strong>设备租赁与 Microsoft 365、Copilot 订阅</strong>，比较配置、分项预算和付款计划。</p>'
     intro+='</div>'
     auxiliary='<div class="home-account-links"><a href="/guest">游客体验 · 无需登录 →</a><span aria-hidden="true">·</span><a href="/account">员工与 DMP 登录</a></div>'
+    if public_advisor_enabled():
+        auxiliary=auxiliary.replace('游客体验 · 无需登录 →','RTX Spark 完整顾问 · 无需注册 →')
     page=page[:old_navigation.start()]+page[old_navigation.end():]
     page=re.sub(r'<div class="sub">.*?</div>',intro,page,count=1,flags=re.S)
     page=re.sub(r'<p><a href="/guest".*?</p>',navigation+auxiliary,page,count=1,flags=re.S)
