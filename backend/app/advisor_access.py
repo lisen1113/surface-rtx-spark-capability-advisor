@@ -11,7 +11,7 @@ def public_product(item):
     if not public_advisor_enabled():
         return item
     return {key:value for key,value in item.items() if key not in {
-        'erp_price_cny', 'adr_price_cny', 'source_reference', 'source_sha256',
+        'adr_price_cny', 'source_reference', 'source_sha256',
         'raw_configuration', 'note', 'currency_note'}}
 
 

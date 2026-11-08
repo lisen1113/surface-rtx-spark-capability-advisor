@@ -192,7 +192,7 @@ def imported_skus():
  from .advisor_access import public_advisor_enabled
  items = rows("imported_skus")
  if public_advisor_enabled():
-  keys = {"part_number", "product_family", "platform_code", "memory_gb", "storage_tb", "cpu_model", "gpu_model", "operating_system"}
+  keys = {"part_number", "product_family", "platform_code", "memory_gb", "storage_tb", "erp_price_cny", "cpu_model", "gpu_model", "operating_system"}
   items = [{k: v for k, v in item.items() if k in keys} for item in items]
  return {"items": items, "note": "产品配置与参考价；实际能力按证据级别及实机验证"}
 

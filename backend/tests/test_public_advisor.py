@@ -14,20 +14,19 @@ def test_full_advisor_anonymous_and_administration_protected(tmp_path, monkeypat
     client=TestClient(app)
     assert client.get('/guest', follow_redirects=False).headers['location']=='/?advisor=public'
     listing=client.get('/api/catalog/imported-skus')
-    assert listing.status_code==200 and 'PRIVATE' not in listing.text and 'HASH' not in listing.text and 'erp_price_cny' not in listing.text
+    assert listing.status_code==200 and 'PRIVATE' not in listing.text and 'HASH' not in listing.text and listing.json()['items'][0]['erp_price_cny']==20000
     for path in ['/api/catalog/advisor/PUBLIC-1', '/api/catalog/models', '/api/knowledge/frameworks',
                  '/api/faq', '/api/deployment/sku/PUBLIC-1', '/api/tco/defaults/PUBLIC-1',
                  '/api/reports/PUBLIC-1.html', '/api/reports/PUBLIC-1.pdf']:
         response=client.get(path)
         assert response.status_code==200,(path,response.text[:200])
-        if path.endswith('PUBLIC-1'):assert '20000' not in response.text
     for path in ['/api/admin/users', '/api/catalog/sources', '/api/catalog/imports', '/api/catalog/quick-search']:
         assert client.get(path).status_code==401,path
     recommendation=client.post('/api/recommendations',json={'usages':['ai'],'ai_size':'70B','budget_cny':1})
-    assert recommendation.status_code==200 and '20000' not in recommendation.text and 'price_cny' not in recommendation.text
+    assert recommendation.status_code==200 and recommendation.json()['items'][0]['price_cny']==20000 and recommendation.json()['items'][0]['over_budget']
     need_report=client.post('/api/reports/recommendation',json={'part_number':'PUBLIC-1','usages':['ai']})
-    assert need_report.status_code==200 and '20000' not in need_report.text
-    assert client.get('/api/tco/defaults/PUBLIC-1').json()['values']['purchase_price_cny']==0
+    assert need_report.status_code==200 and '20,000' in need_report.text
+    assert client.get('/api/tco/defaults/PUBLIC-1').json()['values']['purchase_price_cny']==20000
     rendered=[]
     original_builder=report.build_customer_pdf
     def capture(sku):
@@ -41,7 +40,7 @@ def test_full_advisor_anonymous_and_administration_protected(tmp_path, monkeypat
     route='/api/reports/mobile-download/'+ticket.json()['ticket']
     pdf=client.get(route)
     assert pdf.status_code==200 and pdf.content.startswith(b'%PDF')
-    assert rendered and 'erp_price_cny' not in rendered[-1] and 'source_reference' not in rendered[-1]
+    assert rendered and rendered[-1]['erp_price_cny']==20000 and 'source_reference' not in rendered[-1]
     assert client.get(route).status_code==404
     assert client.post('/api/reports/mobile-ticket',json={'part_number':'PUBLIC-1','report_kind':'surface'}).status_code==401
     monkeypatch.setenv('CAPABILITY_PUBLIC_ADVISOR','0')

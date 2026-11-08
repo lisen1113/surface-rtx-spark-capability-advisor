@@ -69,10 +69,8 @@ def defaults_for_sku(part_number: str, _user=Depends(require_advisor_user)):
     if not row:
         raise HTTPException(404, "未找到该 Part Number")
     if public_advisor_enabled():
-        result=sku_defaults({**dict(row),'erp_price_cny':0,'source_reference':None})
+        result=sku_defaults({**dict(row),'source_reference':None})
         result.pop('source_reference',None)
-        result['provenance']['purchase_price_cny']='请填写客户实际采购报价；0 仅为占位，不是设备价格'
-        result['warning']='请先填写客户采购报价、残值及运维等实际参数。当前 0 元仅是空白占位，不能据此判断节省；其他参数亦为可编辑示例。'
         return result
     return sku_defaults(dict(row))
 

@@ -169,11 +169,7 @@ def recommend(data: RecommendationInput, skus: list[dict]) -> dict:
 def recommend_products(data: RecommendationInput, _user=Depends(require_advisor_user)):
     if not public_advisor_enabled():
         return recommend(data, rows("imported_skus"))
-    products=[{**item, 'erp_price_cny':None, 'source_reference':None} for item in rows("imported_skus")]
-    result=recommend(data.model_copy(update={'budget_cny':None,'prefer_lower_price':False}),products)
+    result=recommend(data, rows("imported_skus"))
     for item in result['items']:
-        item.pop('price_cny',None);item.pop('source_reference',None)
-        item['evidence_level']='工程估算（筛选）+ 产品配置'
-    result['limitations']='推荐按用途与容量筛选，价格需另行询价；不构成实测或兼容性承诺。'
-    if data.budget_cny:result['needs_confirmation'].append('预算已记录供沟通；公开顾问不使用内部 ERP 价格筛选，成交价另行确认。')
+        item.pop('source_reference',None)
     return result
