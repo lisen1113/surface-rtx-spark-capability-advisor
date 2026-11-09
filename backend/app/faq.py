@@ -117,7 +117,7 @@ CONCEPTS = {
  ("LM Studio","提供模型下载、聊天和本地API的桌面工具。","适合演示和个人使用，但企业部署仍需审核模型许可、版本和更新策略。","图形界面易用不等于生产服务治理完整。"),
  ("llama.cpp","面向高效LLM推理的开源C/C++项目。","支持多种量化和后端；模型架构与构建版本必须匹配。","llama.cpp支持某GPU不代表任意分支和构建都支持。"),
  ("vLLM","强调批处理和服务吞吐的LLM推理引擎。","官方重点是Linux；Windows通常考虑WSL2或外部服务器并验证ARM64/CUDA路径。","不能把Linux服务器文档当作原生Windows支持。"),
- ("TensorRT-LLM","NVIDIA面向LLM优化的推理栈。","Windows、Linux、容器、GPU架构和版本支持需按官方矩阵确认。","TensorRT与TensorRT-LLM不是同一个产品层。"),
+ ("TensorRT-LLM","NVIDIA面向LLM优化的推理栈。","现行官方支持矩阵要求 Linux x86_64 或 Linux aarch64；Windows 原生不应列为受支持路径。具体 GPU 架构、CUDA、容器和版本仍须逐项核验。","TensorRT与TensorRT-LLM不是同一个产品层，也不能把 Linux 支持推断为 Windows 支持。"),
  ("ComfyUI","使用节点图构建图像和视频生成工作流的工具。","自定义节点、Python依赖、模型格式和显存峰值决定实际兼容性。","工作流文件能打开不代表所有节点能执行。"),
  ("容器","把应用和依赖封装在镜像中的部署方式。","镜像架构、GPU透传、驱动和许可证仍依赖宿主机。","容器不能自动解决x64镜像在ARM64上的兼容问题。"),
  ("模型许可","规定模型权重可否商用、再分发或生成特定内容的条款。","企业部署必须记录模型版本、来源、许可与使用限制。","开源代码不代表模型权重可无限制商用。"),
@@ -166,6 +166,13 @@ for category, concepts in CONCEPTS.items():
                 common["source_url"] = "https://learn.microsoft.com/en-us/windows/ai/new-windows-ml/overview"
             elif term == "Windows 11 24H2 Build 26100":
                 common["source_url"] = "https://learn.microsoft.com/en-us/windows/ai/new-windows-ml/supported-execution-providers"
+        elif category == "本地AI部署":
+            common["source_url"] = {
+                "LM Studio": "https://lmstudio.ai/docs/app/system-requirements",
+                "llama.cpp": "https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md",
+                "vLLM": "https://docs.vllm.ai/en/stable/getting_started/installation/gpu/",
+                "TensorRT-LLM": "https://nvidia.github.io/TensorRT-LLM/reference/support-matrix.html",
+            }.get(term, SOURCES[category])
         FAQ.append({"id": f"FAQ-{base:03d}", "question": f"{term}是什么？", "easy_answer": easy, "expert_answer": expert, "misconception": misconception, "sales_tip": f"先确认客户是否真的涉及“{term}”，再说明适用范围、验证条件和未知项。", **common})
         FAQ.append({"id": f"FAQ-{base+1:03d}", "question": f"{term}对 Surface Laptop Ultra 选型和使用有什么影响？", "easy_answer": expert, "expert_answer": f"选型不能只看“{term}”标签；应结合具体 Part Number、内存、软件版本、任务条件和证据等级验证。", "misconception": misconception, "sales_tip": f"不要把“{term}”单项指标当成性能承诺；用客户真实任务做 PoC。", **common})
 

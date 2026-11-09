@@ -258,6 +258,42 @@ CONCEPTS = (
      "The minimum Windows version for some hardware-optimized Windows ML execution providers.",
      "Include enterprise image, update channel, and driver versions in the deployment baseline.",
      "Meeting the OS build requirement does not replace model and application testing."),
+    ("AI runtime",
+     "Software that loads models, executes operators, and manages hardware backends.",
+     "The same model may differ in format, compatibility, memory use, and speed across runtimes.",
+     "A benchmark from one runtime cannot be reused unchanged after switching runtimes."),
+    ("Ollama",
+     "A tool for managing local models and exposing an API.",
+     "Fix the product version, model list, backend, and Windows ARM64 support status before deployment.",
+     "A successful installation does not prove every model uses the GPU."),
+    ("LM Studio",
+     "A desktop tool for model downloads, chat, and local APIs.",
+     "It can support demonstrations and personal use; enterprise deployment still needs model-license, version, and update-policy review.",
+     "An approachable interface does not replace production service governance."),
+    ("llama.cpp",
+     "An open-source C/C++ project for efficient LLM inference.",
+     "It supports multiple quantization formats and backends; verify the model architecture and exact build version.",
+     "GPU support in one llama.cpp build or branch does not establish support in every build."),
+    ("vLLM",
+     "An LLM inference engine focused on batching and service throughput.",
+     "Official installation targets Linux, not native Windows. On a Windows device, WSL2 or an external server may be considered, with ARM64 and CUDA paths validated separately.",
+     "Linux server documentation is not evidence of native Windows support."),
+    ("TensorRT-LLM",
+     "NVIDIA's inference stack optimized for LLMs.",
+     "The current official support matrix requires Linux x86_64 or Linux aarch64; native Windows is not a supported path. Verify the exact GPU architecture, CUDA, container, and version.",
+     "TensorRT and TensorRT-LLM are different product layers, and Linux support does not imply Windows support."),
+    ("ComfyUI",
+     "A tool for building image and video generation workflows with node graphs.",
+     "Custom nodes, Python dependencies, model formats, and peak GPU memory determine practical compatibility.",
+     "Opening a workflow file does not prove all its nodes can run."),
+    ("Container",
+     "A deployment package that bundles an application and its dependencies into an image.",
+     "Image architecture, GPU passthrough, drivers, and licenses still depend on the host system.",
+     "A container does not automatically make an x64 image compatible with ARM64."),
+    ("Model license",
+     "Terms that govern commercial use, redistribution, or certain uses of model weights.",
+     "Enterprise deployments must record model version, origin, license, and usage restrictions.",
+     "Open-source code does not mean the model weights are unrestricted for commercial use."),
 )
 
 
@@ -275,7 +311,8 @@ def english_item(item: dict) -> dict:
         "Models and memory" if index < 54 else
         "Inference performance" if index < 72 else
         "Quantization and precision" if index < 90 else
-        "RTX Spark hardware" if index < 108 else "Windows and compatibility"
+        "RTX Spark hardware" if index < 108 else
+        "Windows and compatibility" if index < 126 else "Local AI deployment"
     )
     if index % 2 == 0:
         result.update(
