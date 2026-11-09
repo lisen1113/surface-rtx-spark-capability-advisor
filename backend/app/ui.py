@@ -10,7 +10,14 @@ router = APIRouter()
 def index(response: Response):
  from .home_intro import render
  page=apply_theme(render(_commercial_link(_render_page(response))))
- return page.replace('</head>','<link rel="stylesheet" href="/assets/home-hero.css?v=20261106"></head>',1)
+ page=page.replace('</head>','<link rel="stylesheet" href="/assets/home-hero.css?v=20261106"></head>',1)
+ switch='<nav class="wrap" aria-label="语言 / Language" style="text-align:right;padding:0 0 10px"><a lang="zh-CN" href="/" aria-current="page" style="color:#fff">中文</a> <span aria-hidden="true"> | </span> <a lang="en" href="/en" style="color:#fff">English</a></nav>'
+ return page.replace('</header>',switch+'</header>',1)
+
+@router.get('/en', response_class=HTMLResponse)
+def index_en(response: Response):
+ from .ui_en import translate_advisor
+ return translate_advisor(index(response))
 
 @router.get('/surface', response_class=HTMLResponse)
 def surface_index(response: Response):

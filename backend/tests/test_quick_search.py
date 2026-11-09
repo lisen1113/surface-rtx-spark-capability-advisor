@@ -21,6 +21,19 @@ def test_surface_finder_language_switch_keeps_public_features():
     assert 'quick-quote-factor" type="number"' in english.text  # legacy hidden input
     assert '<label hidden>Quote factor' in english.text
 
+
+def test_public_advisor_home_has_english_route_and_switch():
+    chinese = client.get('/')
+    english = client.get('/en')
+    assert chinese.status_code == english.status_code == 200
+    assert 'href="/en"' in chinese.text
+    assert '<html lang="en">' in english.text
+    assert 'Surface AI Workplace and RTX Spark Capability Advisor' in english.text
+    assert 'Find matching configurations' in english.text
+    assert 'href="/en/surface"' in english.text
+    assert 'href="/"' in english.text
+    assert 'name="usage" value="gaming"' in english.text
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),
