@@ -186,6 +186,42 @@ CONCEPTS = (
      "A model file format commonly used in the llama.cpp ecosystem.",
      "A GGUF file may contain weights, quantization information, and metadata; runtime support depends on model architecture and backend.",
      "Being able to download a GGUF file does not prove compatibility with the current runtime."),
+    ("Grace CPU",
+     "An Arm-based CPU in the RTX Spark platform.",
+     "Prefer native ARM64 applications or verify the Prism emulation path.",
+     "The Grace name does not imply every specification of a data-center Grace CPU."),
+    ("Blackwell RTX GPU",
+     "An integrated GPU providing graphics, CUDA, Tensor Core, and ray-tracing capabilities.",
+     "Core count, power, and memory capacity differ by SKU; a platform capability is not a device benchmark.",
+     "The Blackwell architecture name alone cannot predict application speed."),
+    ("Tensor Core",
+     "A GPU unit optimized for matrix operations and low-precision AI computation.",
+     "It helps when software uses supported data types and kernels.",
+     "Having Tensor Cores does not automatically accelerate all AI software."),
+    ("RT Core",
+     "A GPU unit that accelerates ray-tracing calculations.",
+     "It mainly affects rendering and gaming workflows that support RTX, OptiX, or DXR.",
+     "RT Core count is not a primary metric for LLM inference."),
+    ("CUDA",
+     "NVIDIA's parallel-computing platform and software ecosystem.",
+     "Model framework, driver, CUDA version, and ARM64 wheels must be compatible.",
+     "CUDA support does not mean every Linux project runs unchanged on Windows."),
+    ("NVENC hardware encoding",
+     "A video encoder built into the GPU.",
+     "It can accelerate supported H.264, HEVC, or AV1 exports, subject to software and format support.",
+     "An encoder does not mean every export setting uses hardware encoding."),
+    ("NVDEC hardware decoding",
+     "Video decoding capability built into the GPU.",
+     "It can help playback and preprocessing of supported media, but codec, bit depth, and chroma format must match.",
+     "A powerful GPU does not automatically support a codec it cannot decode."),
+    ("OptiX",
+     "NVIDIA's ray-tracing and rendering development interface.",
+     "Applications such as Blender may use an OptiX backend; verify software version and ARM64 support on the target device.",
+     "OptiX capability does not mean every renderer supports it natively."),
+    ("300 GB/s peak bandwidth",
+     "An official theoretical memory-bandwidth figure for the highest platform tier.",
+     "Real workloads depend on access patterns, shared contention, power, and software efficiency.",
+     "Peak bandwidth cannot be converted into tokens per second or render time."),
 )
 
 
@@ -201,7 +237,8 @@ def english_item(item: dict) -> dict:
         "AI fundamentals" if index < 18 else
         "Model architectures" if index < 36 else
         "Models and memory" if index < 54 else
-        "Inference performance" if index < 72 else "Quantization and precision"
+        "Inference performance" if index < 72 else
+        "Quantization and precision" if index < 90 else "RTX Spark hardware"
     )
     if index % 2 == 0:
         result.update(
