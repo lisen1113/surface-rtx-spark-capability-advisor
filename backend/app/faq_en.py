@@ -78,6 +78,42 @@ CONCEPTS = (
      "A relatively compact language model suited to specific tasks and device-side deployment.",
      "An SLM often uses less memory and has lower latency, but suitability must be judged on the target task.",
      "A smaller model is not automatically low quality or inherently safer."),
+    ("Model weights",
+     "The model parameter values saved after training.",
+     "Basic weight memory is approximately parameter count times bits per parameter divided by eight, plus metadata and runtime overhead.",
+     "A weight file's size is not the total memory required at runtime."),
+    ("Unified memory",
+     "A physical memory pool shared by the CPU, GPU, and system.",
+     "Windows, the display, drivers, model weights, KV cache, and other applications all use this pool.",
+     "The advertised unified memory capacity is not all available as GPU memory."),
+    ("Dedicated video memory (VRAM)",
+     "High-speed memory connected specifically to a discrete graphics processor.",
+     "Conventional PCs often copy data between system RAM and VRAM; a unified-memory platform needs a different capacity budget.",
+     "A large unified memory pool is not fully equivalent to dedicated VRAM in bandwidth or behavior."),
+    ("System memory reserve",
+     "Memory needed by the operating system, drivers, desktop, and background processes.",
+     "Capability estimates must subtract system and runtime safety margins instead of using the theoretical full capacity.",
+     "Available memory shown by Task Manager changes with caching and running applications."),
+    ("KV cache",
+     "Attention keys and values saved for context an LLM has already processed.",
+     "Its size grows with layer count, dimensions, context length, precision, batch size, and concurrency.",
+     "Quantizing model weights does not automatically shrink KV cache by the same ratio."),
+    ("Context window",
+     "The maximum history, measured in tokens, that a model can process in one request.",
+     "The configured or architectural maximum does not promise fast, stable, or high-quality operation at that length on a particular device.",
+     "An advertised million-token context is not the default capability of every model or SKU."),
+    ("Batch size",
+     "The number of requests or samples processed together.",
+     "A larger batch may increase throughput but usually raises peak memory use and waiting time for an individual request.",
+     "A larger batch does not necessarily improve interactive response time."),
+    ("Concurrent users",
+     "Independent requests served at the same time.",
+     "Each session's context and KV cache compete for unified memory and compute resources.",
+     "Success with one user cannot be extrapolated directly to many users."),
+    ("Memory offloading",
+     "Moving some weights or computation to the CPU, system memory, or another device.",
+     "Offloading may let a larger model start, but data movement can substantially reduce speed.",
+     "Running with offloading does not imply an acceptable user experience."),
 )
 
 
@@ -89,7 +125,10 @@ def english_item(item: dict) -> dict:
         result["translation_status"] = "pending"
         return result
     term, plain, engineering, misconception = CONCEPTS[index // 2]
-    result["category"] = "AI fundamentals" if index < 18 else "Model architectures"
+    result["category"] = (
+        "AI fundamentals" if index < 18 else
+        "Model architectures" if index < 36 else "Models and memory"
+    )
     if index % 2 == 0:
         result.update(
             question=f"What is {term}?",

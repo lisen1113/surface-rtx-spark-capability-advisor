@@ -12,7 +12,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     source = client.get('/api/faq?limit=20').json()
     english = client.get('/api/faq?limit=20&lang=en').json()
     assert source['indexed_total'] == english['indexed_total'] == len(FAQ)
-    assert english['translated_total'] == 36
+    assert english['translated_total'] == 54
     for original, translated in zip(source['items'], english['items']):
         assert translated['id'] == original['id']
         assert translated['source_url'] == original['source_url']
@@ -20,12 +20,13 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert english['items'][0]['translation_status'] == 'translated_draft'
     assert english['items'][18]['translation_status'] == 'translated_draft'
     assert english['items'][18]['category'] == 'Model architectures'
-    for item in client.get('/api/faq?limit=36&lang=en').json()['items']:
+    for item in client.get('/api/faq?limit=54&lang=en').json()['items']:
         assert not re.search(r'[\u3400-\u9fff]', ' '.join(item[key] for key in
             ('question', 'easy_answer', 'expert_answer', 'misconception', 'sales_tip')))
-    pending = client.get('/api/faq?limit=40&lang=en').json()['items'][36]
+    assert client.get('/api/faq?limit=54&lang=en').json()['items'][36]['category'] == 'Models and memory'
+    pending = client.get('/api/faq?limit=55&lang=en').json()['items'][54]
     assert pending['translation_status'] == 'pending'
-    assert pending['question'] == FAQ[36]['question']
+    assert pending['question'] == FAQ[54]['question']
 
 
 def test_english_faq_search_and_home_request_language():
