@@ -233,6 +233,8 @@ def _lookup_item(row: sqlite3.Row) -> dict:
  item.pop("source_sha256", None)
  item.pop("adr_price_cny", None)
  item.pop("source_reference", None)
+ for key in ("source_sheet", "source_row", "mapping_rule_id", "exception_note"):
+  item.pop(key, None)
  if item.get('product_type') == 'Surface 设备':
   import re
   raw = item.get('raw_description') or ''
@@ -326,11 +328,6 @@ def quick_search_detail(part_number: str):
  if row is None:
   raise HTTPException(status_code=404, detail="未找到该 Part Number")
  item = _lookup_item(row)
- sheet = {"配件": "配件映射", "延保": "延保清单"}.get(item["product_type"])
- if sheet:
-  with connection() as conn:
-   records = conn.execute("SELECT record_json FROM source_records WHERE source_sha256=? AND sheet_name=? ORDER BY row_number", (row["source_sha256"], sheet)).fetchall()
-  item["service_details"] = next((json.loads(r[0]) for r in records if json.loads(r[0]).get("Part Number") == item["part_number"]), {})
  return {"item": item, "price_basis": "价格以用户提供的原始表格为准。"}
 
 @router.get('/quick-search/{part_number}/pdf')
