@@ -165,6 +165,7 @@ def translate_workplace(page: str) -> str:
         page = page.replace(source, target)
     page = page.replace('href="/"', 'href="/en"')
     page = page.replace('href="/account"', 'href="/en/account"')
+    page = page.replace('href="/workplace/admin"', 'href="/en/workplace/admin"')
     page = page.replace('href="/workplace"', 'href="/en/workplace"')
     page = page.replace('lang="zh-CN" href="/en/workplace"', 'lang="zh-CN" href="/workplace"', 1)
     runtime = '''<script>(function(){const labels=__LABELS__,phrases=Object.keys(labels).filter(key=>key.length>8).sort((a,b)=>b.length-a.length);function update(node){if(node.nodeType===3){const text=node.nodeValue,trimmed=text.trim();if(labels[trimmed]){node.nodeValue=text.replace(trimmed,labels[trimmed]);return}let translated=text;for(const phrase of phrases)translated=translated.replaceAll(phrase,labels[phrase]);if(translated!==text)node.nodeValue=translated;return}if(node.nodeType!==1||node.closest('script,style'))return;const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);while(walker.nextNode())update(walker.currentNode)}const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)update(node)});observer.observe(document.body,{childList:true,subtree:true});})();</script>'''.replace('__LABELS__', json.dumps(LABELS, ensure_ascii=False))

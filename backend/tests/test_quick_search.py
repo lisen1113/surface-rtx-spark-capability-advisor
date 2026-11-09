@@ -82,6 +82,20 @@ def test_deployment_guide_english_route_keeps_sku_plan():
     assert 'href="/en/deployment"' in chinese.text
     assert 'href="/deployment"' in english.text
 
+
+def test_workplace_admin_english_route_keeps_protected_forms():
+    chinese = client.get('/workplace/admin')
+    english = client.get('/en/workplace/admin')
+    assert chinese.status_code == english.status_code == 200
+    assert '<html lang="en">' in english.text
+    assert 'Workplace plan management' in english.text
+    assert 'Internal commercial management' in english.text
+    assert 'href="/en/workplace/admin"' in chinese.text
+    assert 'href="/workplace/admin"' in english.text
+    assert 'name="mfa_code"' in english.text
+    assert '/assets/commercial.js' in english.text
+    assert 'value="Surface 设备"' in english.text  # API filter value remains original
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),

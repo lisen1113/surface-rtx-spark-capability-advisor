@@ -104,6 +104,6 @@ def translate_auth(page: str, section: str) -> str:
     page = page.replace('href="/guest"', 'href="/en"')
     if section == 'account':
         page = page.replace("return ['/surface','/workplace','/workplace/admin'].includes(next)?next:'/';",
-                            "return ({'/surface':'/en/surface','/workplace':'/en/workplace','/workplace/admin':'/workplace/admin'})[next]||'/en';")
+                            "return ({'/surface':'/en/surface','/workplace':'/en/workplace','/workplace/admin':'/en/workplace/admin'})[next]||'/en';")
     runtime = '''<script>(function(){const labels=__LABELS__;function update(node){if(node.nodeType===3){const text=node.nodeValue,trimmed=text.trim();if(labels[trimmed])node.nodeValue=text.replace(trimmed,labels[trimmed]);return}if(node.nodeType!==1||node.closest('script,style'))return;const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);while(walker.nextNode())update(walker.currentNode)}const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)update(node)});observer.observe(document.body,{childList:true,subtree:true});})();</script>'''.replace('__LABELS__', json.dumps(LABELS, ensure_ascii=False))
     return page.replace('</body>', runtime + '</body>', 1)
