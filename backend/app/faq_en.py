@@ -322,6 +322,30 @@ CONCEPTS = (
      "Generating a sequence of frames from text, images, or keyframes.",
      "Model weights, frame count, resolution, audio, steps, and intermediate tensors can make resource needs very high.",
      "A platform-level 4K workflow claim does not mean every SKU generates native 4K video."),
+    ("Local AI and data boundaries",
+     "Running a model on a device can reduce the content sent to cloud services.",
+     "Still check whether telemetry, model downloads, updates, logs, plugins, and external tools use the network.",
+     "Local execution is not automatically fully offline or compliant."),
+    ("RAG data privacy",
+     "Retrieval-augmented generation supplies enterprise document excerpts to a model.",
+     "Control index permissions, tenant isolation, deletion synchronization, logs, and source citations.",
+     "RAG does not guarantee a model will never disclose retrieved content."),
+    ("Prompt injection",
+     "Malicious content that tries to make a model ignore its instructions or misuse tools.",
+     "Use input isolation, tool authorization, output validation, and least privilege; a system prompt alone is insufficient.",
+     "A refusal template is not a complete security boundary."),
+    ("Model supply chain",
+     "The origins and update path of models, runtimes, nodes, and plugins.",
+     "Verify provenance, hashes, signatures, licenses, vulnerabilities, and change history.",
+     "A file from a popular site is not automatically trustworthy."),
+    ("Audit log",
+     "A record of who performed a significant action and when.",
+     "Accounts, approvals, licenses, model updates, and administrative actions should be traceable and resistant to tampering.",
+     "More logging is not always better; minimize sensitive content in logs."),
+    ("Disk encryption and Windows security",
+     "BitLocker, TPM, and Secured-core features help protect devices and keys.",
+     "Local models and knowledge bases still need account permissions, backups, patches, and a lost-device response.",
+     "Hardware security features do not replace application access controls."),
 )
 
 
@@ -341,7 +365,8 @@ def english_item(item: dict) -> dict:
         "Quantization and precision" if index < 90 else
         "RTX Spark hardware" if index < 108 else
         "Windows and compatibility" if index < 126 else
-        "Local AI deployment" if index < 144 else "Generative AI"
+        "Local AI deployment" if index < 144 else
+        "Generative AI" if index < 158 else "Security and privacy"
     )
     if index % 2 == 0:
         result.update(

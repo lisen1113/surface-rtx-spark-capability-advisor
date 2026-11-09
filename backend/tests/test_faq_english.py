@@ -12,7 +12,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     source = client.get('/api/faq?limit=20').json()
     english = client.get('/api/faq?limit=20&lang=en').json()
     assert source['indexed_total'] == english['indexed_total'] == len(FAQ)
-    assert english['translated_total'] == 158
+    assert english['translated_total'] == 170
     for original, translated in zip(source['items'], english['items']):
         assert translated['id'] == original['id']
         assert translated['source_url'] == original['source_url']
@@ -20,7 +20,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert english['items'][0]['translation_status'] == 'translated_draft'
     assert english['items'][18]['translation_status'] == 'translated_draft'
     assert english['items'][18]['category'] == 'Model architectures'
-    for item in client.get('/api/faq?limit=158&lang=en').json()['items']:
+    for item in client.get('/api/faq?limit=170&lang=en').json()['items']:
         assert not re.search(r'[\u3400-\u9fff]', ' '.join(item[key] for key in
             ('question', 'easy_answer', 'expert_answer', 'misconception', 'sales_tip')))
     assert client.get('/api/faq?limit=54&lang=en').json()['items'][36]['category'] == 'Models and memory'
@@ -32,9 +32,11 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert client.get('/api/faq?limit=144&lang=en').json()['items'][126]['category'] == 'Local AI deployment'
     assert client.get('/api/faq?limit=144&lang=en').json()['items'][136]['source_url'] == 'https://nvidia.github.io/TensorRT-LLM/reference/support-matrix.html'
     assert client.get('/api/faq?limit=158&lang=en').json()['items'][144]['category'] == 'Generative AI'
-    pending = client.get('/api/faq?limit=159&lang=en').json()['items'][158]
+    assert client.get('/api/faq?limit=170&lang=en').json()['items'][158]['category'] == 'Security and privacy'
+    assert client.get('/api/faq?limit=170&lang=en').json()['items'][162]['source_url'] == 'https://genai.owasp.org/glossary/prompt-injection/'
+    pending = client.get('/api/faq?limit=171&lang=en').json()['items'][170]
     assert pending['translation_status'] == 'pending'
-    assert pending['question'] == FAQ[158]['question']
+    assert pending['question'] == FAQ[170]['question']
 
 
 def test_english_faq_search_and_home_request_language():

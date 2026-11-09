@@ -173,6 +173,12 @@ for category, concepts in CONCEPTS.items():
                 "vLLM": "https://docs.vllm.ai/en/stable/getting_started/installation/gpu/",
                 "TensorRT-LLM": "https://nvidia.github.io/TensorRT-LLM/reference/support-matrix.html",
             }.get(term, SOURCES[category])
+        elif category == "安全与隐私":
+            common["source_url"] = {
+                "提示词注入": "https://genai.owasp.org/glossary/prompt-injection/",
+                "RAG数据隐私": "https://genai.owasp.org/glossary/sensitive-data-exposure/",
+                "磁盘加密与Windows安全": "https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/oem-highly-secure-11",
+            }.get(term, SOURCES[category])
         FAQ.append({"id": f"FAQ-{base:03d}", "question": f"{term}是什么？", "easy_answer": easy, "expert_answer": expert, "misconception": misconception, "sales_tip": f"先确认客户是否真的涉及“{term}”，再说明适用范围、验证条件和未知项。", **common})
         FAQ.append({"id": f"FAQ-{base+1:03d}", "question": f"{term}对 Surface Laptop Ultra 选型和使用有什么影响？", "easy_answer": expert, "expert_answer": f"选型不能只看“{term}”标签；应结合具体 Part Number、内存、软件版本、任务条件和证据等级验证。", "misconception": misconception, "sales_tip": f"不要把“{term}”单项指标当成性能承诺；用客户真实任务做 PoC。", **common})
 
