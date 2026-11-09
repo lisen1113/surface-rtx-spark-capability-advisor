@@ -47,6 +47,25 @@ def test_workplace_planner_english_route_keeps_calculator_inputs():
     assert 'id="team-users"' in english.text
     assert '/assets/workplace-public.js' in english.text
 
+
+def test_account_and_policy_language_routes_keep_consent_and_admin_controls():
+    for route, heading in [('/terms', 'Terms of Service'),
+                           ('/privacy', 'Privacy Policy'),
+                           ('/account', 'Capability Advisor account'),
+                           ('/admin', 'Admin Console')]:
+        chinese = client.get(route)
+        english = client.get('/en' + route)
+        assert chinese.status_code == english.status_code == 200
+        assert '<html lang="en">' in english.text and heading in english.text
+        assert 'href="/en' + route + '"' in chinese.text
+        assert 'href="' + route + '"' in english.text
+    account = client.get('/en/account').text
+    assert 'id="acceptterms"' in account and 'id="acceptprivacy"' in account
+    assert 'href="/en/terms"' in account and 'href="/en/privacy"' in account
+    assert 'accepted_terms:true,accepted_privacy:true' in account
+    assert 'id="lmfa"' in account
+    assert 'id="mfasetup"' in client.get('/en/admin').text
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),

@@ -11,6 +11,45 @@ def page(title: str, body: str, script: str) -> str:
     return apply_theme(f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>{STYLE}</style></head><body><main class="wrap">{body}<footer class="muted">© 2026 上海以和信息技术有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">沪ICP备17029250号-4</a></footer></main><script>{script}</script></body></html>''')
 
 
+def language_switch(page_html: str, english: bool = False) -> str:
+    current = 'English' if english else '中文'
+    other = '中文' if english else 'English'
+    current_path = '/en' if english else ''
+    other_path = '' if english else '/en'
+    # The caller's page URL is used so language changes stay on the same page.
+    import re
+    title = re.search(r'<title>(.*?)</title>', page_html).group(1)
+    path = {'用户服务协议': '/terms', '隐私政策': '/privacy', '账号与登录': '/account', '管理员控制台': '/admin',
+            'Terms of Service': '/terms', 'Privacy Policy': '/privacy', 'Account': '/account', 'Admin Console': '/admin'}[title]
+    nav = (f'<nav aria-label="Language" style="text-align:right"><a href="{current_path}{path}" aria-current="page">{current}</a>'
+           f' | <a href="{other_path}{path}">{other}</a></nav>')
+    return page_html.replace('<main class="wrap">', '<main class="wrap">' + nav, 1)
+
+
+@router.get('/en/terms', response_class=HTMLResponse)
+def terms_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(terms_page().body.decode('utf-8'), 'terms'), headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/privacy', response_class=HTMLResponse)
+def privacy_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(privacy_page().body.decode('utf-8'), 'privacy'), headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/account', response_class=HTMLResponse)
+def account_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(account_page(), 'account'), headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/admin', response_class=HTMLResponse)
+def admin_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(admin_page(), 'admin'), headers={"Cache-Control": "no-store"})
+
+
 @router.get("/terms", response_class=HTMLResponse)
 def terms_page():
     body = '''<h1>用户服务协议</h1><p class="muted">上海以和信息技术有限公司 · 2026 年 10 月 31 日生效</p><p><a href="/account">返回账号页</a> · <a href="/privacy">查看隐私政策</a></p>
@@ -18,7 +57,7 @@ def terms_page():
 <section class="panel"><h2>账号使用</h2><p>注册时请提供真实的组织名称和可接收验证邮件的邮箱，设置独立密码。请妥善保管账号，不与他人共享；发现异常访问时及时联系我们。管理员可因账号安全、授权到期或违规使用暂停访问。</p></section>
 <section class="panel"><h2>产品资料与报告</h2><p>配置及价格以所标注的数据来源和更新时间为准，采购前应核对实际料号与报价。官方资料、实测结果、工程估算和未知信息会分别标注；推荐是筛选候选，不构成具体软件兼容性、游戏帧率或模型速度承诺。用户输入需求描述时请勿包含密码、客户机密或无关个人信息。</p></section>
 <section class="panel"><h2>服务变更与联系</h2><p>我们可能因维护、安全或授权变化调整服务，并在合理范围内告知。个人信息处理遵循<a href="/privacy">《隐私政策》</a>。有关账号或服务的问题可发送邮件至 <a href="mailto:yihe@yiheit.net">yihe@yiheit.net</a>。</p></section>'''
-    return HTMLResponse(page("用户服务协议", body, ""), headers={"Cache-Control": "no-store"})
+    return HTMLResponse(language_switch(page("用户服务协议", body, "")), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/privacy", response_class=HTMLResponse)
@@ -29,7 +68,7 @@ def privacy_page():
 <section class="panel"><h2>共享与安全</h2><p>我们不会出售注册信息。提供托管、邮件发送或安全运维所必需的服务商可能按约定处理必要数据；依法要求披露时按法律规定办理。我们采用访问控制、密码散列、HTTPS、会话和审计措施，限制内部人员访问。请勿在共用设备选择保持登录。</p></section>
 <section class="panel"><h2>您的权利</h2><p>您可申请查询、更正、删除个人信息、撤回同意或注销账号；撤回同意或注销可能使注册及内部功能无法继续使用。请通过 <a href="mailto:yihe@yiheit.net">yihe@yiheit.net</a> 联系我们，说明登记邮箱和请求事项；核实身份后我们会按法律要求处理。若政策有重大变化，我们会在服务内提示并按需要重新取得同意。</p></section>
 <section class="panel"><h2>其他网站与小程序</h2><p>小程序可打开 yiheit.net 官网和 surfacedmp.com 顾问页；访问第三方链接时应阅读对应网站的规则。有关官网的信息处理另见<a href="https://yiheit.net/privacy-policy/" target="_blank" rel="noopener">官网隐私政策</a>。本政策适用于本顾问的注册与使用。</p></section>'''
-    return HTMLResponse(page("隐私政策", body, ""), headers={"Cache-Control": "no-store"})
+    return HTMLResponse(language_switch(page("隐私政策", body, "")), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/login.html", include_in_schema=False)
@@ -58,7 +97,7 @@ async function me(){if(!token())return null;let r=await fetch('/api/auth/me',{he
 async function restore(){if(await me()){if(['/surface','/workplace','/workplace/admin'].includes(new URLSearchParams(location.search).get('next')))window.location.replace(accountDestination());return;}let r=await fetch('/api/auth/restore',{credentials:'same-origin'});if(!r.ok)return;let d=await r.json();sessionStorage.setItem('cap_token',d.access_token);let user=await me();if(user&&user.role!=='admin')window.location.replace(accountDestination())}
 async function logout(){if(token())await fetch('/api/auth/logout',{method:'POST',headers:headers()});sessionStorage.removeItem('cap_token');$('#me').textContent='尚未登录';$('#advisorlink').hidden=true;$('#loginstatus').textContent='已退出'}restore();'''
     script += "function accountDestination(){const next=new URLSearchParams(location.search).get('next');return ['/surface','/workplace','/workplace/admin'].includes(next)?next:'/';}document.querySelector('#advisorlink a').href=accountDestination();"
-    return page("账号与登录", body, script)
+    return language_switch(page("账号与登录", body, script))
 
 
 @router.get("/admin", response_class=HTMLResponse)
@@ -71,4 +110,4 @@ async function mfaStatus(){if(!token())return;let r=await fetch('/api/admin/mfa/
 async function enrollMfa(){let r=await fetch('/api/admin/mfa/enroll',{method:'POST',headers:h(),body:JSON.stringify({password:$('#mfapassword').value})}),d=await r.json();$('#mfapassword').value='';$('#mfasecret').textContent=r.ok?'验证器手动添加密钥（仅此处显示）：'+d.secret:(d.detail||'无法获取密钥')}
 async function confirmMfa(){let r=await fetch('/api/admin/mfa/confirm',{method:'POST',headers:h(),body:JSON.stringify({code:$('#mfacode').value})}),d=await r.json();if(r.ok){sessionStorage.removeItem('cap_token');$('#mfasecret').textContent='';$('#mfacode').value='';$('#mfastatus').textContent=d.message+'；请返回账号页登录'}else{$('#mfastatus').textContent=d.detail||'验证码无效'}}
 async function load(){mfaStatus();let u=await fetch('/api/admin/users',{headers:h()});if(!u.ok){$('#status').className='err';$('#status').textContent='需要管理员登录并启用 MFA';return}let users=(await u.json()).items;$('#status').className='ok';$('#status').textContent='管理员会话有效';$('#users').innerHTML='<table><tr><th>用户 ID</th><th>组织</th><th>邮箱</th><th>状态</th><th>操作</th></tr>'+users.map(x=>`<tr><td>${x.id}</td><td>${escapeHtml(x.organization_name||'-')}</td><td>${escapeHtml(x.email)}</td><td>${x.email_verified?'邮箱已验证':'待验证'} / ${escapeHtml(x.status)}</td><td>${x.email_verified?'':`<button onclick="action(${Number(x.id)},'verify-email')">验证邮箱</button>`}${x.status==='approved'?'':`<button onclick="action(${Number(x.id)},'approve')">批准</button>`}</td></tr>`).join('')+'</table>';let selected=$('#orgid').value;let orgs=[...new Map(users.filter(x=>x.organization_id&&x.organization_name).map(x=>[Number(x.organization_id),x.organization_name])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'zh-CN'));$('#orgid').innerHTML='<option value="">请选择组织</option>'+orgs.map(([id,name])=>`<option value="${id}">${escapeHtml(name)}（ID ${id}）</option>`).join('');if(orgs.some(([id])=>String(id)===selected))$('#orgid').value=selected;let a=await fetch('/api/admin/audit?limit=30',{headers:h()}),logs=(await a.json()).items;$('#audit').innerHTML='<table><tr><th>时间</th><th>动作</th><th>对象</th></tr>'+logs.map(x=>`<tr><td>${escapeHtml(x.occurred_at)}</td><td>${escapeHtml(x.action)}</td><td>${escapeHtml(x.target_type||'')} ${escapeHtml(x.target_id||'')}</td></tr>`).join('')+'</table>'}load();'''
-    return page("管理员控制台", body, script)
+    return language_switch(page("管理员控制台", body, script))
