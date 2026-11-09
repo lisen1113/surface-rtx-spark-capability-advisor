@@ -294,6 +294,34 @@ CONCEPTS = (
      "Terms that govern commercial use, redistribution, or certain uses of model weights.",
      "Enterprise deployments must record model version, origin, license, and usage restrictions.",
      "Open-source code does not mean the model weights are unrestricted for commercial use."),
+    ("Text-to-image generation",
+     "Creating an image from a text prompt.",
+     "Model, resolution, sampling steps, precision, and random seed jointly affect the result and resource use.",
+     "One successful generation does not prove stability at every resolution."),
+    ("Sampling steps",
+     "The number of iterative denoising steps in diffusion generation.",
+     "More steps usually take longer, while quality gains can diminish and depend on the sampler.",
+     "Doubling the steps does not guarantee twice the quality."),
+    ("Generation resolution",
+     "The pixel dimensions of generated images or video.",
+     "Higher resolution substantially increases intermediate tensor size and computation; video also adds frame count.",
+     "A final 4K output may use upscaling rather than native 4K generation."),
+    ("Random seed",
+     "The starting state of a randomized generation process.",
+     "Fixing the model, workflow, and seed helps make comparisons reproducible.",
+     "The same seed need not produce pixel-identical output across versions or hardware."),
+    ("LoRA",
+     "A technique that uses relatively small adapter parameters to change a model's style or task behavior.",
+     "It can reduce fine-tuning and distribution cost, while combining several LoRAs can change quality and resource use.",
+     "A small LoRA file does not remove the need to load its base model."),
+    ("Image-to-image generation",
+     "Modifying or regenerating content using an existing image as input.",
+     "Input resolution, denoising strength, control networks, and the node graph affect memory use and results.",
+     "Image-to-image generation is not lossless editing."),
+    ("Video generation",
+     "Generating a sequence of frames from text, images, or keyframes.",
+     "Model weights, frame count, resolution, audio, steps, and intermediate tensors can make resource needs very high.",
+     "A platform-level 4K workflow claim does not mean every SKU generates native 4K video."),
 )
 
 
@@ -312,7 +340,8 @@ def english_item(item: dict) -> dict:
         "Inference performance" if index < 72 else
         "Quantization and precision" if index < 90 else
         "RTX Spark hardware" if index < 108 else
-        "Windows and compatibility" if index < 126 else "Local AI deployment"
+        "Windows and compatibility" if index < 126 else
+        "Local AI deployment" if index < 144 else "Generative AI"
     )
     if index % 2 == 0:
         result.update(
