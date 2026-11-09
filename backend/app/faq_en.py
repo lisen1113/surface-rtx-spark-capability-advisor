@@ -346,6 +346,26 @@ CONCEPTS = (
      "BitLocker, TPM, and Secured-core features help protect devices and keys.",
      "Local models and knowledge bases still need account permissions, backups, patches, and a lost-device response.",
      "Hardware security features do not replace application access controls."),
+    ("Fit, start, and work well",
+     "Three different levels of judging whether a model is suitable for a device.",
+     "Capacity may let weights fit, but runtime compatibility, speed, stability, and output quality still need testing.",
+     "Sales teams must not describe fitting in memory as smooth operation."),
+    ("Official claim, measurement, and engineering estimate",
+     "Three evidence types with different strength and scope.",
+     "A report should record source, SKU, version, conditions, date, and limits; a platform claim cannot become a device measurement.",
+     "An engineering estimate must be labelled and cannot be presented as official data."),
+    ("Unknown versus zero",
+     "Unknown means no reliable value is available; zero is a measured value of zero.",
+     "Databases and reports must retain null or unknown values to avoid misleading sorting and recommendations.",
+     "Do not enter zero or fabricate an average merely to fill a table."),
+    ("Proof of concept (PoC)",
+     "A limited validation using the customer's real data and workflow.",
+     "Define success criteria, versions, samples, performance, security, and reproducible steps before the PoC.",
+     "A successful demonstration is not production acceptance."),
+    ("Local, cloud, and hybrid AI",
+     "Three deployment patterns with trade-offs in privacy, quality, cost, and scale.",
+     "Route work based on data sensitivity, model capability, concurrency, SLA, unit cost, and offline needs.",
+     "Local is not always cheaper, and cloud is not always stronger."),
 )
 
 
@@ -366,7 +386,8 @@ def english_item(item: dict) -> dict:
         "RTX Spark hardware" if index < 108 else
         "Windows and compatibility" if index < 126 else
         "Local AI deployment" if index < 144 else
-        "Generative AI" if index < 158 else "Security and privacy"
+        "Generative AI" if index < 158 else
+        "Security and privacy" if index < 170 else "Selection and sales"
     )
     if index % 2 == 0:
         result.update(
