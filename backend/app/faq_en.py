@@ -369,12 +369,57 @@ CONCEPTS = (
 )
 
 
+SCENARIOS = {
+    "FAQ-181": (
+        "How should a customer understand the positioning of Surface Laptop Ultra?",
+        "It is a professional laptop combining Windows business workflows, touch-based creation, and RTX Spark local AI.",
+        "Identify the customer's Windows applications, CUDA workflows, touch needs, and mobility requirements before evaluating the exact Part Number. Routine office work may not require the highest configuration.",
+        "Product positioning is not a performance promise for every SKU.",
+        "Ask the customer for their three most time-consuming real tasks and select by workload rather than marketing language.",
+    ),
+    "FAQ-182": (
+        "Which differences matter when comparing it with a typical Windows OEM laptop?",
+        "Show the Surface hardware and software experience, 15-inch 3:2 touchscreen, RTX Spark platform, and specified ports.",
+        "OEM devices vary widely. Compare display, ports, GPU, memory, service, and total cost only against an identified competing model.",
+        "Do not claim that all OEM laptops lack touchscreens, USB-A, or NVIDIA GPUs.",
+        "Create a comparison of specific models at similar prices and let the customer try touch, connectivity, and their workflow.",
+    ),
+    "FAQ-183": (
+        "What does the 15-inch PixelSense Ultra touchscreen mean for professional work?",
+        "The 3:2 screen suits long documents and timelines; touch supports annotation, presentation, and direct interaction.",
+        "Microsoft lists 3270 × 2180 resolution, up to 120 Hz, and 100% DCI-P3. Color-critical work still needs calibration testing, software color management, and evaluation of external displays.",
+        "High resolution and wide color gamut do not mean every device has been professionally calibrated.",
+        "Demonstrate with the customer's own drawings, spreadsheets, or creative assets instead of a desktop wallpaper.",
+    ),
+    "FAQ-184": (
+        "How should the port selection of Surface Laptop Ultra be described accurately?",
+        "It includes USB-C, USB-A, HDMI, an SD card reader, and a headphone jack, reducing some adapter needs.",
+        "Microsoft describes it as having the most ports in the Surface Laptop family. That is not a claim of more ports than every OEM laptop or MacBook.",
+        "Do not turn 'most in the Surface family' into 'most in the industry'.",
+        "List the displays, camera cards, legacy USB devices, and docks the customer must connect directly.",
+    ),
+    "FAQ-185": (
+        "How should the two RTX Spark N1X CPU/GPU tiers be explained?",
+        "The 18-core CPU / 5120-core GPU and 20-core CPU / 6144-core GPU are different hardware configurations.",
+        "Core counts are specifications. Real speed also depends on power, cooling, memory, drivers, and application kernels; FPS or tokens per second cannot be extrapolated from core count.",
+        "The higher-core tier is not guaranteed to be faster in every application.",
+        "Show the exact Part Number, memory, and storage, then run a proof of concept on the customer's workload.",
+    ),
+}
+
+
 def english_item(item: dict) -> dict:
     """Translate a drafted entry or clearly mark its Chinese source status."""
     result = dict(item)
     index = int(item["id"].split("-")[1]) - 1
     if index >= 2 * len(CONCEPTS):
-        result["translation_status"] = "pending"
+        translated = SCENARIOS.get(item["id"])
+        if translated:
+            result.update(zip(("question", "easy_answer", "expert_answer", "misconception", "sales_tip"), translated))
+            result["category"] = "Surface Laptop Ultra"
+            result["translation_status"] = "translated_draft"
+        else:
+            result["translation_status"] = "pending"
         return result
     term, plain, engineering, misconception = CONCEPTS[index // 2]
     result["category"] = (
