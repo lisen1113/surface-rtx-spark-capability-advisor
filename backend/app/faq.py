@@ -259,7 +259,7 @@ def search_faq(q: str | None = None, category: str | None = None, limit: int = Q
             ).casefold()]
         return {"items": translated[:limit], "total": len(translated), "indexed_total": len(FAQ),
                 "concept_total": 100 + len(ANNOUNCEMENT_FAQ) + len(AGENT_TOOL_FAQ),
-                "categories": sorted(CONCEPTS), "translated_total": sum(english_item(item)["translation_status"] == "reviewed" for item in FAQ)}
+                "categories": sorted(CONCEPTS), "translated_total": sum(english_item(item)["translation_status"] == "translated_draft" for item in FAQ)}
     return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100 + len(ANNOUNCEMENT_FAQ) + len(AGENT_TOOL_FAQ), "categories": sorted(CONCEPTS)}
 
 

@@ -1,4 +1,4 @@
-"""Reviewed English wording for FAQ concepts; Chinese records remain authoritative.
+"""Draft English wording for FAQ concepts; Chinese records remain authoritative.
 
 Each tuple is term, plain answer, engineering answer, and misconception. The
 paired question and sales guidance are generated from the same concept as the
@@ -82,7 +82,7 @@ CONCEPTS = (
 
 
 def english_item(item: dict) -> dict:
-    """Translate a reviewed entry or clearly mark its Chinese source status."""
+    """Translate a drafted entry or clearly mark its Chinese source status."""
     result = dict(item)
     index = int(item["id"].split("-")[1]) - 1
     if index >= 2 * len(CONCEPTS):
@@ -106,5 +106,5 @@ def english_item(item: dict) -> dict:
             misconception=misconception,
             sales_tip=f"Do not turn {term} into a performance promise. Run a proof of concept using the customer's real workload.",
         )
-    result["translation_status"] = "reviewed"
+    result["translation_status"] = "translated_draft"
     return result
