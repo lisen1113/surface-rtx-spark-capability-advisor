@@ -114,6 +114,42 @@ CONCEPTS = (
      "Moving some weights or computation to the CPU, system memory, or another device.",
      "Offloading may let a larger model start, but data movement can substantially reduce speed.",
      "Running with offloading does not imply an acceptable user experience."),
+    ("Latency",
+     "The time from submitting a request to receiving its result.",
+     "Measure time to first token, generation time, and end-to-end time separately, with input and output lengths recorded.",
+     "Average latency does not describe the slowest user experiences."),
+    ("Time to first token (TTFT)",
+     "The time from request start until the first output token appears.",
+     "Model loading, queueing, and prefill of a long input are major contributors to TTFT.",
+     "A high token generation rate does not guarantee a short wait for the first token."),
+    ("Tokens per second",
+     "The number of output tokens a model generates per second.",
+     "Always identify model version, quantization, runtime, input and output lengths, concurrency, power settings, and measurement method.",
+     "Token rates from different tokenizers, models, or conditions are not directly comparable."),
+    ("Throughput",
+     "The total work a system handles per unit of time.",
+     "A server may trade individual request latency for higher aggregate throughput.",
+     "Higher throughput does not mean a faster response for every user."),
+    ("Prefill",
+     "The stage in which a model processes the full input context and builds its cache.",
+     "Long documents and prompts increase prefill time and compute requirements.",
+     "A short-prompt test does not represent a knowledge-base Q&A workload."),
+    ("Decode",
+     "The stage in which a model generates output tokens one at a time.",
+     "Decode can be affected by memory access, quantized kernels, and concurrency scheduling.",
+     "Peak FP4 compute cannot be converted directly into decode speed."),
+    ("Warm-up",
+     "The initial run that loads a model, compiles kernels, or builds caches.",
+     "Test cold start and warm operation separately, and explain whether the service remains loaded.",
+     "Showing only the fastest post-warm-up run hides the actual startup experience."),
+    ("Benchmark",
+     "A repeatable measurement of performance or quality under defined conditions.",
+     "A usable record includes hardware SKU, software versions, model, precision, prompt, output, power, and date.",
+     "A vendor's platform result is not automatically a measurement of a specific SKU."),
+    ("Sustained performance and cooling",
+     "The performance a device maintains under a prolonged load.",
+     "Short benchmarks may benefit from temporary boost clocks; observe power, temperature, noise, and performance decline.",
+     "Peak performance is not sustained performance."),
 )
 
 
@@ -127,7 +163,8 @@ def english_item(item: dict) -> dict:
     term, plain, engineering, misconception = CONCEPTS[index // 2]
     result["category"] = (
         "AI fundamentals" if index < 18 else
-        "Model architectures" if index < 36 else "Models and memory"
+        "Model architectures" if index < 36 else
+        "Models and memory" if index < 54 else "Inference performance"
     )
     if index % 2 == 0:
         result.update(
