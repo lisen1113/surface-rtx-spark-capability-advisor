@@ -31,6 +31,8 @@ def test_public_advisor_home_has_english_route_and_switch():
     assert 'Surface AI Workplace and RTX Spark Capability Advisor' in english.text
     assert 'Find matching configurations' in english.text
     assert 'href="/en/surface"' in english.text
+    assert 'href="/en/workplace"' in english.text
+    assert 'href="/en/account"' in english.text
     assert 'href="/"' in english.text
     assert 'name="usage" value="gaming"' in english.text
 
@@ -43,6 +45,7 @@ def test_workplace_planner_english_route_keeps_calculator_inputs():
     assert 'Tell us what your team needs' in english.text
     assert 'Download budget PDF' in english.text
     assert 'href="/workplace"' in english.text
+    assert 'href="/en/account"' in english.text
     assert 'href="/en/workplace"' in chinese.text
     assert 'id="team-users"' in english.text
     assert '/assets/workplace-public.js' in english.text

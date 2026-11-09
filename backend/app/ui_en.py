@@ -97,6 +97,8 @@ def translate_surface(page: str) -> str:
         page = page.replace(source, target)
     page = page.replace('href="/surface" aria-current="page"', 'href="/surface"', 1)
     page = page.replace('href="/en/surface" style=', 'href="/en/surface" aria-current="page" style=', 1)
+    page = page.replace('href="/"', 'href="/en"')
+    page = page.replace('href="/workplace"', 'href="/en/workplace"')
     return page
 
 
@@ -223,6 +225,11 @@ def translate_advisor(page: str) -> str:
     # Change public navigation to the corresponding English route. Protected
     # account and admin routes retain their existing URLs and authorization.
     page = page.replace('href="/surface"', 'href="/en/surface"')
+    page = page.replace('href="/workplace"', 'href="/en/workplace"')
+    page = page.replace('href="/account"', 'href="/en/account"')
+    page = page.replace('href="/admin"', 'href="/en/admin"')
+    page = page.replace('href="/guest"', 'href="/en"')
+    page = page.replace('href="/deployment?', 'href="/en/deployment?')
     runtime = r'''<script>(function(){
 const labels=__LABELS__;
 function translate(root){const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);for(const node of nodes){if(node.parentElement?.closest('script,style'))continue;const raw=node.nodeValue,trimmed=raw.trim();if(labels[trimmed])node.nodeValue=raw.replace(trimmed,labels[trimmed]);}}
