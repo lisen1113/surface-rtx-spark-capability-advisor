@@ -405,6 +405,41 @@ SCENARIOS = {
         "The higher-core tier is not guaranteed to be faster in every application.",
         "Show the exact Part Number, memory, and storage, then run a proof of concept on the customer's workload.",
     ),
+    "FAQ-186": (
+        "What is the practical value of up to 128 GB of unified memory?",
+        "A larger unified pool leaves more capacity for local models, graphics work, and several applications at once.",
+        "The maximum applies only to matching SKUs. The operating system, graphics, and context caches also use memory; fitting, running, and working well must be checked separately.",
+        "128 GB is not standard on every configuration and is not 128 GB of dedicated VRAM.",
+        "Record model format, quantization, context, and concurrency before choosing a memory tier.",
+    ),
+    "FAQ-187": (
+        "What is a useful starting point when comparing this product with MacBook Pro?",
+        "Surface merits evaluation for customers who rely on Windows software, touch, USB-A, or the NVIDIA CUDA ecosystem.",
+        "Current MacBook Pro models can also offer up to 128 GB of unified memory, HDMI, SDXC, and high-end displays. Compare a specific M5 configuration with a specific Surface Part Number.",
+        "Do not claim MacBook Pro lacks HDMI or a card reader, or that Surface is faster in every task.",
+        "Have the customer try the same project, software version, and peripherals on each device.",
+    ),
+    "FAQ-188": (
+        "What are the touch and operating-system trade-offs versus MacBook Pro?",
+        "Surface offers Windows 11 and a touchscreen, which may fit existing Windows management and pen or touch workflows.",
+        "MacBook Pro workflows involving macOS, ProRes, or Final Cut may be preferable for some users. Software compatibility and touch preference do not establish a universal performance winner.",
+        "Do not claim macOS cannot run local AI or that all Windows software has native ARM support.",
+        "Inventory the customer's existing software, device management, peripherals, and creation workflow first.",
+    ),
+    "FAQ-189": (
+        "How can battery-life comparisons with MacBook Pro avoid misleading claims?",
+        "Report each vendor's official test conditions separately, then repeat tests with the customer's actual workload.",
+        "Microsoft's local-video and web-browsing tests and Apple's video and wireless-web tests have different conditions. AI inference, brightness, network, and software versions also affect results.",
+        "Do not decide which device lasts longer merely by comparing advertised hour figures.",
+        "Run parallel tests with matched brightness, network, tasks, and power mode.",
+    ),
+    "FAQ-190": (
+        "Is MacBook Pro's Thunderbolt 5 an advantage over Surface?",
+        "For very fast peripherals and certain docks, it may be an advantage of the specified Apple model.",
+        "Microsoft lists USB4 USB-C for Surface. MacBook Pro port generations vary by configuration; check the customer's storage, display, and dock bandwidth needs.",
+        "Do not compare interface names without checking both devices and cable specifications.",
+        "If the customer uses a fast storage array or multi-display dock, measure throughput and stability.",
+    ),
 }
 
 
