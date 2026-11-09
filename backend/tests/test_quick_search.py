@@ -66,6 +66,19 @@ def test_account_and_policy_language_routes_keep_consent_and_admin_controls():
     assert 'id="lmfa"' in account
     assert 'id="mfasetup"' in client.get('/en/admin').text
 
+
+def test_deployment_guide_english_route_keeps_sku_plan():
+    chinese = client.get('/deployment')
+    english = client.get('/en/deployment')
+    assert chinese.status_code == english.status_code == 200
+    assert '<html lang="en">' in english.text
+    assert 'From a clean device to the first answer' in english.text
+    assert 'Private enterprise data: retrieve before training' in english.text
+    assert '/api/deployment/sku/' in english.text
+    assert 'id="skuplan"' in english.text
+    assert 'href="/en/deployment"' in chinese.text
+    assert 'href="/deployment"' in english.text
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),
