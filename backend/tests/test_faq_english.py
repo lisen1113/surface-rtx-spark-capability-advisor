@@ -1,0 +1,33 @@
+from fastapi.testclient import TestClient
+
+from app.faq import FAQ
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
+    source = client.get('/api/faq?limit=20').json()
+    english = client.get('/api/faq?limit=20&lang=en').json()
+    assert source['indexed_total'] == english['indexed_total'] == len(FAQ)
+    assert english['translated_total'] == 36
+    for original, translated in zip(source['items'], english['items']):
+        assert translated['id'] == original['id']
+        assert translated['source_url'] == original['source_url']
+    assert english['items'][0]['question'] == 'What is Artificial intelligence (AI)?'
+    assert english['items'][0]['translation_status'] == 'reviewed'
+    assert english['items'][18]['translation_status'] == 'reviewed'
+    assert english['items'][18]['category'] == 'Model architectures'
+    pending = client.get('/api/faq?limit=40&lang=en').json()['items'][36]
+    assert pending['translation_status'] == 'pending'
+    assert pending['question'] == FAQ[36]['question']
+
+
+def test_english_faq_search_and_home_request_language():
+    result = client.get('/api/faq?lang=en&q=Embedding%20vector').json()
+    assert result['total'] == 2
+    assert all(item['translation_status'] == 'reviewed' for item in result['items'])
+    page = client.get('/en').text
+    assert "+'&lang=en'" in page
+    assert 'English translation pending' in page

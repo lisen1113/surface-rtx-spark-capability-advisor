@@ -106,6 +106,17 @@ def translate_surface(page: str) -> str:
 
 
 ADVISOR_LABELS = {
+    'AI基础知识': 'AI fundamentals',
+    '模型架构': 'Model architectures',
+    '模型与内存': 'Models and memory',
+    '推理性能': 'Inference performance',
+    '量化与精度': 'Quantization and precision',
+    'RTX Spark硬件': 'RTX Spark hardware',
+    'Windows与兼容': 'Windows and compatibility',
+    '本地AI部署': 'Local AI deployment',
+    '生成式AI': 'Generative AI',
+    '安全与隐私': 'Security and privacy',
+    '选型与销售': 'Selection and sales',
     'Surface AI Workplace及RTX Spark能力与选型顾问': 'Surface AI Workplace and RTX Spark Capability Advisor',
     'V3.1 产品与能力顾问': 'V3.1 Product and Capability Advisor',
     '按真实料号查询 Surface 设备、配件与延保，探索 RTX Spark 的 AI、游戏、生成式 AI 与生产力能力。': 'Find Surface devices, accessories, and warranties by actual Part Number, then explore RTX Spark capabilities for AI, gaming, generative AI, and productivity.',
@@ -309,6 +320,10 @@ def translate_advisor(page: str) -> str:
         for source, target in sorted(labels.items(), key=lambda pair: len(pair[0]), reverse=True):
             parts[position] = parts[position].replace(source, target)
     page = ''.join(parts)
+    page = page.replace("+'&category='+encodeURIComponent(c)),d=await r.json()",
+                        "+'&category='+encodeURIComponent(c)+'&lang=en'),d=await r.json()")
+    page = page.replace('<article class="card"><h3>${escapeHtml(x.question)}</h3>',
+                        '<article class="card">${x.translation_status===\'pending\'?\'<p class="warn">Chinese source entry · English translation pending</p>\':\'\'}<h3>${escapeHtml(x.question)}</h3>')
     page = page.replace('href="/" aria-current="page"', 'href="/"', 1)
     page = page.replace('href="/en" style="color:#fff"',
                         'href="/en" aria-current="page" style="color:#fff"', 1)

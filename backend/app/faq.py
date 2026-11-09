@@ -1,5 +1,6 @@
 """Chinese AI knowledge base for customer education and sales enablement."""
 from fastapi import APIRouter, HTTPException, Query
+from .faq_en import english_item
 
 router = APIRouter(prefix="/api/faq", tags=["faq"])
 
@@ -239,13 +240,26 @@ for category, question, easy, expert, misconception, sales_tip, url in AGENT_TOO
 
 
 @router.get("")
-def search_faq(q: str | None = None, category: str | None = None, limit: int = Query(default=20, ge=1, le=250)):
+def search_faq(q: str | None = None, category: str | None = None, limit: int = Query(default=20, ge=1, le=250), lang: str = "zh-CN"):
     items = FAQ
     if category:
         items = [x for x in items if x["category"] == category]
-    if q:
+    if q and lang != "en":
         needle = q.casefold()
         items = [x for x in items if needle in (x["question"] + x["easy_answer"] + x["expert_answer"] + x["misconception"] + " ".join(x["keywords"])).casefold()]
+    if lang == "en":
+        # Search both the Chinese source and available English wording. Keep
+        # the source ID, category filter, and evidence URL stable.
+        translated = [english_item(item) for item in items]
+        if q:
+            needle = q.casefold()
+            translated = [item for item in translated if needle in (
+                item["question"] + item["easy_answer"] + item["expert_answer"]
+                + item["misconception"] + " ".join(item["keywords"])
+            ).casefold()]
+        return {"items": translated[:limit], "total": len(translated), "indexed_total": len(FAQ),
+                "concept_total": 100 + len(ANNOUNCEMENT_FAQ) + len(AGENT_TOOL_FAQ),
+                "categories": sorted(CONCEPTS), "translated_total": sum(english_item(item)["translation_status"] == "reviewed" for item in FAQ)}
     return {"items": items[:limit], "total": len(items), "indexed_total": len(FAQ), "concept_total": 100 + len(ANNOUNCEMENT_FAQ) + len(AGENT_TOOL_FAQ), "categories": sorted(CONCEPTS)}
 
 
