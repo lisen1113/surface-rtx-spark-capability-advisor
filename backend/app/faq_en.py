@@ -150,6 +150,42 @@ CONCEPTS = (
      "The performance a device maintains under a prolonged load.",
      "Short benchmarks may benefit from temporary boost clocks; observe power, temperature, noise, and performance decline.",
      "Peak performance is not sustained performance."),
+    ("Bit",
+     "One binary digit used to represent a numeric value.",
+     "Lower bit depth often saves memory and bandwidth, but real formats also include groups, scales, and metadata.",
+     "A 4-bit model does not necessarily use exactly one quarter of the runtime memory of a 16-bit model."),
+    ("FP32",
+     "A 32-bit floating-point format with relatively high range and precision.",
+     "It is common in training and some scientific computation, but usually costly in memory for local LLM inference.",
+     "Higher numeric precision does not guarantee a more correct final answer."),
+    ("FP16",
+     "A 16-bit floating-point format.",
+     "Compared with FP32, it commonly halves weight storage and can use GPU acceleration.",
+     "FP16 and BF16 differ in numeric range and compatibility."),
+    ("BF16",
+     "A 16-bit floating-point format that retains a wider exponent range.",
+     "It is used for training and inference, but efficiency depends on hardware and runtime support.",
+     "A BF16 file label does not mean every operator executes in BF16."),
+    ("FP8",
+     "A family of 8-bit floating-point formats.",
+     "It can reduce memory and compute cost, but requires a compatible model, calibration, kernels, and hardware path.",
+     "FP8 is not one universally interchangeable format."),
+    ("FP4 and NVFP4",
+     "Low-precision floating-point approaches around four bits; NVFP4 is an NVIDIA-specific format path.",
+     "They can substantially reduce weight memory and use matching Tensor Cores, provided the checkpoint and software stack support them.",
+     "An FP4 peak compute claim cannot predict tokens per second for an arbitrary model."),
+    ("INT8",
+     "A common 8-bit integer quantization format.",
+     "It often balances quality and resource use, but results depend on the quantization method and operator coverage.",
+     "Two implementations labelled INT8 need not use the same quantization algorithm."),
+    ("INT4 / Q4",
+     "Broad labels for approximately 4-bit integer or grouped quantization.",
+     "They can cut large-model weight storage substantially, but Q4 variants differ in quality, size, and speed.",
+     "Q4 is not a single exact, interchangeable format."),
+    ("GGUF",
+     "A model file format commonly used in the llama.cpp ecosystem.",
+     "A GGUF file may contain weights, quantization information, and metadata; runtime support depends on model architecture and backend.",
+     "Being able to download a GGUF file does not prove compatibility with the current runtime."),
 )
 
 
@@ -164,7 +200,8 @@ def english_item(item: dict) -> dict:
     result["category"] = (
         "AI fundamentals" if index < 18 else
         "Model architectures" if index < 36 else
-        "Models and memory" if index < 54 else "Inference performance"
+        "Models and memory" if index < 54 else
+        "Inference performance" if index < 72 else "Quantization and precision"
     )
     if index % 2 == 0:
         result.update(
