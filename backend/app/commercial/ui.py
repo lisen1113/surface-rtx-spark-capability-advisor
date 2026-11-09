@@ -13,7 +13,18 @@ router = APIRouter()
 def workplace():
     ensure_enabled()
     page = (Path(__file__).resolve().parents[1] / "assets" / "workplace-public.html").read_text(encoding="utf-8")
+    page = page.replace('</header>', '<nav aria-label="语言 / Language"><a lang="zh-CN" href="/workplace" aria-current="page">中文</a> | <a lang="en" href="/en/workplace">English</a></nav></header>', 1)
     return HTMLResponse(page, headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/workplace', response_class=HTMLResponse)
+def workplace_en():
+    from ..workplace_en import translate_workplace
+    response = workplace()
+    page = response.body.decode('utf-8').replace('href="/workplace" aria-current="page"', 'href="/workplace"', 1)
+    page = page.replace('href="/en/workplace">English', 'href="/en/workplace" aria-current="page">English', 1)
+    return HTMLResponse(translate_workplace(page),
+                        headers={"Cache-Control": "no-store"})
 
 
 @router.get("/workplace/admin", response_class=HTMLResponse)

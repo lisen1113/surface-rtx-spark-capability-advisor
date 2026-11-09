@@ -34,6 +34,19 @@ def test_public_advisor_home_has_english_route_and_switch():
     assert 'href="/"' in english.text
     assert 'name="usage" value="gaming"' in english.text
 
+
+def test_workplace_planner_english_route_keeps_calculator_inputs():
+    chinese = client.get('/workplace')
+    english = client.get('/en/workplace')
+    assert chinese.status_code == english.status_code == 200
+    assert '<html lang="en">' in english.text
+    assert 'Tell us what your team needs' in english.text
+    assert 'Download budget PDF' in english.text
+    assert 'href="/workplace"' in english.text
+    assert 'href="/en/workplace"' in chinese.text
+    assert 'id="team-users"' in english.text
+    assert '/assets/workplace-public.js' in english.text
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),
