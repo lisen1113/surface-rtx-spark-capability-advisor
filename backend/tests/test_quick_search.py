@@ -96,6 +96,19 @@ def test_workplace_admin_english_route_keeps_protected_forms():
     assert '/assets/commercial.js' in english.text
     assert 'value="Surface 设备"' in english.text  # API filter value remains original
 
+
+def test_guest_language_route_respects_public_advisor_mode(monkeypatch):
+    monkeypatch.setenv('CAPABILITY_PUBLIC_ADVISOR', '1')
+    redirect = client.get('/en/guest', follow_redirects=False)
+    assert redirect.status_code == 307
+    assert redirect.headers['location'] == '/en?advisor=public'
+    monkeypatch.setenv('CAPABILITY_PUBLIC_ADVISOR', '0')
+    english = client.get('/en/guest')
+    assert english.status_code == 200
+    assert '<html lang="en">' in english.text
+    assert 'Find products for your needs' in english.text
+    assert 'href="/en/account"' in english.text
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),
