@@ -16,6 +16,11 @@ def index(response: Response):
 def surface_index(response: Response):
  return apply_theme(_commercial_link(_render_page(response, surface=True)))
 
+@router.get('/en/surface', response_class=HTMLResponse)
+def surface_index_en(response: Response):
+ from .ui_en import translate_surface
+ return translate_surface(surface_index(response))
+
 def _commercial_link(page):
  if os.getenv('CAPABILITY_DEPLOYMENT_MODE', 'local') == 'local' or os.getenv('CAPABILITY_COMMERCIAL_ENABLED') == '1':
   return page.replace('<a href="/">RTX Spark 能力顾问</a></nav>', '<a href="/">RTX Spark 能力顾问</a>　·　<a href="/workplace">Surface AI Workplace租赁及订阅</a></nav>', 1)
@@ -254,6 +259,6 @@ $('#tabs').onclick=e=>{if(e.target.tagName!=='BUTTON')return;document.querySelec
   quick_script = quick_script.replace("function resetQuickSearch(){", "function resetQuickSearch(){$('#quick-platform').value='';")
   quick_script = quick_script.replace('查看完整映射</button>', '查看完整映射</button> <button type="button" data-quick-pdf="${escapeHtml(item.part_number)}">下载 PDF 产品资料</button>')
   pdf_script = r'''async function downloadSurfacePdf(pn){try{if(/MicroMessenger/i.test(navigator.userAgent)){if(!window.wx||!wx.miniProgram)throw Error('请通过小程序重新打开查询页');const inMini=window.__wxjs_environment==='miniprogram'||await new Promise(resolve=>wx.miniProgram.getEnv(r=>resolve(r.miniprogram)));if(!inMini)throw Error('请从小程序进入查询后下载 PDF');const ticketResponse=await fetch('/api/reports/mobile-ticket',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({part_number:pn,report_kind:'surface'})});if(!ticketResponse.ok)throw Error('下载授权失败，请重新登录');const ticket=await ticketResponse.json();wx.miniProgram.navigateTo({url:'/pages/report/index?ticket='+encodeURIComponent(ticket.ticket)+'&filename='+encodeURIComponent(ticket.filename),fail:()=>{$('#quick-status').textContent='请更新小程序版本后重试'}});return;}const r=await fetch('/api/catalog/quick-search/'+encodeURIComponent(pn)+'/pdf');if(!r.ok)throw Error('PDF 下载失败，请检查登录授权');const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download='Surface-Product-'+pn.replace(/[^A-Za-z0-9_-]/g,'-')+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){$('#quick-status').textContent=e.message}}$('#quick-results').addEventListener('click',e=>{const b=e.target.closest('[data-quick-pdf]');if(b)downloadSurfacePdf(b.dataset.quickPdf)});document.querySelectorAll('#quick-type,#quick-series,#quick-memory,#quick-platform').forEach(e=>e.addEventListener('change',runQuickSearch));loadQuickOptions();'''
-  return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>全品类 Surface SKU 查询</title>'+styles+'</head><body><header class="top"><div class="wrap"><h1>全品类 Surface SKU 快速查询</h1></div></header><main class="wrap">'+nav+quick_section+'</main><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer><script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script><script>'+helpers+quick_script+pdf_script+'</script></body></html>'
+  return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>全品类 Surface SKU 查询</title>'+styles+'</head><body><header class="top"><div class="wrap"><h1>全品类 Surface SKU 快速查询</h1></div><div class="wrap" style="text-align:right;padding:0 0 10px"><a lang="zh-CN" href="/surface" aria-current="page" style="color:#fff">中文</a> <span aria-hidden="true"> | </span> <a lang="en" href="/en/surface" style="color:#fff">English</a></div></header><main class="wrap">'+nav+quick_section+'</main><footer>© 2026 上海以和信息技术有限公司。保留所有权利。</footer><script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script><script>'+helpers+quick_script+pdf_script+'</script></body></html>'
  page = page.replace(quick_section, nav).replace(quick_script, '').replace('loadQuickOptions();init();','init();')
  return page

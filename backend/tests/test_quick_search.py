@@ -7,6 +7,20 @@ from app.catalog import _lookup_item
 
 client = TestClient(app)
 
+
+def test_surface_finder_language_switch_keeps_public_features():
+    chinese = client.get('/surface')
+    english = client.get('/en/surface')
+    assert chinese.status_code == english.status_code == 200
+    assert 'lang="zh-CN"' in chinese.text and 'href="/en/surface"' in chinese.text
+    assert 'lang="en"' in english.text and 'href="/surface"' in english.text
+    for label in ('Surface SKU Quick Finder', 'Search', 'View details',
+                  'Download product PDF', 'ERP price incl. tax'):
+        assert label in english.text
+    assert '/api/catalog/quick-search' in english.text
+    assert 'quick-quote-factor" type="number"' in english.text  # legacy hidden input
+    assert '<label hidden>Quote factor' in english.text
+
 def test_power_supply_marks_follow_user_configuration_codes():
     for raw, expected in [
         ('Pro12inSD1EP/16/1TBCMxP SC ChnSimp China Comm Platinum', '不带电源'),
