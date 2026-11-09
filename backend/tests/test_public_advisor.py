@@ -20,7 +20,7 @@ def test_full_advisor_anonymous_and_administration_protected(tmp_path, monkeypat
                  '/api/reports/PUBLIC-1.html', '/api/reports/PUBLIC-1.pdf']:
         response=client.get(path)
         assert response.status_code==200,(path,response.text[:200])
-    for path in ['/api/admin/users', '/api/catalog/sources', '/api/catalog/imports', '/api/catalog/quick-search']:
+    for path in ['/api/admin/users', '/api/catalog/sources', '/api/catalog/imports']:
         assert client.get(path).status_code==401,path
     recommendation=client.post('/api/recommendations',json={'usages':['ai'],'ai_size':'70B','budget_cny':1})
     assert recommendation.status_code==200 and recommendation.json()['items'][0]['price_cny']==20000 and recommendation.json()['items'][0]['over_budget']

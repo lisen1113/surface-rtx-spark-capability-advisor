@@ -84,7 +84,7 @@ def test_quick_search_filters_exact_part_number_series_and_price(monkeypatch, tm
     assert exact["total"] == 1
     assert exact["items"][0]["part_number"] == "EP2-FAST"
     assert exact["items"][0]["erp_price_cny"] == 10888
-    assert "用户提供" in exact["price_basis"]
+    assert "ERP" in exact["price_basis"]
 
     filtered = client.get("/api/catalog/quick-search", params={
         "product_type": "Surface 设备", "series": "Surface Pro", "memory_gb": 16,

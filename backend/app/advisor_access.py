@@ -25,7 +25,10 @@ def require_advisor_user(authorization: str | None = Header(default=None)):
 def require_catalog_user(request: Request, authorization: str | None = Header(default=None)):
     from .auth import require_entitled_user
     path = request.url.path
+    if path.startswith('/api/catalog/quick-search'):
+        return None
     if public_advisor_enabled() and (path in {'/api/catalog/imported-skus', '/api/catalog/models'}
-                                    or path.startswith('/api/catalog/advisor/')):
+                                    or path.startswith('/api/catalog/advisor/')
+                                    or path.startswith('/api/catalog/quick-search')):
         return None
     return require_entitled_user(authorization)

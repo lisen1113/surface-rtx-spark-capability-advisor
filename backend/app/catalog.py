@@ -231,6 +231,8 @@ def _lookup_filters(*, q: str, product_type: str | None, series: str | None,
 def _lookup_item(row: sqlite3.Row) -> dict:
  item = dict(row)
  item.pop("source_sha256", None)
+ item.pop("adr_price_cny", None)
+ item.pop("source_reference", None)
  if item.get('product_type') == 'Surface 设备':
   import re
   raw = item.get('raw_description') or ''
@@ -313,7 +315,7 @@ def quick_search(
   found = conn.execute(query, params + sort_params + [limit, offset]).fetchall()
  return {
   "items": [_lookup_item(row) for row in found], "total": total, "limit": limit, "offset": offset,
-  "price_basis": "ERP 含税价来自用户提供的原始表格；报价系数由用户在页面上另行输入。",
+  "price_basis": "ERP 公开含税价来自已导入产品表；不含报价折扣。",
  }
 
 
