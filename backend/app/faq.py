@@ -12,7 +12,7 @@ SOURCES = {
     "量化与精度": "https://github.com/ggml-org/llama.cpp",
     "Surface Laptop Ultra": "https://www.microsoft.com/en-us/d/surface-laptop-ultra-for-business/8wg5vqp0x4d1/",
     "RTX Spark硬件": "https://www.nvidia.com/en-us/products/rtx-spark/",
-    "Windows与兼容": "https://docs.nvidia.com/rtx-spark/rtx-spark-porting-guide/latest/",
+    "Windows与兼容": "https://learn.microsoft.com/en-us/windows/arm/add-arm-support",
     "本地AI部署": "https://developer.nvidia.com/topics/ai/local-ai/port-apps",
     "生成式AI": "https://blogs.nvidia.com/blog/rtx-ai-garage-ces-2026-open-models-video-generation/",
     "安全与隐私": "https://genai.owasp.org/",
@@ -157,6 +157,15 @@ for category, concepts in CONCEPTS.items():
     for term, easy, expert, misconception in concepts:
         base = len(FAQ) + 1
         common = {"category": category, "keywords": [term, category], "source_url": SOURCES[category], "review_status": "reviewed_concept", "sku_relevance": "Surface Laptop Ultra / RTX Spark", "framework_relevance": []}
+        if category == "Windows与兼容":
+            if term == "Prism模拟":
+                common["source_url"] = "https://learn.microsoft.com/en-us/windows/arm/apps-on-arm-x86-emulation"
+            elif term == "ARM64EC":
+                common["source_url"] = "https://learn.microsoft.com/en-us/windows/arm/arm64ec"
+            elif term == "Windows ML":
+                common["source_url"] = "https://learn.microsoft.com/en-us/windows/ai/new-windows-ml/overview"
+            elif term == "Windows 11 24H2 Build 26100":
+                common["source_url"] = "https://learn.microsoft.com/en-us/windows/ai/new-windows-ml/supported-execution-providers"
         FAQ.append({"id": f"FAQ-{base:03d}", "question": f"{term}是什么？", "easy_answer": easy, "expert_answer": expert, "misconception": misconception, "sales_tip": f"先确认客户是否真的涉及“{term}”，再说明适用范围、验证条件和未知项。", **common})
         FAQ.append({"id": f"FAQ-{base+1:03d}", "question": f"{term}对 Surface Laptop Ultra 选型和使用有什么影响？", "easy_answer": expert, "expert_answer": f"选型不能只看“{term}”标签；应结合具体 Part Number、内存、软件版本、任务条件和证据等级验证。", "misconception": misconception, "sales_tip": f"不要把“{term}”单项指标当成性能承诺；用客户真实任务做 PoC。", **common})
 

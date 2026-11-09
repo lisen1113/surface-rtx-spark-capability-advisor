@@ -222,6 +222,42 @@ CONCEPTS = (
      "An official theoretical memory-bandwidth figure for the highest platform tier.",
      "Real workloads depend on access patterns, shared contention, power, and software efficiency.",
      "Peak bandwidth cannot be converted into tokens per second or render time."),
+    ("Windows on Arm",
+     "Windows running on an ARM64 processor.",
+     "It supports native ARM64 apps and can emulate many x64 apps through Prism; verify the exact app and dependencies.",
+     "An x64 app starting does not prove all plugins and drivers are compatible."),
+    ("Native ARM64 application",
+     "A Windows application compiled directly for ARM64.",
+     "Native builds can improve efficiency and platform integration, but GPU backends and dependencies still need verification.",
+     "A native CPU architecture does not prove GPU acceleration is enabled."),
+    ("Prism emulation",
+     "Windows technology for running many x86 and x64 applications on Arm devices.",
+     "Prism translates user-mode CPU code; extensions and drivers may remain incompatible, and drivers require native ARM64 builds.",
+     "Emulation is not a virtual machine and cannot emulate an incompatible kernel driver."),
+    ("ARM64EC",
+     "A Windows ABI that lets ARM64EC and emulated x64 components coexist during incremental migration.",
+     "It can help port a large application in stages, but dependency boundaries and performance-critical paths need design.",
+     "ARM64EC is not a required end state for every application."),
+    ("Device driver",
+     "Software that lets Windows control hardware such as GPUs, audio interfaces, and capture devices.",
+     "Kernel-mode drivers need native ARM64 support; Prism cannot fix a driver architecture mismatch.",
+     "An emulated application running does not prove its peripherals will work."),
+    ("Plugin compatibility",
+     "Whether extensions, codecs, nodes, and scripts used by an application work on the target system.",
+     "A professional workflow may fail because a single x64 plugin or Python wheel is unavailable or incompatible.",
+     "A native ARM64 main application does not mean its entire plugin ecosystem is native."),
+    ("WSL2",
+     "A Linux virtualization environment on Windows.",
+     "It can host some Linux tools, but GPU access, ARM64 containers, networking, and file I/O need verification.",
+     "Running under WSL2 is not the same as official native Windows support."),
+    ("Windows ML",
+     "A Windows framework for local model inference and execution providers.",
+     "It supports x64 and ARM64; hardware-optimized providers require a suitable Windows version and drivers.",
+     "Windows ML support does not guarantee every model operator runs on the GPU."),
+    ("Windows 11 24H2 build 26100",
+     "The minimum Windows version for some hardware-optimized Windows ML execution providers.",
+     "Include enterprise image, update channel, and driver versions in the deployment baseline.",
+     "Meeting the OS build requirement does not replace model and application testing."),
 )
 
 
@@ -238,7 +274,8 @@ def english_item(item: dict) -> dict:
         "Model architectures" if index < 36 else
         "Models and memory" if index < 54 else
         "Inference performance" if index < 72 else
-        "Quantization and precision" if index < 90 else "RTX Spark hardware"
+        "Quantization and precision" if index < 90 else
+        "RTX Spark hardware" if index < 108 else "Windows and compatibility"
     )
     if index % 2 == 0:
         result.update(
