@@ -155,6 +155,9 @@ LABELS = {
     '微信下载组件尚未就绪，请重试': 'WeChat download component is not ready. Try again.',
     '请更新小程序后重试预算下载': 'Update the mini program and retry the budget download.',
     '暂时无法加载产品：': 'Products are temporarily unavailable: ',
+    '按当前已发布 Business 美元公开标准价比较，年度承诺、年付；许可资格、市场及已有订阅需核验。': 'Comparison uses currently published Business USD list prices with annual commitment and payment. Verify license eligibility, market, and existing subscriptions.',
+    '当前已发布价格不足以覆盖所选需求，请管理员补全价格后匹配。': 'Published prices do not yet cover the selected needs. An administrator must complete the price data before matching.',
+    '选择设备或订阅即可试算。': 'Select a device or subscription to calculate a budget.',
     '© 2026 上海以和信息技术有限公司。保留所有权利。': '© 2026 Shanghai Yihe Information Technology Co., Ltd. All rights reserved.',
 }
 
@@ -168,5 +171,5 @@ def translate_workplace(page: str) -> str:
     page = page.replace('href="/workplace/admin"', 'href="/en/workplace/admin"')
     page = page.replace('href="/workplace"', 'href="/en/workplace"')
     page = page.replace('lang="zh-CN" href="/en/workplace"', 'lang="zh-CN" href="/workplace"', 1)
-    runtime = '''<script>(function(){const labels=__LABELS__,phrases=Object.keys(labels).filter(key=>key.length>8).sort((a,b)=>b.length-a.length);function update(node){if(node.nodeType===3){const text=node.nodeValue,trimmed=text.trim();if(labels[trimmed]){node.nodeValue=text.replace(trimmed,labels[trimmed]);return}let translated=text;for(const phrase of phrases)translated=translated.replaceAll(phrase,labels[phrase]);if(translated!==text)node.nodeValue=translated;return}if(node.nodeType!==1||node.closest('script,style'))return;const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);while(walker.nextNode())update(walker.currentNode)}const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)update(node)});observer.observe(document.body,{childList:true,subtree:true});})();</script>'''.replace('__LABELS__', json.dumps(LABELS, ensure_ascii=False))
+    runtime = r'''<script>(function(){const labels=__LABELS__,phrases=Object.keys(labels).filter(key=>key.length>8).sort((a,b)=>b.length-a.length);function update(node){if(node.nodeType===3){const text=node.nodeValue,trimmed=text.trim();if(labels[trimmed]){node.nodeValue=text.replace(trimmed,labels[trimmed]);return}let translated=text.replace(/共 (\d+) 项产品/g,'$1 products');for(const phrase of phrases)translated=translated.replaceAll(phrase,labels[phrase]);if(translated!==text)node.nodeValue=translated;return}if(node.nodeType!==1||node.closest('script,style'))return;const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);while(walker.nextNode())update(walker.currentNode)}const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)update(node)});observer.observe(document.body,{childList:true,subtree:true});})();</script>'''.replace('__LABELS__', json.dumps(LABELS, ensure_ascii=False))
     return page.replace('</body>', runtime + '</body>', 1)

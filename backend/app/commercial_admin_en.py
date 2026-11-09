@@ -7,6 +7,7 @@ from .auth_en import LABELS as AUTH_LABELS
 from .workplace_en import LABELS as WORKPLACE_LABELS
 
 LABELS = {
+    '请登录已有账号': 'Sign in to an existing account',
     **WORKPLACE_LABELS,
     **AUTH_LABELS,
     'Surface 与 M365 Copilot 组合方案': 'Surface and M365 Copilot plans',
