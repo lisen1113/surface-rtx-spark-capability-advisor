@@ -262,6 +262,8 @@ ADVISOR_LABELS = {
     'NVIDIA RTX Spark™ N1X（18 核 CPU / 5120 核 GPU）': 'NVIDIA RTX Spark™ N1X (18-core CPU / 5120-core GPU)',
     'NVIDIA RTX Spark™ N1X（20 核 CPU / 6144 核 GPU）': 'NVIDIA RTX Spark™ N1X (20-core CPU / 6144-core GPU)',
     'NVIDIA RTX Spark™ N1X（18核 CPU）': 'NVIDIA RTX Spark™ N1X (18-core CPU)',
+    'NVIDIA RTX Spark™ N1X（18 核 CPU：9 个 Cortex-X925 性能核 + 9 个 Cortex-A725 能效核）': 'NVIDIA RTX Spark™ N1X (18-core CPU: 9 Cortex-X925 performance cores + 9 Cortex-A725 efficiency cores)',
+    'NVIDIA RTX Spark™ N1X（20 核 CPU：10 个 Cortex-X925 性能核 + 10 个 Cortex-A725 能效核）': 'NVIDIA RTX Spark™ N1X (20-core CPU: 10 Cortex-X925 performance cores + 10 Cortex-A725 efficiency cores)',
     'NVIDIA RTX Spark™ N1X（20核 CPU）': 'NVIDIA RTX Spark™ N1X (20-core CPU)',
     'NVIDIA Blackwell RTX GPU（5120 核）': 'NVIDIA Blackwell RTX GPU (5120 cores)',
     'NVIDIA Blackwell RTX GPU（6144 核）': 'NVIDIA Blackwell RTX GPU (6144 cores)',
