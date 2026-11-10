@@ -475,6 +475,41 @@ SCENARIOS = {
         "Removable does not mean any employee can remove or upgrade it without warranty implications.",
         "Include BitLocker, asset handover, and repair returns in the procurement plan.",
     ),
+    "FAQ-196": (
+        "How should Surface's business value be presented to an IT department?",
+        "Assess Windows management, security, peripherals, service, and employee workflows together.",
+        "Hardware security features do not replace device management, patching, permissions, backups, and incident response. Business value depends on the customer's Intune and Entra environment, applications, and service contracts.",
+        "A product page listing security features does not mean the customer has configured them.",
+        "Ask the IT team for its standard image, policies, asset controls, and repair requirements.",
+    ),
+    "FAQ-197": (
+        "How should Surface and OEM or Apple total cost of ownership be compared?",
+        "Compare devices, software, adapters, support, and employee time over the full usage period, not only purchase price.",
+        "Use the same period and include peripherals, migration, management, repairs, electricity, and cloud AI services. Without customer invoices, use explicitly labelled scenario assumptions only.",
+        "A lower purchase price or higher specification does not prove the lowest total cost.",
+        "Replace template defaults with the customer's financial records and proof-of-concept labor time.",
+    ),
+    "FAQ-198": (
+        "What should be validated in a demonstration for a graphics customer?",
+        "Use the customer's real project to demonstrate preview, rendering, export, and peripheral connections.",
+        "Blackwell GPU architectural capability differs from a creative application's use of a particular backend. Record plugins, codecs, media, resolution, and power mode.",
+        "Platform support for a feature does not mean every app and SKU benefits equally.",
+        "Compare completion time, image quality, and stability on identical media and software versions.",
+    ),
+    "FAQ-199": (
+        "What should be validated in a demonstration for developers?",
+        "Check the target IDE, containers, SDKs, dependencies, and real build and inference tasks.",
+        "Support can differ between Windows ARM64, Linux or WSL, and CUDA toolchains. Drivers and native extensions are common obstacles.",
+        "A successful Hello World does not prove a full project can migrate.",
+        "Have developers bring their repository, dependency lockfile, and test set for an end-to-end proof of concept.",
+    ),
+    "FAQ-200": (
+        "How should evidence levels be labelled in a sales comparison table?",
+        "Separate official specifications, customer measurements, engineering estimates, and unknowns.",
+        "When comparing Apple or OEM products, record exact models, dates, versions, and test conditions. Without comparable results, leave FPS, tokens per second, and battery-life winners unstated.",
+        "The highest official configuration or a launch demo is not a measurement of this SKU.",
+        "Attach source links, test records, and open validation items to every comparison table.",
+    ),
 }
 
 
