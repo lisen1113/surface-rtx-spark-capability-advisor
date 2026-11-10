@@ -440,6 +440,41 @@ SCENARIOS = {
         "Do not compare interface names without checking both devices and cable specifications.",
         "If the customer uses a fast storage array or multi-display dock, measure throughput and stability.",
     ),
+    "FAQ-191": (
+        "Can Windows on Arm run the customer's existing x64 software?",
+        "Some x86 and x64 apps can run through emulation, but critical software and drivers need individual checks.",
+        "Microsoft documents emulation on Windows on Arm, while kernel drivers require ARM64 builds. Plugins, installers, anti-cheat, and hardware control software may also affect delivery.",
+        "Starting an app does not prove every plugin works or that performance matches a native build.",
+        "List the customer's apps, versions, drivers, peripherals, and acceptance steps; prioritize native ARM64 validation.",
+    ),
+    "FAQ-192": (
+        "Does the CUDA ecosystem make every AI tool work out of the box?",
+        "The NVIDIA ecosystem offers useful development paths, but each toolchain needs a Windows ARM64 support check.",
+        "NVIDIA provides Windows on Arm porting guidance. Check CUDA Toolkit, framework wheels, operators, drivers, and model backends by version.",
+        "An NVIDIA GPU does not make every CUDA application run on Windows ARM64.",
+        "Build an installation and inference proof of concept using the target tool's official compatibility matrix and the customer's model.",
+    ),
+    "FAQ-193": (
+        "How should local AI and cloud AI be explained to a customer?",
+        "Local execution can reduce network dependence for some tasks; cloud services can still offer larger models and elastic capacity.",
+        "Local data boundaries depend on telemetry, model downloads, plugins, logs, and routing. Include acquisition, maintenance, utilization, and cloud fallback in cost comparisons.",
+        "Local execution does not automatically mean fully offline, cost-free, or compliant.",
+        "Identify which data must stay within the customer's boundary, then trace actual application data flows.",
+    ),
+    "FAQ-194": (
+        "How should 24, 32, 48, 64, and 128 GB memory tiers be recommended?",
+        "Choose based on model capacity, creative assets, concurrent applications, and budget, rather than capacity alone.",
+        "Unified memory needs room for the system, graphics, and intermediate tensors. More capacity raises the possible working set but does not prove throughput or task success.",
+        "Do not convert memory capacity directly into model parameter count or tokens per second.",
+        "Measure peak memory, stability, and response time with the target model and project files.",
+    ),
+    "FAQ-195": (
+        "What does a removable SSD offer an enterprise deployment?",
+        "It may help some repair, device handover, and data management processes.",
+        "Microsoft lists a removable SSD. Removal, warranty, encryption keys, data erasure, and replacement should follow official service guidance and company policy.",
+        "Removable does not mean any employee can remove or upgrade it without warranty implications.",
+        "Include BitLocker, asset handover, and repair returns in the procurement plan.",
+    ),
 }
 
 

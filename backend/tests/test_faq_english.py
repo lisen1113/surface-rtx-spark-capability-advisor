@@ -12,7 +12,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     source = client.get('/api/faq?limit=20').json()
     english = client.get('/api/faq?limit=20&lang=en').json()
     assert source['indexed_total'] == english['indexed_total'] == len(FAQ)
-    assert english['translated_total'] == 190
+    assert english['translated_total'] == 195
     for original, translated in zip(source['items'], english['items']):
         assert translated['id'] == original['id']
         assert translated['source_url'] == original['source_url']
@@ -20,7 +20,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert english['items'][0]['translation_status'] == 'translated_draft'
     assert english['items'][18]['translation_status'] == 'translated_draft'
     assert english['items'][18]['category'] == 'Model architectures'
-    for item in client.get('/api/faq?limit=190&lang=en').json()['items']:
+    for item in client.get('/api/faq?limit=195&lang=en').json()['items']:
         assert not re.search(r'[\u3400-\u9fff]', ' '.join(item[key] for key in
             ('question', 'easy_answer', 'expert_answer', 'misconception', 'sales_tip')))
     assert client.get('/api/faq?limit=54&lang=en').json()['items'][36]['category'] == 'Models and memory'
@@ -36,9 +36,9 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert client.get('/api/faq?limit=170&lang=en').json()['items'][162]['source_url'] == 'https://genai.owasp.org/glossary/prompt-injection/'
     assert client.get('/api/faq?limit=180&lang=en').json()['items'][170]['category'] == 'Selection and sales'
     assert client.get('/api/faq?limit=185&lang=en').json()['items'][180]['category'] == 'Surface Laptop Ultra'
-    pending = client.get('/api/faq?limit=191&lang=en').json()['items'][190]
+    pending = client.get('/api/faq?limit=196&lang=en').json()['items'][195]
     assert pending['translation_status'] == 'pending'
-    assert pending['question'] == FAQ[190]['question']
+    assert pending['question'] == FAQ[195]['question']
 
 
 def test_english_faq_search_and_home_request_language():
