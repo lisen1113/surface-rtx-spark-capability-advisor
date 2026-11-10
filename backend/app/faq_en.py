@@ -510,6 +510,48 @@ SCENARIOS = {
         "The highest official configuration or a launch demo is not a measurement of this SKU.",
         "Attach source links, test records, and open validation items to every comparison table.",
     ),
+    "FAQ-201": (
+        "What are Microsoft Execution Containers (MXC)?",
+        "MXC is Microsoft's generally available policy-driven containment layer for limiting the resources available to agents, plugins, tools, or model-generated code.",
+        "Developers or administrators declare file and network permissions. Policy stays outside the contained workload, which cannot grant itself broader access. MXC is not a model inference engine.",
+        "MXC does not automatically give an agent a trusted identity or replace application permission review.",
+        "List the files an agent needs to read or change and the network destinations it needs before demonstrating its actions.",
+    ),
+    "FAQ-202": (
+        "Which resources can MXC restrict for an AI agent?",
+        "Policy can control file reads and writes, network connections, and desktop interaction.",
+        "A policy can distinguish modifiable, read-only, and inaccessible locations and control inbound, outbound, and loopback networking. The effective boundary depends on the selected backend.",
+        "Permission to read a directory does not imply permission to modify it.",
+        "Build an access list using the customer's real directories and destination URLs, then test denied access.",
+    ),
+    "FAQ-203": (
+        "How do MXC process, session, WSL, and MicroVM containers differ?",
+        "They provide different isolation levels and software environments.",
+        "Process containers suit lightweight tool execution. Windows 11 session containers use a separate account and desktop session. WSL containers supply a Linux environment. MicroVM remains experimental on Windows 11 and Linux.",
+        "Do not present the experimental MicroVM backend as generally available on every device.",
+        "Select a backend based on desktop and Linux needs and risk level, then verify it on the target device.",
+    ),
+    "FAQ-204": (
+        "Is MXC the same as Docker or an ordinary Windows container?",
+        "No. MXC is a policy layer for agents and dynamic code that can map to different containment backends.",
+        "Its unified configuration defines permissions; a backend may use Windows AppContainer, a separate session, WSL, or a MicroVM. It is not one container image format.",
+        "Installing Docker does not configure an MXC policy for an AI agent.",
+        "Decide whether the customer needs to contain an agent tool, generated code, or the entire agent before designing policy.",
+    ),
+    "FAQ-205": (
+        "Does MXC general availability mean every planned security feature is available now?",
+        "The containment layer is generally available; agent identity and enterprise management features have a separate rollout.",
+        "Microsoft says Entra-based separation of agent and user identities and Agent 365 governance for local agents are still being introduced. Confirm the actual version and tenant entitlement before deployment.",
+        "Roadmap features must not be described as available to every customer today.",
+        "Label generally available, experimental, and planned features separately in sales materials.",
+    ),
+    "FAQ-206": (
+        "Can MXC prevent every risk caused by prompt injection?",
+        "No. It limits what an agent can do, but cannot guarantee that a model will not be misled.",
+        "Combine least privilege, confirmation for sensitive actions, identity, and audit controls with validation of tool responses and external data. Containment mainly reduces the impact of unauthorized behavior.",
+        "A sandbox is not a reason to grant unlimited file or network access.",
+        "Have the customer list forbidden directories, services, and credentials, then test the boundaries.",
+    ),
 }
 
 
@@ -521,7 +563,14 @@ def english_item(item: dict) -> dict:
         translated = SCENARIOS.get(item["id"])
         if translated:
             result.update(zip(("question", "easy_answer", "expert_answer", "misconception", "sales_tip"), translated))
-            result["category"] = "Surface Laptop Ultra"
+            result["category"] = {
+                "Surface Laptop Ultra": "Surface Laptop Ultra",
+                "安全与隐私": "Security and privacy",
+                "选型与销售": "Selection and sales",
+                "AI基础知识": "AI fundamentals",
+                "Windows与兼容": "Windows and compatibility",
+                "本地AI部署": "Local AI deployment",
+            }.get(item["category"], item["category"])
             result["translation_status"] = "translated_draft"
         else:
             result["translation_status"] = "pending"
