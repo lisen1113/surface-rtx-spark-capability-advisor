@@ -615,6 +615,34 @@ SCENARIOS = {
         "A planned preview is not the same as a generally available customer feature.",
         "Mark release stage, version, prerequisites, and validation date in the sales material.",
     ),
+    "FAQ-216": (
+        "Are MCP, CLI, and NVIDIA Skills the same thing?",
+        "No. MCP connects tools, a CLI is a command-line interface, and a Skill is a set of workflow instructions.",
+        "Whether these components work together depends on the specific application, MCP server, agent client, permissions, and versions. Installing a Skill does not grant tool permissions or install a server automatically.",
+        "An available Skills library does not mean every NVIDIA app integrates with an agent automatically.",
+        "Demonstrate one read-only tool call and show the permission and audit records.",
+    ),
+    "FAQ-217": (
+        "Which NVIDIA playbook should a new RTX Spark user start with?",
+        "Start with the first-agent guide; choose another playbook for a specific work task.",
+        "NVIDIA offers separate agent, productivity, creation, and PAIR guides. Check the guide's prerequisites and the target device before installing tools or connecting another system.",
+        "A playbook demonstration is not a measured speed, latency, or power result for every SKU.",
+        "Ask the customer to choose a small task related to their work and record the result.",
+    ),
+    "FAQ-218": (
+        "What permissions should an agent receive when it accesses email or Windows apps?",
+        "Begin with the smallest read-only scope, and require human review for sending, deleting, purchasing, or changing settings.",
+        "Check the app's actual connector and MCP permissions. Test isolation, audit logs, credential storage, and revocation before broadening access.",
+        "A successful connection does not prove that every tool call is local or policy compliant.",
+        "Demonstrate a permitted read and a denied write before granting more access.",
+    ),
+    "FAQ-219": (
+        "Can NVIDIA PAIR combine several devices' unified memory to hold one larger model?",
+        "No. PAIR routes independent requests to available local systems; it does not pool their memory into one model space.",
+        "NVIDIA's PAIR guide lists llama.cpp, Ollama, and LM Studio paths. Each node still needs enough memory for its own model weights, context, and runtime. Confirm software and architecture support on each node.",
+        "Request routing is not model sharding or a guaranteed speedup for one request.",
+        "Test routing and concurrency, and record which node handled each request.",
+    ),
 }
 
 

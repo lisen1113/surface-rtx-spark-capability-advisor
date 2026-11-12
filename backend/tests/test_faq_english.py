@@ -12,7 +12,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     source = client.get('/api/faq?limit=20').json()
     english = client.get('/api/faq?limit=20&lang=en').json()
     assert source['indexed_total'] == english['indexed_total'] == len(FAQ)
-    assert english['translated_total'] == 215
+    assert english['translated_total'] == len(FAQ) == 219
     for original, translated in zip(source['items'], english['items']):
         assert translated['id'] == original['id']
         assert translated['source_url'] == original['source_url']
@@ -20,7 +20,7 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert english['items'][0]['translation_status'] == 'translated_draft'
     assert english['items'][18]['translation_status'] == 'translated_draft'
     assert english['items'][18]['category'] == 'Model architectures'
-    for item in client.get('/api/faq?limit=215&lang=en').json()['items']:
+    for item in client.get('/api/faq?limit=219&lang=en').json()['items']:
         assert not re.search(r'[\u3400-\u9fff]', ' '.join(item[key] for key in
             ('question', 'easy_answer', 'expert_answer', 'misconception', 'sales_tip')))
     assert client.get('/api/faq?limit=54&lang=en').json()['items'][36]['category'] == 'Models and memory'
@@ -38,9 +38,9 @@ def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
     assert client.get('/api/faq?limit=185&lang=en').json()['items'][180]['category'] == 'Surface Laptop Ultra'
     assert client.get('/api/faq?limit=206&lang=en').json()['items'][200]['category'] == 'Security and privacy'
     assert client.get('/api/faq?limit=215&lang=en').json()['items'][212]['category'] == 'Security and privacy'
-    pending = client.get('/api/faq?limit=216&lang=en').json()['items'][215]
-    assert pending['translation_status'] == 'pending'
-    assert pending['question'] == FAQ[215]['question']
+    final_item = client.get('/api/faq?limit=219&lang=en').json()['items'][218]
+    assert final_item['translation_status'] == 'translated_draft'
+    assert final_item['id'] == 'FAQ-219'
 
 
 def test_english_faq_search_and_home_request_language():
