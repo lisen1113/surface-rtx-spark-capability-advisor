@@ -52,3 +52,5 @@ def test_english_faq_search_and_home_request_language():
     assert 'English translation pending' in page
     assert 'Engineering memory screening tier:' in page
     assert 'The PDF describes this SKU.' in page
+    assert 'Monthly cloud fee minus local operating cost' in page
+    assert 'Share of device cost allocated to AI' in page
