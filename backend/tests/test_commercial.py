@@ -252,7 +252,7 @@ def test_workplace_page_has_all_business_entry_points(workspace):
     assert 'Surface 与 M365 Copilot 组合方案 · 选型、租赁与报价' not in home
 
 
-def test_customer_only_registration_cannot_read_internal_erp(workspace, monkeypatch):
+def test_customer_can_read_public_erp_but_not_internal_imports(workspace, monkeypatch):
     client, auth = workspace
     monkeypatch.setenv('CAPABILITY_DEV_EXPOSE_TOKENS','1')
     response = client.post('/api/commercial/register',json={'organization_name':'External customer','email':'external@example.com','password':'Strong-external-123','accepted_terms':True,'accepted_privacy':True})
@@ -264,7 +264,7 @@ def test_customer_only_registration_cannot_read_internal_erp(workspace, monkeypa
         conn.commit()
     monkeypatch.setenv('CAPABILITY_REQUIRE_AUTH','1')
     assert client.get('/api/commercial/products',headers=auth['org1']).status_code==200
-    assert client.get('/api/catalog/quick-search',headers=auth['org1']).status_code==403
+    assert client.get('/api/catalog/quick-search',headers=auth['org1']).status_code==200
     assert client.get('/api/catalog/imported-skus',headers=auth['org1']).status_code==403
     assert client.put('/api/commercial/profile',headers=auth['org1'],json=profile()).status_code==200
 
