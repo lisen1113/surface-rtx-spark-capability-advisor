@@ -42,7 +42,7 @@ def test_full_advisor_anonymous_and_administration_protected(tmp_path, monkeypat
     assert pdf.status_code==200 and pdf.content.startswith(b'%PDF')
     assert rendered and rendered[-1]['erp_price_cny']==20000 and 'source_reference' not in rendered[-1]
     assert client.get(route).status_code==404
-    assert client.post('/api/reports/mobile-ticket',json={'part_number':'PUBLIC-1','report_kind':'surface'}).status_code==401
+    assert client.post('/api/reports/mobile-ticket',json={'part_number':'PUBLIC-1','report_kind':'surface'}).status_code==404
     monkeypatch.setenv('CAPABILITY_PUBLIC_ADVISOR','0')
     assert client.get('/api/catalog/imported-skus').status_code==401
     assert client.get('/api/reports/PUBLIC-1.pdf').status_code==401

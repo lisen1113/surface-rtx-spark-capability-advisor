@@ -125,30 +125,21 @@ def test_power_supply_marks_follow_user_configuration_codes():
 
 
 def test_surface_mobile_pdf_ticket_preserves_sku_filename_and_single_use(monkeypatch, tmp_path):
-    from app.auth import now, iso
-    from app.advisor_access import require_advisor_user as require_entitled_user
-    from datetime import timedelta
-    monkeypatch.delenv('CAPABILITY_AUTH_DATABASE_URL', raising=False)
+    monkeypatch.setenv('CAPABILITY_REQUIRE_AUTH', '1')
+    monkeypatch.setenv('CAPABILITY_PUBLIC_ADVISOR', '0')
     monkeypatch.setattr(catalog, 'DB_PATH', tmp_path / 'mobile.sqlite3')
     with catalog.connection() as conn:
         _insert_lookup(conn, part_number='EP2-MOBILE', product_type='Surface 设备', series='Surface Pro',
                        family='Pro', description='CMxP', product_name='Surface Pro', match_level='A1 配置一致', price=10000)
-        conn.execute("INSERT INTO organizations (id,name,status,created_at) VALUES (1,'test','approved',?)", (iso(now()),))
-        conn.execute("INSERT INTO users (id,organization_id,email,password_hash,role,status,email_verified,created_at) VALUES (1,1,'mobile@example.invalid','unused','member','approved',1,?)", (iso(now()),))
-        conn.execute("INSERT INTO licenses VALUES (1,1,?,'active',?)", (iso(now()+timedelta(days=1)), iso(now())))
         conn.commit()
-    app.dependency_overrides[require_entitled_user] = lambda: {'id': 1}
-    try:
-        issued = client.post('/api/reports/mobile-ticket', json={'part_number':'EP2-MOBILE','report_kind':'surface'})
-        assert issued.status_code == 200
-        assert issued.json()['filename'] == 'Surface-Product-EP2-MOBILE.pdf'
-        path = '/api/reports/mobile-download/' + issued.json()['ticket']
-        pdf = client.get(path)
-        assert pdf.status_code == 200 and pdf.content.startswith(b'%PDF-')
-        assert 'Surface-Product-EP2-MOBILE.pdf' in pdf.headers['content-disposition']
-        assert client.get(path).status_code == 404
-    finally:
-        app.dependency_overrides.pop(require_entitled_user, None)
+    issued = client.post('/api/reports/mobile-ticket', json={'part_number':'EP2-MOBILE','report_kind':'surface'})
+    assert issued.status_code == 200
+    assert issued.json()['filename'] == 'Surface-Product-EP2-MOBILE.pdf'
+    path = '/api/reports/mobile-download/' + issued.json()['ticket']
+    pdf = client.get(path)
+    assert pdf.status_code == 200 and pdf.content.startswith(b'%PDF-')
+    assert 'Surface-Product-EP2-MOBILE.pdf' in pdf.headers['content-disposition']
+    assert client.get(path).status_code == 404
 
 
 def _insert_lookup(conn, *, part_number, product_type, series, family, description,

@@ -38,11 +38,8 @@ class MobilePdfInput(BaseModel):
 
 
 @router.post("/mobile-ticket")
-def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_advisor_user), authorization: str | None = Header(default=None)):
- if data.report_kind == 'surface' and public_advisor_enabled():
-  user = require_entitled_user(authorization)
- if not user and not (public_advisor_enabled() and data.report_kind == 'advisor'):
-  raise HTTPException(403,"小程序 PDF 预览需要登录")
+def issue_mobile_pdf_ticket(data: MobilePdfInput, authorization: str | None = Header(default=None)):
+ user = None if data.report_kind == 'surface' or public_advisor_enabled() else require_entitled_user(authorization)
  with connection() as conn:
   table = 'sku_lookup' if data.report_kind == 'surface' else 'imported_skus'
   found=conn.execute(f"SELECT 1 FROM {table} WHERE part_number=?",(data.part_number,)).fetchone()
@@ -53,9 +50,9 @@ def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_advisor_u
    expired=[key for key, value in PUBLIC_PDF_TICKETS.items() if value[1] <= monotonic()]
    for key in expired: PUBLIC_PDF_TICKETS.pop(key, None)
    if len(PUBLIC_PDF_TICKETS)>=1024: raise HTTPException(429,"下载请求繁忙，请稍后重试")
-   PUBLIC_PDF_TICKETS[ticket]=(data.part_number,monotonic()+90)
+   PUBLIC_PDF_TICKETS[ticket]=(data.part_number,monotonic()+90,data.report_kind)
   safe_sku=''.join(c if c.isascii() and (c.isalnum() or c in '-_') else '-' for c in data.part_number)
-  return {"ticket":ticket,"expires_in":90,"filename":'Surface-Laptop-Ultra-Capability-'+safe_sku+'.pdf'}
+  return {"ticket":ticket,"expires_in":90,"filename":('Surface-Product-' if data.report_kind == 'surface' else 'Surface-Laptop-Ultra-Capability-')+safe_sku+'.pdf'}
  ticket=secrets.token_urlsafe(32)
  with auth_connection() as conn:
   conn.execute("INSERT INTO pdf_download_tickets (token_hash,user_id,part_number,expires_at,used_at) VALUES (?,?,?,?,NULL)",
@@ -69,9 +66,12 @@ def issue_mobile_pdf_ticket(data: MobilePdfInput, user=Depends(require_advisor_u
 def mobile_pdf_download(ticket: str):
  if len(ticket)>128: raise HTTPException(404,"下载授权无效")
  if ticket.startswith('public-'):
-  if not public_advisor_enabled(): raise HTTPException(404,"下载授权无效")
   with PUBLIC_PDF_LOCK: entry=PUBLIC_PDF_TICKETS.pop(ticket,None)
   if not entry or entry[1] <= monotonic(): raise HTTPException(404,"下载授权已失效，请重新生成")
+  if entry[2] == 'surface':
+   from .catalog import quick_search_pdf
+   return quick_search_pdf(entry[0])
+  if not public_advisor_enabled(): raise HTTPException(404,"下载授权无效")
   return download_customer_pdf(entry[0])
  with auth_connection() as conn:
   row=conn.execute("SELECT t.part_number,u.* FROM pdf_download_tickets t JOIN users u ON u.id=t.user_id "
