@@ -18,8 +18,10 @@ def test_surface_finder_language_switch_keeps_public_features():
                   'Download product PDF', 'ERP price incl. tax'):
         assert label in english.text
     assert '/api/catalog/quick-search' in english.text
-    assert 'quick-quote-factor" type="number"' in english.text  # legacy hidden input
-    assert '<label hidden>Quote factor' in english.text
+    assert 'quick-quote-factor' not in chinese.text
+    assert 'quick-quote-factor' not in english.text
+    assert '报价系数' not in chinese.text
+    assert 'Quote factor' not in english.text
 
 
 def test_public_advisor_home_has_english_route_and_switch():

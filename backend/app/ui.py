@@ -248,7 +248,11 @@ $('#tabs').onclick=e=>{if(e.target.tagName!=='BUTTON')return;document.querySelec
  if surface:
   styles = ''.join(re.findall(r'<style>.*?</style>', page, re.S))
   helpers = page[page.index('const $='):quick_start]
-  quick_section = quick_section.replace('<div class="quick-actions"><label>报价系数', '<div class="quick-actions"><label hidden>报价系数')
+  quick_section = re.sub(r'<label>报价系数.*?</label>', '', quick_section, count=1)
+  quick_script = re.sub(r'function quickQuote\(item\)\{.*?\}\n', '', quick_script, count=1)
+  quick_script = quick_script.replace("const quote=quickQuote(item),factor=Number($('#quick-quote-factor').value||100);", '')
+  quick_script = quick_script.replace("$('#quick-quote-factor').value='100';", '')
+  quick_script = quick_script.replace("$('#quick-quote-factor').addEventListener('change',runQuickSearch);", '')
   quick_section = quick_section.replace('<label>大系列' , '<label>处理器大类<select id="quick-platform"><option value="">全部处理器</option><option value="Intel">英特尔 Intel</option><option value="Snapdragon">高通 Snapdragon</option></select></label><label>大系列')
   quick_section = quick_section.replace('<label>ERP 价格上限', '<label>存储<select id="quick-storage"><option value="">全部存储</option></select></label><label>ERP 价格上限')
   quick_section = quick_section.replace('<label>存储', '<label>屏幕大小<select id="quick-screen"><option value="">全部尺寸</option><option value="12">12 英寸</option><option value="13">13 英寸</option><option value="13.8">13.8 英寸</option><option value="15">15 英寸</option></select></label><label>存储')

@@ -51,7 +51,7 @@ def test_home_page_exposes_all_advisor_modules():
     assert "aiStarter(s)+cards(data.ai)" in html
 
 
-def test_home_page_exposes_v31_quick_search_and_erp_quote_factor():
+def test_home_page_exposes_public_v31_quick_search_without_discount():
     home = client.get('/').text
     assert 'id="quick-lookup"' not in home
     assert 'href="/surface"' in home
@@ -59,7 +59,7 @@ def test_home_page_exposes_v31_quick_search_and_erp_quote_factor():
     assert 'id="needform"' not in html
     assert "Surface SKU 快速查询" in html
     assert 'id="quick-query"' in html
-    assert 'id="quick-quote-factor"' in html
+    assert 'id="quick-quote-factor"' not in html
     assert "/api/catalog/quick-search" in html
     assert '高通 Snapdragon' in html
     assert '下载 PDF 产品资料' in html
