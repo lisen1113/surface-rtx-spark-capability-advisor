@@ -40,7 +40,7 @@ assert.equal(pageData('pages/guest/index').guestUrl, 'https://surfacedmp.com/gue
 assert.equal(pageData('pages/advisor/index').advisorUrl, 'https://surfacedmp.com/account');
 assert.ok(config.pages.includes('pages/surface/index'));
 assert.match(home, /url="\/pages\/surface\/index"/);
-assert.equal(pageData('pages/surface/index').surfaceUrl, 'https://surfacedmp.com/account?next=%2Fsurface');
+assert.equal(pageData('pages/surface/index').surfaceUrl, 'https://surfacedmp.com/surface');
 assert.ok(config.pages.includes('pages/workplace/index'));
 assert.match(home,/url="\/pages\/workplace\/index"/);
 assert.equal(pageData('pages/workplace/index').workplaceUrl,'https://surfacedmp.com/workplace');
