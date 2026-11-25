@@ -1,0 +1,4 @@
+<view class="report-page">
+  <text>{{status}}</text>
+  <button bindtap="goBack">返回能力顾问</button>
+</view>

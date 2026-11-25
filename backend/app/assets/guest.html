@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>游客体验｜Surface 能力顾问</title>
+  <style>
+    :root{--ink:#172033;--muted:#526179;--blue:#2555bf;--line:#dce3ef}
+    *{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:var(--ink);font:16px/1.6 system-ui,"Microsoft YaHei",sans-serif}
+    header{background:#0b1220;color:#fff;padding:32px 20px}main,header>div{max-width:1050px;margin:auto}main{padding:24px 16px}
+    h1{font-size:clamp(26px,5vw,38px);margin:6px 0}h2{margin:0 0 12px;font-size:23px}h3{margin:0 0 8px;font-size:18px}
+    .muted{color:var(--muted)}header .muted{color:#cbd5e1}.panel,.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+    label{display:block;margin:12px 0;font-weight:600}select,textarea,input[type="text"],input[type="number"],button{font:inherit}select,textarea,input[type="text"],input[type="number"]{width:100%;padding:11px;border:1px solid #9ba8bc;border-radius:8px;background:#fff}
+    button,.button{display:inline-block;background:var(--blue);border:0;border-radius:8px;padding:10px 17px;color:#fff;text-decoration:none;cursor:pointer}
+    .choices{display:flex;gap:12px;flex-wrap:wrap}.choices label{font-weight:400}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#fff;color:var(--blue);border:1px solid var(--blue)}.tabs button[aria-selected="true"]{background:var(--blue);color:#fff}
+    .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}.fact{background:#f6f8fc;padding:11px;border-radius:9px}.fact strong{display:block}
+    .need-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0 14px}.need-fields[hidden]{display:none}.need-fields label{min-width:0}
+    .card p{margin:6px 0}.warning{border-left:4px solid #b54708;padding-left:12px;color:#8b3903}.status{min-height:24px}
+    footer{text-align:center;color:var(--muted);padding:24px}@media(max-width:600px){.panel,.card{padding:16px}}
+  </style>
+</head>
+<body>
+<header><div><div>Surface / RTX Spark PC Capability Advisor V3.0</div><h1>游客体验</h1><p class="muted">无需登录即可查看产品配置、工程候选与 AI、游戏、生成式 AI、生产力能力映射。价格、内部知识库、客户报告和管理功能仅向获授权账号开放。</p><a class="button" href="/account">登录授权版</a></div></header>
+<main>
+  <section class="panel"><h2>选择产品配置</h2><label for="sku">Part Number</label><select id="sku"><option>正在载入…</option></select><p id="load-status" class="status muted" role="status"></p><div id="facts" class="facts"></div></section>
+  <section class="panel"><h2>按使用需求推荐产品</h2><p class="muted">游客可使用与授权版相同的用途筛选；价格、预算排序和客户报告仍需授权。候选只按配置与工程假设筛选，不保证软件兼容或性能。</p><form id="need-form"><div class="choices"><label><input type="checkbox" name="usage" value="ai"> 本地 AI 模型</label><label><input type="checkbox" name="usage" value="gaming"> 游戏</label><label><input type="checkbox" name="usage" value="generation"> 生成式 AI</label><label><input type="checkbox" name="usage" value="productivity"> 生产力</label></div><div id="ai-fields" class="need-fields" hidden><label>模型名称（可选）<input id="model-name" type="text" maxlength="120" placeholder="例如 Qwen3"></label><label>模型规模<select id="ai-size"><option value="unsure">尚不确定</option><option>8B</option><option>32B</option><option>70B</option><option>120B</option></select></label></div><div id="game-fields" class="need-fields" hidden><label>具体游戏（可选）<input id="game-titles" type="text" maxlength="240" placeholder="例如 CS2"></label><label>游戏类型<select id="game-need"><option value="unsure">尚不确定</option><option value="esports">电竞 / 网游</option><option value="aaa">3A 大型游戏</option></select></label><label>目标分辨率<select id="target-resolution"><option value="unsure">尚不确定</option><option>1080p</option><option>1440p</option><option>4K</option></select></label><label>期望 FPS（仅作为需求，不是实测）<input id="target-fps" type="number" min="1" max="500" placeholder="例如 60"></label></div><div id="generation-fields" class="need-fields" hidden><label>生成式 AI 工作流<select id="generation-need"><option value="unsure">尚不确定</option><option value="image">图像生成</option><option value="video">视频生成</option></select></label></div><div id="work-fields" class="need-fields" hidden><label>软件名称与版本（可选）<input id="software-name" type="text" maxlength="120" placeholder="例如 Premiere Pro"></label><label>生产力工作负载<select id="work-need"><option value="unsure">尚不确定</option><option value="office">日常办公</option><option value="coding">编程开发</option><option value="video">视频剪辑</option><option value="cad">CAD / 3D</option></select></label></div><label for="description">描述您的用途（可选）</label><textarea id="description" rows="3" maxlength="2000" placeholder="例如：本地运行 32B 模型并用于编程；请勿输入客户机密"></textarea><button type="submit">查看工程候选</button></form><div id="recommendations" aria-live="polite" role="status"></div></section>
+  <section class="panel"><h2>能力映射</h2><div class="tabs" id="tabs"><button type="button" data-tab="ai" aria-selected="true">AI 模型</button><button type="button" data-tab="gaming">游戏</button><button type="button" data-tab="generation">生成式 AI</button><button type="button" data-tab="productivity">生产力</button></div><p id="mapping-status" class="status muted" role="status"></p><div id="mapping"></div></section>
+  <p class="warning">证据边界：官方平台声明不是本料号实测；内存容量估算不是兼容性、FPS、Token/s 或完成时间承诺。请在目标设备上验证。</p>
+</main>
+<footer>© 2026 上海以和信息技术有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">沪ICP备17029250号-4</a></footer>
+<script>
+const byId=id=>document.getElementById(id);
+let selected=null, mapping=null, activeTab='ai';
+function el(name,text){const node=document.createElement(name);if(text!==undefined)node.textContent=String(text??'未知');return node}
+function showStatus(id,message){byId(id).textContent=message}
+function fact(label,value){const box=el('div');box.className='fact';box.append(el('span',label),el('strong',value));return box}
+function showFacts(sku){const box=byId('facts');box.replaceChildren();for(const [label,value] of [['产品',sku.product_family],['处理器平台',sku.platform],['统一内存',sku.memory_gb==null?'未知':sku.memory_gb+' GB'],['存储',sku.storage_tb==null?'未知':sku.storage_tb+' TB'],['CPU',sku.cpu_model],['GPU',sku.gpu_model],['系统',sku.operating_system]])box.append(fact(label,value))}
+function safeSource(value){try{const url=new URL(value);return url.protocol==='https:'?url.href:null}catch{return null}}
+function recordCard(record){const card=el('article');card.className='card';const title=record.model_size||record['推荐模型/工作负载名称']||record['游戏名称']||record['软件/工作负载']||'能力说明';card.append(el('h3',title));for(const [key,value] of Object.entries(record)){if(key==='model_size'||key==='推荐模型/工作负载名称'||key==='游戏名称'||key==='软件/工作负载'||key==='官方来源URL')continue;const row=el('p');row.append(el('strong',key+'：'),el('span',value));card.append(row)}const source=safeSource(record['官方来源URL']);if(source){const link=el('a','查看官方来源');link.href=source;link.target='_blank';link.rel='noopener noreferrer';card.append(link)}return card}
+function showMapping(){const box=byId('mapping');box.replaceChildren();if(!mapping)return;let entries=[];if(activeTab==='ai')entries=[...mapping.ai_models,...mapping.ai_ecosystem];else entries=mapping[activeTab]||[];for(const entry of entries)box.append(recordCard(entry));showStatus('mapping-status',entries.length+' 条；'+mapping.disclaimer)}
+async function choose(partNumber){showStatus('mapping-status','正在载入能力映射…');try{const response=await fetch('/api/guest/advisor/'+encodeURIComponent(partNumber));if(!response.ok)throw Error('读取配置失败');mapping=await response.json();selected=partNumber;showFacts(mapping.sku);showMapping()}catch(error){showStatus('mapping-status',error.message)}}
+async function init(){try{const response=await fetch('/api/guest/skus');if(!response.ok)throw Error('产品列表读取失败');const data=await response.json();const select=byId('sku');select.replaceChildren();for(const sku of data.items){const option=el('option',sku.part_number+' · '+sku.platform+' · '+(sku.memory_gb??'未知')+' GB');option.value=sku.part_number;select.append(option)}if(!data.items.length){showStatus('load-status','暂无可公开展示的产品配置');return}select.addEventListener('change',()=>choose(select.value));await choose(select.value);showStatus('load-status',data.note)}catch(error){showStatus('load-status',error.message)}}
+byId('tabs').addEventListener('click',event=>{const button=event.target.closest('button[data-tab]');if(!button)return;activeTab=button.dataset.tab;for(const item of byId('tabs').querySelectorAll('button'))item.setAttribute('aria-selected',String(item===button));showMapping()});
+function updateNeedFields(){for(const [usage,id] of [['ai','ai-fields'],['gaming','game-fields'],['generation','generation-fields'],['productivity','work-fields']])byId(id).hidden=!document.querySelector('input[name="usage"][value="'+usage+'"]:checked')}
+for(const input of document.querySelectorAll('input[name="usage"]'))input.addEventListener('change',updateNeedFields);
+byId('need-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const box=byId('recommendations');
+  box.replaceChildren(el('p','正在筛选…'));
+  const usages=[...document.querySelectorAll('input[name="usage"]:checked')].map(input=>input.value);
+  try{
+    const fps=byId('target-fps').value;
+    const body={usages,description:byId('description').value,ai_size:usages.includes('ai')?byId('ai-size').value:'unsure',game_need:usages.includes('gaming')?byId('game-need').value:'unsure',work_need:usages.includes('productivity')?byId('work-need').value:'unsure',generation_need:usages.includes('generation')?byId('generation-need').value:'unsure',model_name:usages.includes('ai')?byId('model-name').value:'',game_titles:usages.includes('gaming')?byId('game-titles').value:'',target_resolution:usages.includes('gaming')?byId('target-resolution').value:'unsure',target_fps:usages.includes('gaming')&&fps?Number(fps):null,software_name:usages.includes('productivity')?byId('software-name').value:''};
+    const response=await fetch('/api/guest/recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!response.ok)throw Error(response.status===429?'请求过于频繁，请稍后重试':'推荐请求失败（'+response.status+'），请稍后重试');
+    const data=await response.json();
+    const resultTitle=data.status==='no_match'?'当前没有匹配的产品配置':data.message||'工程候选如下';
+    box.replaceChildren(el('p',resultTitle));
+    if(data.interpreted_need){
+      const labels={ai:'本地 AI 模型',gaming:'游戏',generation:'生成式 AI',productivity:'生产力'};
+      const need=data.interpreted_need;
+      const summary=el('article');summary.className='card';
+      summary.append(el('h3','本次识别的需求'),el('p',(need.usages||[]).map(value=>labels[value]||value).join('、')||'未识别用途'));
+      if(need.ai_size&&need.ai_size!=='unsure')summary.append(el('p','模型规模：'+need.ai_size+'（容量筛选，不代表运行速度）'));
+      for(const reason of data.reasoning||[])summary.append(el('p',reason));
+      box.append(summary);
+    }
+    for(const item of data.items||[]){
+      const card=el('article');card.className='card';
+      card.append(el('h3',item.part_number+' · '+item.memory_gb+' GB'),el('p',item.reason),el('p','证据级别：'+item.evidence_level));
+      const button=el('button','查看此配置');button.type='button';
+      button.addEventListener('click',()=>{byId('sku').value=item.part_number;choose(item.part_number)});
+      card.append(button);box.append(card);
+    }
+    for(const note of data.needs_confirmation||[])box.append(el('p',note));
+    if(data.limitations)box.append(el('p',data.limitations));
+  }catch(error){box.replaceChildren(el('p',error.message))}
+});
+init();
+</script>
+</body>
+</html>

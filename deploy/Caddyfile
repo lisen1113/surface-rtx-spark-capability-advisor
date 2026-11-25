@@ -1,0 +1,22 @@
+surfacedmp.com {
+    encode gzip
+    @wechat_verify path /58hu67VlEg.txt
+    handle @wechat_verify {
+        root * /var/www/wechat-verification
+        file_server
+        header Cache-Control "no-store"
+    }
+    handle {
+        reverse_proxy 127.0.0.1:8011
+    }
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy same-origin
+        Strict-Transport-Security "max-age=31536000"
+    }
+}
+
+www.surfacedmp.com {
+    redir https://surfacedmp.com{uri} permanent
+}

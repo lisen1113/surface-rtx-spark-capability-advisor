@@ -1,0 +1,18 @@
+[Unit]
+Description=Capability Advisor encrypted COS backup and read-back verification
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=advisor
+Group=advisor
+WorkingDirectory=/opt/capability-advisor/deploy
+EnvironmentFile=/etc/capability-cos-backup.env
+ExecStart=/opt/capability-advisor/backup-venv/bin/python /opt/capability-advisor/deploy/run_cos_backup.py
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/capability-advisor/backups

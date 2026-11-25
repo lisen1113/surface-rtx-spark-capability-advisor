@@ -1,0 +1,6 @@
+{
+  "appid": "REPLACE_WITH_YOUR_MINIPROGRAM_APPID",
+  "compileType": "miniprogram",
+  "projectname": "surface-capability-advisor",
+  "miniprogramRoot": "./"
+}

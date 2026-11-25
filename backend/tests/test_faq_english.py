@@ -1,0 +1,56 @@
+from fastapi.testclient import TestClient
+import re
+
+from app.faq import FAQ
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def test_english_faq_keeps_source_identity_and_marks_untranslated_entries():
+    source = client.get('/api/faq?limit=20').json()
+    english = client.get('/api/faq?limit=20&lang=en').json()
+    assert source['indexed_total'] == english['indexed_total'] == len(FAQ)
+    assert english['translated_total'] == len(FAQ) == 219
+    for original, translated in zip(source['items'], english['items']):
+        assert translated['id'] == original['id']
+        assert translated['source_url'] == original['source_url']
+    assert english['items'][0]['question'] == 'What is Artificial intelligence (AI)?'
+    assert english['items'][0]['translation_status'] == 'translated_draft'
+    assert english['items'][18]['translation_status'] == 'translated_draft'
+    assert english['items'][18]['category'] == 'Model architectures'
+    for item in client.get('/api/faq?limit=219&lang=en').json()['items']:
+        assert not re.search(r'[\u3400-\u9fff]', ' '.join(item[key] for key in
+            ('question', 'easy_answer', 'expert_answer', 'misconception', 'sales_tip')))
+    assert client.get('/api/faq?limit=54&lang=en').json()['items'][36]['category'] == 'Models and memory'
+    assert client.get('/api/faq?limit=72&lang=en').json()['items'][54]['category'] == 'Inference performance'
+    assert client.get('/api/faq?limit=90&lang=en').json()['items'][72]['category'] == 'Quantization and precision'
+    assert client.get('/api/faq?limit=108&lang=en').json()['items'][90]['category'] == 'RTX Spark hardware'
+    assert client.get('/api/faq?limit=126&lang=en').json()['items'][108]['category'] == 'Windows and compatibility'
+    assert client.get('/api/faq?limit=126&lang=en').json()['items'][108]['source_url'].startswith('https://learn.microsoft.com/')
+    assert client.get('/api/faq?limit=144&lang=en').json()['items'][126]['category'] == 'Local AI deployment'
+    assert client.get('/api/faq?limit=144&lang=en').json()['items'][136]['source_url'] == 'https://nvidia.github.io/TensorRT-LLM/reference/support-matrix.html'
+    assert client.get('/api/faq?limit=158&lang=en').json()['items'][144]['category'] == 'Generative AI'
+    assert client.get('/api/faq?limit=170&lang=en').json()['items'][158]['category'] == 'Security and privacy'
+    assert client.get('/api/faq?limit=170&lang=en').json()['items'][162]['source_url'] == 'https://genai.owasp.org/glossary/prompt-injection/'
+    assert client.get('/api/faq?limit=180&lang=en').json()['items'][170]['category'] == 'Selection and sales'
+    assert client.get('/api/faq?limit=185&lang=en').json()['items'][180]['category'] == 'Surface Laptop Ultra'
+    assert client.get('/api/faq?limit=206&lang=en').json()['items'][200]['category'] == 'Security and privacy'
+    assert client.get('/api/faq?limit=215&lang=en').json()['items'][212]['category'] == 'Security and privacy'
+    final_item = client.get('/api/faq?limit=219&lang=en').json()['items'][218]
+    assert final_item['translation_status'] == 'translated_draft'
+    assert final_item['id'] == 'FAQ-219'
+
+
+def test_english_faq_search_and_home_request_language():
+    result = client.get('/api/faq?lang=en&q=Embedding%20vector').json()
+    assert result['total'] == 2
+    assert all(item['translation_status'] == 'translated_draft' for item in result['items'])
+    page = client.get('/en').text
+    assert "+'&lang=en'" in page
+    assert 'English translation pending' in page
+    assert 'Engineering memory screening tier:' in page
+    assert 'The PDF describes this SKU.' in page
+    assert 'Monthly cloud fee minus local operating cost' in page
+    assert 'Share of device cost allocated to AI' in page

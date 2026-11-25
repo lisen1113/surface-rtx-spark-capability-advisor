@@ -1,0 +1,27 @@
+node_modules/
+.next/
+dist/
+build/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite3
+coverage/
+preview-*.log
+artifacts/
+backend/tmp/
+.DS_Store
+miniprogram/project.config.json
+miniprogram/project.private.config.json
+
+# Private local commercial data, encryption keys and development credentials.
+*.key
+.commercial-local/
+backend/.pytest-commercial*/
+.test-tmp/
+backend/.pytest-tmp*/

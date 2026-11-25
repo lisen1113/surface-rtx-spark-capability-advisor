@@ -1,0 +1,23 @@
+[Unit]
+Description=Surface / RTX Spark Capability Advisor API
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=advisor
+Group=advisor
+WorkingDirectory=/opt/capability-advisor
+EnvironmentFile=/etc/capability-advisor.env
+ExecStart=/opt/capability-advisor/.venv/bin/uvicorn app.main:app --app-dir /opt/capability-advisor/backend --host 127.0.0.1 --port 8011
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

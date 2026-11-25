@@ -1,0 +1,113 @@
+"""Chinese account and administrator screens for the local application."""
+from fastapi import APIRouter
+from fastapi.responses import HTMLResponse, RedirectResponse
+from .branding import apply_theme
+
+router = APIRouter()
+STYLE = """body{font:15px/1.55 system-ui,'Microsoft YaHei';background:#f7f8fa;color:#101828;margin:0}.wrap{max-width:920px;margin:40px auto;padding:20px}.panel{background:white;border:1px solid #e4e7ec;border-radius:14px;padding:22px;margin:14px 0}label{display:block;font-weight:650;margin:10px 0}input,select{display:block;box-sizing:border-box;width:100%;padding:10px;border:1px solid #98a2b3;border-radius:8px;background:white}input[type=checkbox]{display:inline;width:auto;padding:0}button{padding:10px 16px;background:#175cd3;color:white;border:0;border-radius:8px;cursor:pointer;margin:5px}.muted{color:#667085}.ok{color:#067647}.err{color:#b42318}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d0d5dd;padding:7px;text-align:left}th{background:#eaf1fb}a{color:#175cd3}pre{white-space:pre-wrap}"""
+
+
+def page(title: str, body: str, script: str) -> str:
+    return apply_theme(f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>{STYLE}</style></head><body><main class="wrap">{body}<footer class="muted">© 2026 上海以和信息技术有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">沪ICP备17029250号-4</a></footer></main><script>{script}</script></body></html>''')
+
+
+def language_switch(page_html: str, english: bool = False) -> str:
+    current = 'English' if english else '中文'
+    other = '中文' if english else 'English'
+    current_path = '/en' if english else ''
+    other_path = '' if english else '/en'
+    # The caller's page URL is used so language changes stay on the same page.
+    import re
+    title = re.search(r'<title>(.*?)</title>', page_html).group(1)
+    path = {'用户服务协议': '/terms', '隐私政策': '/privacy', '账号与登录': '/account', '管理员控制台': '/admin',
+            'Terms of Service': '/terms', 'Privacy Policy': '/privacy', 'Account': '/account', 'Admin Console': '/admin'}[title]
+    nav = (f'<nav aria-label="Language" style="text-align:right"><a href="{current_path}{path}" aria-current="page">{current}</a>'
+           f' | <a href="{other_path}{path}">{other}</a></nav>')
+    return page_html.replace('<main class="wrap">', '<main class="wrap">' + nav, 1)
+
+
+@router.get('/en/terms', response_class=HTMLResponse)
+def terms_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(terms_page().body.decode('utf-8'), 'terms'), headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/privacy', response_class=HTMLResponse)
+def privacy_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(privacy_page().body.decode('utf-8'), 'privacy'), headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/account', response_class=HTMLResponse)
+def account_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(account_page(), 'account'), headers={"Cache-Control": "no-store"})
+
+
+@router.get('/en/admin', response_class=HTMLResponse)
+def admin_page_en():
+    from .auth_en import translate_auth
+    return HTMLResponse(translate_auth(admin_page(), 'admin'), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/terms", response_class=HTMLResponse)
+def terms_page():
+    body = '''<h1>用户服务协议</h1><p class="muted">上海以和信息技术有限公司 · 2026 年 10 月 31 日生效</p><p><a href="/account">返回账号页</a> · <a href="/privacy">查看隐私政策</a></p>
+<section class="panel"><h2>服务与适用范围</h2><p>本服务提供 Surface 产品配置查询、按需求筛选、能力说明及报告预览和下载。公开游客功能无需注册；内部工作台需完成邮箱验证、管理员审批和有效 License 授权。注册不代表自动获得内部访问权限。</p></section>
+<section class="panel"><h2>账号使用</h2><p>注册时请提供真实的组织名称和可接收验证邮件的邮箱，设置独立密码。请妥善保管账号，不与他人共享；发现异常访问时及时联系我们。管理员可因账号安全、授权到期或违规使用暂停访问。</p></section>
+<section class="panel"><h2>产品资料与报告</h2><p>配置及价格以所标注的数据来源和更新时间为准，采购前应核对实际料号与报价。官方资料、实测结果、工程估算和未知信息会分别标注；推荐是筛选候选，不构成具体软件兼容性、游戏帧率或模型速度承诺。用户输入需求描述时请勿包含密码、客户机密或无关个人信息。</p></section>
+<section class="panel"><h2>服务变更与联系</h2><p>我们可能因维护、安全或授权变化调整服务，并在合理范围内告知。个人信息处理遵循<a href="/privacy">《隐私政策》</a>。有关账号或服务的问题可发送邮件至 <a href="mailto:yihe@yiheit.net">yihe@yiheit.net</a>。</p></section>'''
+    return HTMLResponse(language_switch(page("用户服务协议", body, "")), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+def privacy_page():
+    body = '''<h1>隐私政策</h1><p class="muted">上海以和信息技术有限公司 · 2026 年 10 月 31 日生效</p><p><a href="/account">返回账号页</a> · <a href="/terms">查看用户服务协议</a></p>
+<section class="panel"><h2>处理者与收集范围</h2><p>上海以和信息技术有限公司运营本服务。注册时收集组织名称、邮箱和密码；密码以不可逆散列形式保存。邮箱验证、密码重置和登录会处理一次性令牌、会话状态及必要的安全审计记录。内部报告会处理您主动提交的用途、预算、软件或模型名称和自由描述；请勿填写客户机密或无关个人信息。公开游客浏览无需提交注册信息。</p></section>
+<section class="panel"><h2>目的、方式与保存</h2><p>上述信息仅用于建立和验证账号、管理员审批、管理 License、提供顾问与报告服务、防止滥用及排查安全问题。非管理员在私人设备选择保持登录时，服务端会话最长约 7 天；退出、重置密码或授权失效后可撤销。我们在实现这些目的及履行法律义务所需的期限内保存相关记录，期满后删除或匿名化。报告下载票据为短时、单次使用。</p></section>
+<section class="panel"><h2>共享与安全</h2><p>我们不会出售注册信息。提供托管、邮件发送或安全运维所必需的服务商可能按约定处理必要数据；依法要求披露时按法律规定办理。我们采用访问控制、密码散列、HTTPS、会话和审计措施，限制内部人员访问。请勿在共用设备选择保持登录。</p></section>
+<section class="panel"><h2>您的权利</h2><p>您可申请查询、更正、删除个人信息、撤回同意或注销账号；撤回同意或注销可能使注册及内部功能无法继续使用。请通过 <a href="mailto:yihe@yiheit.net">yihe@yiheit.net</a> 联系我们，说明登记邮箱和请求事项；核实身份后我们会按法律要求处理。若政策有重大变化，我们会在服务内提示并按需要重新取得同意。</p></section>
+<section class="panel"><h2>其他网站与小程序</h2><p>小程序可打开 yiheit.net 官网和 surfacedmp.com 顾问页；访问第三方链接时应阅读对应网站的规则。有关官网的信息处理另见<a href="https://yiheit.net/privacy-policy/" target="_blank" rel="noopener">官网隐私政策</a>。本政策适用于本顾问的注册与使用。</p></section>'''
+    return HTMLResponse(language_switch(page("隐私政策", body, "")), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/login.html", include_in_schema=False)
+def legacy_login_page():
+    """Keep old-site login bookmarks usable after the domain cutover."""
+    return RedirectResponse("/account", status_code=302)
+
+
+@router.get("/account", response_class=HTMLResponse)
+def account_page():
+    body = '''<h1>Capability Advisor 账号</h1><p><a href="/">返回能力顾问</a> · <a href="/guest">游客体验（无需登录）</a></p>
+<section class="panel"><h2>登录</h2><label>邮箱<input id="lemail" type="email" autocomplete="email"></label><label>密码<input id="lpassword" type="password" autocomplete="current-password"></label><label>管理员动态验证码（已启用 MFA 时填写）<input id="lmfa" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><label><input id="remember" type="checkbox" checked> 在此设备保持登录 7 天（管理员不适用；请勿在共用设备勾选）</label><button onclick="login()">登录</button><button onclick="logout()">退出</button><p id="loginstatus" class="muted"></p><p id="advisorlink" hidden><a href="/">进入能力顾问（请在当前标签页打开）</a></p></section>
+<section class="panel"><h2>注册</h2><label>组织名称<input id="org"></label><label>邮箱<input id="remail" type="email" autocomplete="email"></label><label>密码（至少 12 位）<input id="rpassword" type="password" autocomplete="new-password"></label><label><input id="acceptterms" type="checkbox"> 我已阅读并同意<a href="/terms">《用户服务协议》</a></label><label><input id="acceptprivacy" type="checkbox"> 我已阅读并同意<a href="/privacy">《隐私政策》</a>，知悉注册信息的使用目的、方式和范围</label><button onclick="register()">提交注册</button><p id="registerstatus" class="muted"></p></section>
+<section class="panel"><h2>邮箱验证</h2><p class="muted">注册后输入邮件中的一次性验证码；验证码有效期为 24 小时。验证完成后，还需等待管理员审批和组织 License 授权。</p><label>登记邮箱<input id="verifyemail" type="email" autocomplete="email"></label><label>邮箱验证码<input id="verifytoken" autocomplete="one-time-code"></label><button onclick="confirmEmail()">确认邮箱</button><button onclick="resendEmail()">重发验证码</button><p id="verifystatus" class="muted"></p></section>
+<section class="panel"><h2>重置密码</h2><p class="muted">申请后请从已配置的邮件通道获取 30 分钟有效的一次性令牌。本地开发仅在显式开启开发令牌时显示令牌。</p><label>登记邮箱<input id="resetemail" type="email"></label><button onclick="requestReset()">申请重置</button><label>重置令牌<input id="resettoken"></label><label>新密码（至少 12 位）<input id="newpassword" type="password" autocomplete="new-password"></label><button onclick="confirmReset()">更新密码并撤销旧会话</button><p id="resetstatus" class="muted"></p></section>
+<section class="panel"><h2>当前账号</h2><pre id="me">尚未登录</pre><p><a href="/admin">管理员控制台</a></p></section>'''
+    script = r'''const $=s=>document.querySelector(s),token=()=>sessionStorage.getItem('cap_token'),headers=()=>({Authorization:'Bearer '+token()});
+async function result(r){let d=await r.json().catch(()=>({}));return [d,d.detail||d.message||'请求失败']}
+async function login(){let r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#lemail').value,password:$('#lpassword').value,mfa_code:$('#lmfa').value||null,remember_me:$('#remember').checked})}),[d,m]=await result(r);if(r.ok){sessionStorage.setItem('cap_token',d.access_token);$('#lpassword').value='';$('#loginstatus').className='ok';$('#loginstatus').textContent='登录成功';$('#advisorlink').hidden=false;let user=await me();if(user&&(user.role!=='admin'||new URLSearchParams(location.search).get('next')==='/workplace/admin')&&user.status==='approved'&&user.email_verified)window.location.assign(accountDestination())}else{$('#loginstatus').className='err';$('#loginstatus').textContent=m}}
+async function register(){if(!$('#acceptterms').checked||!$('#acceptprivacy').checked){$('#registerstatus').className='err';$('#registerstatus').textContent='请先阅读并同意用户服务协议和隐私政策';return}let r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({organization_name:$('#org').value,email:$('#remail').value,password:$('#rpassword').value,accepted_terms:true,accepted_privacy:true})}),[d,m]=await result(r);$('#registerstatus').className=r.ok?'ok':'err';$('#registerstatus').textContent=r.ok?(d.verification_mail_sent?'注册成功，请查收验证邮件':'注册成功；邮件服务尚未配置，请联系管理员人工核验邮箱')+', 完成后等待审批与 License 授权':m;if(r.ok){$('#verifyemail').value=d.email;if(d.development_token){$('#verifytoken').value=d.development_token;$('#registerstatus').textContent+='；本地开发验证码已填入'}}}
+async function confirmEmail(){let r=await fetch('/api/auth/verify-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:$('#verifytoken').value})}),[d,m]=await result(r);$('#verifystatus').className=r.ok?'ok':'err';$('#verifystatus').textContent=r.ok?'邮箱已验证，等待管理员审批及 License 授权':m}
+async function resendEmail(){let r=await fetch('/api/auth/verify-email/resend',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#verifyemail').value})}),[d,m]=await result(r);$('#verifystatus').className=r.ok?'ok':'err';$('#verifystatus').textContent=r.ok?m:m;if(d.development_token){$('#verifytoken').value=d.development_token;$('#verifystatus').textContent+='；本地开发验证码已填入'}}
+async function requestReset(){let r=await fetch('/api/auth/password-reset/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#resetemail').value})}),[d,m]=await result(r);$('#resetstatus').className=r.ok?'ok':'err';$('#resetstatus').textContent=r.ok?m+(d.development_token?'；开发令牌：'+d.development_token:''):m;if(d.development_token)$('#resettoken').value=d.development_token}
+async function confirmReset(){let r=await fetch('/api/auth/password-reset/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:$('#resettoken').value,new_password:$('#newpassword').value})}),[d,m]=await result(r);$('#resetstatus').className=r.ok?'ok':'err';$('#resetstatus').textContent=r.ok?'密码已更新，所有旧会话已撤销，请重新登录':m;if(r.ok)sessionStorage.removeItem('cap_token')}
+async function me(){if(!token())return null;let r=await fetch('/api/auth/me',{headers:headers()});let user=r.ok?await r.json():null;if(!user)sessionStorage.removeItem('cap_token');$('#me').textContent=user?JSON.stringify(user,null,2):'会话无效';$('#advisorlink').hidden=!user;return user}
+async function restore(){if(await me()){if(['/surface','/workplace','/workplace/admin'].includes(new URLSearchParams(location.search).get('next')))window.location.replace(accountDestination());return;}let r=await fetch('/api/auth/restore',{credentials:'same-origin'});if(!r.ok)return;let d=await r.json();sessionStorage.setItem('cap_token',d.access_token);let user=await me();if(user&&user.role!=='admin')window.location.replace(accountDestination())}
+async function logout(){if(token())await fetch('/api/auth/logout',{method:'POST',headers:headers()});sessionStorage.removeItem('cap_token');$('#me').textContent='尚未登录';$('#advisorlink').hidden=true;$('#loginstatus').textContent='已退出'}restore();'''
+    script += "function accountDestination(){const next=new URLSearchParams(location.search).get('next');return ['/surface','/workplace','/workplace/admin'].includes(next)?next:'/';}document.querySelector('#advisorlink a').href=accountDestination();"
+    return language_switch(page("账号与登录", body, script))
+
+
+@router.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    body = '''<h1>管理员控制台</h1><p><a href="/account">账号页</a> · <a href="/">能力顾问</a></p><p id="status" class="muted">使用账号页登录管理员后刷新。</p><section class="panel"><h2>管理员动态验证码（MFA）</h2><p class="muted">受保护部署必须先启用 MFA 才能审批用户或管理 License。请在安全设备上的验证器应用手动添加下述密钥；不要截图、转发或记录在工单中。启用后所有旧会话会失效。</p><p id="mfastatus" class="muted"></p><div id="mfasetup" hidden><label>再次输入管理员密码<input id="mfapassword" type="password" autocomplete="current-password"></label><button onclick="enrollMfa()">获取验证器密钥</button><p id="mfasecret" class="muted"></p><label>验证器当前 6 位动态码<input id="mfacode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><button onclick="confirmMfa()">启用 MFA</button></div></section><section class="panel"><h2>用户审批</h2><div id="users"></div></section><section class="panel"><h2>License 设置</h2><label>组织<select id="orgid"><option value="">请选择组织</option></select></label><label>席位<input id="seats" type="number" min="1" value="5"></label><label>到期时间<input id="expiry" type="datetime-local"></label><button onclick="saveLicense()">保存 License</button></section><section class="panel"><h2>最近审计</h2><div id="audit"></div></section>'''
+    script = r'''const $=s=>document.querySelector(s),token=()=>sessionStorage.getItem('cap_token'),h=()=>({Authorization:'Bearer '+token(),'Content-Type':'application/json'}),escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function action(id,type){let r=await fetch('/api/admin/users/'+id+'/'+type,{method:'POST',headers:h()});if(!r.ok)alert((await r.json()).detail);load()}
+async function saveLicense(){let orgId=Number($('#orgid').value),seats=Number($('#seats').value),exp=new Date($('#expiry').value);if(!Number.isInteger(orgId)||orgId<1){alert('请先选择组织');return}if(!Number.isInteger(seats)||seats<1){alert('席位必须是正整数');return}if(Number.isNaN(exp.valueOf())){alert('请选择有效到期时间');return}let r=await fetch('/api/admin/licenses',{method:'PUT',headers:h(),body:JSON.stringify({organization_id:orgId,seats:seats,expires_at:exp.toISOString()})});alert(r.ok?'License 已保存':(await r.json()).detail);load()}
+async function mfaStatus(){if(!token())return;let r=await fetch('/api/admin/mfa/status',{headers:h()});if(!r.ok){$('#mfastatus').textContent=(await r.json()).detail||'请先登录管理员';return}let d=await r.json();$('#mfastatus').textContent=d.enabled?'MFA 已启用；登录时必须输入动态码':d.configured?'MFA 尚未启用；请先完成下方设置':'服务器尚未配置 MFA 主密钥；请联系部署管理员';$('#mfasetup').hidden=d.enabled||!d.configured}
+async function enrollMfa(){let r=await fetch('/api/admin/mfa/enroll',{method:'POST',headers:h(),body:JSON.stringify({password:$('#mfapassword').value})}),d=await r.json();$('#mfapassword').value='';$('#mfasecret').textContent=r.ok?'验证器手动添加密钥（仅此处显示）：'+d.secret:(d.detail||'无法获取密钥')}
+async function confirmMfa(){let r=await fetch('/api/admin/mfa/confirm',{method:'POST',headers:h(),body:JSON.stringify({code:$('#mfacode').value})}),d=await r.json();if(r.ok){sessionStorage.removeItem('cap_token');$('#mfasecret').textContent='';$('#mfacode').value='';$('#mfastatus').textContent=d.message+'；请返回账号页登录'}else{$('#mfastatus').textContent=d.detail||'验证码无效'}}
+async function load(){mfaStatus();let u=await fetch('/api/admin/users',{headers:h()});if(!u.ok){$('#status').className='err';$('#status').textContent='需要管理员登录并启用 MFA';return}let users=(await u.json()).items;$('#status').className='ok';$('#status').textContent='管理员会话有效';$('#users').innerHTML='<table><tr><th>用户 ID</th><th>组织</th><th>邮箱</th><th>状态</th><th>操作</th></tr>'+users.map(x=>`<tr><td>${x.id}</td><td>${escapeHtml(x.organization_name||'-')}</td><td>${escapeHtml(x.email)}</td><td>${x.email_verified?'邮箱已验证':'待验证'} / ${escapeHtml(x.status)}</td><td>${x.email_verified?'':`<button onclick="action(${Number(x.id)},'verify-email')">验证邮箱</button>`}${x.status==='approved'?'':`<button onclick="action(${Number(x.id)},'approve')">批准</button>`}</td></tr>`).join('')+'</table>';let selected=$('#orgid').value;let orgs=[...new Map(users.filter(x=>x.organization_id&&x.organization_name).map(x=>[Number(x.organization_id),x.organization_name])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'zh-CN'));$('#orgid').innerHTML='<option value="">请选择组织</option>'+orgs.map(([id,name])=>`<option value="${id}">${escapeHtml(name)}（ID ${id}）</option>`).join('');if(orgs.some(([id])=>String(id)===selected))$('#orgid').value=selected;let a=await fetch('/api/admin/audit?limit=30',{headers:h()}),logs=(await a.json()).items;$('#audit').innerHTML='<table><tr><th>时间</th><th>动作</th><th>对象</th></tr>'+logs.map(x=>`<tr><td>${escapeHtml(x.occurred_at)}</td><td>${escapeHtml(x.action)}</td><td>${escapeHtml(x.target_type||'')} ${escapeHtml(x.target_id||'')}</td></tr>`).join('')+'</table>'}load();'''
+    return language_switch(page("管理员控制台", body, script))

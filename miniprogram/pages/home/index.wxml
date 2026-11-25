@@ -1,0 +1,52 @@
+<view class="home">
+  <view class="brand-strip">
+    <image class="brand-logo" src="/assets/yihe-logo.png" mode="aspectFit" aria-label="上海以和信息技术有限公司" />
+    <view class="brand-divider"></view>
+    <view class="surface-brand"><image src="/assets/microsoft-surface.png" mode="widthFix" aria-label="Microsoft Surface" /></view>
+  </view>
+
+  <view class="hero">
+    <text class="eyebrow">IT 数字化 · AI 应用</text>
+    <view class="title"><text>连接产品、技术</text><text>与真实场景。</text></view>
+    <text class="description">从企业数字化到AI应用一站式解决方案提供商</text>
+    <text class="description">设备选型与 AI 能力 · Surface 租赁 · M365 与 Copilot 订阅</text>
+    <navigator class="hero-action" url="/pages/company/index" hover-class="hero-action-active" aria-label="走进以和，浏览公开官网">
+      <text>走进以和</text><text aria-hidden="true">↗</text>
+    </navigator>
+  </view>
+
+  <view class="quick-start">
+    <text class="section-title">快速开始</text>
+    <navigator class="entry entry-query" url="/pages/surface/index" hover-class="entry-active" aria-label="Surface SKU 查询，需登录并通过授权">
+      <text class="entry-kicker">SURFACE SKU FINDER</text>
+      <text class="entry-title">Surface SKU 查询</text>
+      <text class="entry-description">全品类筛选 · 配件延保 · PDF 产品资料</text>
+      <text class="entry-arrow" aria-hidden="true">→</text>
+    </navigator>
+    <navigator class="entry entry-workplace" url="/pages/workplace/index" hover-class="entry-active" aria-label="Surface AI Workplace租赁及订阅，无需登录">
+      <text class="entry-kicker">SURFACE AI WORKPLACE</text>
+      <text class="entry-title">Surface AI Workplace租赁及订阅</text>
+      <text class="entry-description">无需登录 · 按需选型 · 查看预算及付款计划</text>
+      <text class="entry-arrow" aria-hidden="true">→</text>
+    </navigator>
+    <navigator class="entry entry-guest" url="/pages/guest/index" hover-class="entry-active" aria-label="Surface能力顾问，无需登录">
+      <text class="entry-kicker">PUBLIC EXPERIENCE</text>
+      <text class="entry-title">Surface能力顾问</text>
+      <text class="entry-description">选产品 · 看 AI 与生产力场景</text>
+      <text class="entry-arrow" aria-hidden="true">→</text>
+    </navigator>
+    <navigator class="entry entry-internal" url="/pages/advisor/index" hover-class="entry-active" aria-label="进入内部工作台，需登录并通过授权">
+      <text class="entry-kicker">TEAM WORKSPACE</text>
+      <text class="entry-title">进入内部工作台</text>
+      <text class="entry-description">员工与DMP · 需登录并通过授权</text>
+      <text class="entry-arrow" aria-hidden="true">→</text>
+    </navigator>
+  </view>
+
+  <view class="bottom-nav" aria-label="小程序导航">
+    <view class="nav-item nav-current"><text class="nav-icon">⌂</text><text>首页</text></view>
+    <navigator class="nav-item" url="/pages/guest/index" aria-label="能力体验"><text class="nav-icon">✧</text><text>能力体验</text></navigator>
+    <navigator class="nav-item" url="/pages/company/index" aria-label="以和官网"><text class="nav-icon">▤</text><text>以和官网</text></navigator>
+    <navigator class="nav-item" url="/pages/advisor/index" aria-label="我的内部工作台"><text class="nav-icon">♙</text><text>我的</text></navigator>
+  </view>
+</view>

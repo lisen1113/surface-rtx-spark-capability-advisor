@@ -1,0 +1,1 @@
+<web-view src="{{workplaceUrl}}" binderror="onWebViewError" />

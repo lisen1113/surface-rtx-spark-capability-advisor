@@ -1,0 +1,8 @@
+{
+  "pages": ["pages/home/index", "pages/company/index", "pages/guest/index", "pages/advisor/index", "pages/report/index", "pages/surface/index", "pages/workplace/index"],
+  "window": {
+    "navigationBarTitleText": "上海以和信息技术",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black"
+  }
+}
